@@ -6,7 +6,7 @@ El sistema debe permitir que un dispositivo emisor transmita audio a
 varios dispositivos receptores conectados a la misma red Wi-Fi, buscando
 que la reproducción ocurra de manera simultánea entre los receptores.
 
-Usuario,
+Tipo de usuario,
 Emisor y receptores.
 
 Problema que resuelve,
