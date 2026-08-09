@@ -1,7 +1,7 @@
 Problema
 
 Actualmente si se quiere compartir el mismo audio en tiempo real entre varios dispositivos, se necesita utilizar físicamente algún cable o adaptador y además,
-hay modelos de computadores o teléfonos que no reciben muy bien varios dispositivos vinculados por Bluetooth, cosa que resulta inconveniente. 
+hay modelos de computadores o teléfonos que no reciben muy bien varios dispositivos vinculados por Bluetooth o de plano no tienen la opción, cosa que resulta inconveniente. 
 
 Prototipo 
 
