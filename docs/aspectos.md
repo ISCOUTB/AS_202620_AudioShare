@@ -21,20 +21,8 @@ red Wi-Fi.
 2) Los dispositivos receptores deben reproducir el audio
 transmitido de forma sincronizada.
 
-Consideración arquitectónica,
-La transmisión simultánea del audio requiere controlar aspectos como
-la latencia de red, el envío de datos y la sincronización de la
-reproducción entre los dispositivos receptores.
-
 Escenario de calidad inicial,
 Dado un dispositivo emisor y varios dispositivos receptores conectados
 a la misma red Wi-Fi, cuando el emisor inicia la reproducción, los
 receptores deben comenzar la reproducción con una diferencia de tiempo
 que permita percibir el audio como simultáneo.
-
-Estado,
-Aspecto declarado en la semana 1.
-
-Los escenarios de calidad, decisiones arquitectónicas, diagramas,
-implementación, pruebas y evidencias serán definidos durante las
-siguientes etapas del proyecto.
