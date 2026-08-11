@@ -24,7 +24,7 @@ Herramientas:
 Como herramienta de apoyo se podrá utilizar:
 - ChatGPT.
 - Geminis
-- Claudia
+- Claude
 - etc.
 
 Verificación de resultados:
