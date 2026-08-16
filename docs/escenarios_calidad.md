@@ -32,5 +32,6 @@ Medida: El nuevo receptor debe alcanzar la sincronización con los demás dispos
 ##
 
 Estos serian algunos de los casos principales para verificar el correcto funcionamiento de nuestro proyecto
+
 Mientras avancemos, plantearemos otros escenarios posibles
 
