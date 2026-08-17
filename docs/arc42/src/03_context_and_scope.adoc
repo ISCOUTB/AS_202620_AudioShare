@@ -1,0 +1,33 @@
+== Contexto y alcance
+
+=== Contexto de negocios
+
+AudioShare está dirigido a personas que desean escuchar en tiempo real el audio reproducido desde un dispositivo emisor utilizando sus propios dispositivos de reproducción, el sistema lo que hace es recibir
+el audio proporcionado por el dispositivo emisor y permite que múltiples usuarios conectados a una misma sala puedan recibirlo y reproducirlo.
+
+Los principales participantes del contexto son:
+
+- Usuario emisor: inicia una sala y proporciona el audio que será transmitido.
+- Usuario receptor: se une a una sala y recibe el audio transmitido.
+- Moderador: administra los participantes de la sala.
+
+=== Contexto técnico
+
+AudioShare se utilizará inicialmente con dispositivos en una misma red wifi y los principales elementos tecnicos externos son: 
+
+- Dispositivo emisor
+- Dispositivos receptores
+- Red Wi-Fi
+- Cliente de AudioSharez mediante el cual los usuarios crean o se unen a salas y utilizan las funciones del sistema.
+
+Se va a evaluar las tecnologías como WebRTC y WebSockets para determinar cual es el mecanismo más adecuado para la comunicación en tiempo real.
+
+=== Alcance
+
+- Creación y gestión de salas.
+- Unión a las salas mediante código.
+- Transmisión de audio en tiempo real.
+- Conexión de múltiples dispositivos receptores.
+- Control individual del volumen.
+- Administración de participantes por parte del moderador.
+
