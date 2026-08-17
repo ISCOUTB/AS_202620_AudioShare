@@ -1,0 +1,7 @@
+# Restricciones de arquitectura
+
+El primer prototipo va a desarrollarse sin ningún costo económico por lo que utilizaremos herramientas gratuitas que no impliquen ello, se 
+busca validar la estructura arquitectónica en esta primera versión. A su vez, el programa funcionará localmente sobre una red wifi, lo que nos 
+permitirá hacer pruebas de la transmisión sin usar infraestructura publica. Se deberá seleccionar un mecanismo que ayude con la transmisión de 
+audio y comunicación, por lo que se van a evaluar alternativas como WebRTC y WebSockets considerando cosas como la latencia y las necesidades
+del proyecto. 
