@@ -1,0 +1,27 @@
+# Introducción y objetivos
+
+## Resumen de requisitos
+
+AudioShare permite que se pueda transmitir en tiempo real el audio reproducido en un dispositivo emisor hacia otros dispositivos receptores
+conectados en una misma sala. El objetivo principal es hacer que varias personas que quieren escuchar audio al mismo tiempo puedan hacerlo sin estar utilizando físicamente un único dispositivo de reproducción. 
+
+Los requisitos funcionales son poder: 
+
+- Crear una sala de audio.
+- Hacer que varios usuarios se unan con un código.
+- Transmitir el audio desde un dispositivo emisor hacia otros receptores.
+- Controlar individualmente el volumen de los receptores
+- Hacer que el moderador administre los participantes.
+
+El primer prototipo funcionará y estará enfocada sobre dispositivos en una red de wifi local.
+  
+# Objetivos de calidad
+
+Buscaremos principalmente los siguientes aspectos: 
+- Rendimiento: Tratar de mantener una baja latencia durante la transmisión para que no haya mucho retraso al escuchar el audio.
+- Disponibilidad: Tratar de mantener activa y funcional la transmisión el mayor tiempo posible siempre que exista una conexión estable entre
+  los dispositivos.
+- Tolerancia a fallos: Buscar que en caso de una interrupción en la conexión, se pueda poder reconectar.
+- Escalabilidad: Permitir que una sala pueda tener y manejar a varios dispositivos receptores. 
+
+
