@@ -1,17 +1,20 @@
-# Arc42
+# Introducción y objetivos
+
+## Resumen de requisitos
 
 AudioShare permite que se pueda transmitir en tiempo real el audio reproducido en un dispositivo emisor hacia otros dispositivos receptores
-conectados en una misma sala. Se piensa para cuando varias personas quieren escuchar audio al mismo tiempo sin estar utilizando
-físicamente un único dispositivo de reproducción y funcionará sobre una red de wifi local donde se podrá crear una sala y los demás usuarios
-se podrán conectar con un código de acceso y escuchar simultáneamente el audio compartido.
+conectados en una misma sala. El objetivo principal es hacer que varias personas que quieren escuchar audio al mismo tiempo puedan hacerlo sin estar utilizando físicamente un único dispositivo de reproducción. 
 
-# Restricciones de arquitectura
+Los requisitos funcionales son poder: 
 
-El primer prototipo va a desarrollarse sin ningún costo económico por lo que utilizaremos herramientas gratuitas que no impliquen ello, se 
-busca validar la estructura arquitectónica en esta primera versión. A su vez, el programa funcionará localmente sobre una red wifi, lo que nos 
-permitirá hacer pruebas de la transmisión sin usar infraestructura publica. Se deberá seleccionar un mecanismo que ayude con la transmisión de 
-audio y comunicación, por lo que se van a evaluar alternativas como WebRTC y WebSockets considerando cosas como la latencia y las necesidades
-del proyecto. 
+- Crear una sala de audio.
+- Hacer que varios usuarios se unan con un código.
+- Transmitir el audio desde un dispositivo emisor hacia otros receptores.
+- Controlar individualmente el volumen de los receptores
+- Hacer que el moderador administre los participantes.
+
+El primer prototipo funcionará y estará enfocada sobre dispositivos en una red de wifi local.
+  
 
 # Objetivos de calidad
 
@@ -21,3 +24,5 @@ Buscaremos principalmente los siguientes aspectos:
   los dispositivos.
 - Tolerancia a fallos: Buscar que en caso de una interrupción en la conexión, se pueda poder reconectar.
 - Escalabilidad: Permitir que una sala pueda tener y manejar a varios dispositivos receptores. 
+
+
