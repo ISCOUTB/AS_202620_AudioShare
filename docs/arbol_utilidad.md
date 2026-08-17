@@ -1,19 +1,62 @@
-Árbol de utilidad – AudioShare
+# Árbol de utilidad – AudioShare
 
-El propósito será ver que atributos de calidad que tienen mayor impacto y establecer cuáles deben ser priorizados durante el diseño y desarrollo del sistema.
+El árbol de utilidad permite identificar los atributos de calidad más
+importantes para AudioShare y establecer cuáles deben ser priorizados
+durante el diseño y desarrollo del sistema.
 
-1.Rendimiento.
+La prioridad se establece teniendo en cuenta que la función principal
+de AudioShare es transmitir audio en tiempo real y mantener una
+reproducción sincronizada entre varios dispositivos.
 
-El rendimiento es el atributo que se prioriza principalmente porque la función principal de la aplicación es transmitir audio entre dispositivos. Una transmisión con una latencia elevada afectaría directamente la experiencia de los usuarios y podría hacer que el audio deje de ser útil para una reproducción compartida.
+## 1. Rendimiento — Alta prioridad
 
-2.Disponibilidad y confiabilidad.
+El rendimiento es el atributo de mayor prioridad debido a que la
+función principal de AudioShare es transmitir audio entre dispositivos
+en tiempo real. Una latencia elevada afectaría directamente la
+sincronización de la reproducción y la experiencia de los usuarios.
 
-La disponibilidad es importante porque depende de una comunicación constante entre los dispositivos conectados a una sala, si esta conexión se interrumpe constantemente o si la sala deja de funcionar ante una desconexión, la experiencia de uso se ve afectada. Entonces, se prioriza que las salas permanezcan funcionales mientras exista una conexión de red disponible y que el sistema pueda manejar adecuadamente situaciones de pérdida o recuperación de conexión.
+Se busca mantener una baja latencia y una diferencia mínima en el
+inicio y reproducción del audio entre los dispositivos receptores.
 
-3.Seguridad.
+**Escenarios relacionados:** EC-01, EC-02 y EC-03.
 
-La seguridad se prioriza porque utiliza salas para establecer la comunicación entre los usuarios. Es necesario evitar que dispositivos que no pertenecen a una sesión puedan acceder a ella sin autorización, el sistema debe contar con mecanismos que permitan controlar quién puede ingresar a una sala y mantener la comunicación limitada a los participantes correspondientes.
+## 2. Disponibilidad y confiabilidad — Alta prioridad
 
-4.Usabilidad.
+La disponibilidad y confiabilidad son importantes porque AudioShare
+depende de una comunicación constante entre los dispositivos
+conectados a una sala.
 
-La usabilidad es importante priorizarla porque el propósito es permitir que los usuarios compartan audio de una manera sencilla, la creación de una sala, la incorporación de otros dispositivos y el control de la reproducción no deberían requerir procedimientos complejos, mantendremos un manejo fácil de entender y de reconocer.
+Si la conexión se interrumpe constantemente o la sala deja de
+funcionar ante una variación de la red, la experiencia de uso se ve
+afectada. Por esta razón, se prioriza que la transmisión permanezca
+funcional mientras exista una conexión de red disponible y que el
+sistema pueda manejar adecuadamente situaciones de pérdida o
+recuperación de conexión.
+
+**Escenarios relacionados:** EC-02 y EC-04.
+
+## 3. Usabilidad — Prioridad media
+
+La usabilidad es importante porque AudioShare busca permitir que los
+usuarios compartan audio de una manera sencilla.
+
+La creación de una sala, la incorporación de dispositivos receptores
+y el control de la reproducción deben realizarse mediante
+interacciones fáciles de comprender, evitando procedimientos
+innecesariamente complejos.
+
+**Escenarios relacionados:** EC-04.
+
+## 4. Seguridad — Prioridad media
+
+La seguridad es relevante debido a que AudioShare utiliza salas para
+establecer la comunicación entre los usuarios.
+
+El sistema debe evitar que dispositivos que no pertenecen a una
+sesión puedan acceder a ella sin autorización. Para ello, se deberán
+considerar mecanismos que permitan controlar el acceso a las salas y
+limitar la comunicación a los participantes correspondientes.
+
+Este atributo será refinado mediante escenarios de calidad específicos
+a medida que se defina el mecanismo de autenticación y control de
+acceso.
