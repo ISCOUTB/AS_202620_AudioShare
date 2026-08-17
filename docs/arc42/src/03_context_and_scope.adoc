@@ -2,8 +2,7 @@
 
 === Contexto de negocios
 
-AudioShare está dirigido a personas que desean escuchar en tiempo real el audio reproducido desde un dispositivo emisor utilizando sus propios dispositivos de reproducción, el sistema lo que hace es recibir
-el audio proporcionado por el dispositivo emisor y permite que múltiples usuarios conectados a una misma sala puedan recibirlo y reproducirlo.
+AudioShare está dirigido a personas que desean escuchar en tiempo real el audio reproducido desde un dispositivo emisor utilizando sus propios dispositivos de reproducción, el sistema lo que hace es recibir el audio proporcionado por el dispositivo emisor y permite que múltiples usuarios conectados a una misma sala puedan recibirlo y reproducirlo.
 
 Los principales participantes del contexto son:
 
