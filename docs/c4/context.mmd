@@ -5,10 +5,10 @@ config:
 C4Context
 title AudioShare - Diagrama de Contexto
 
-Person(emisor, "Usuario emisor", "Usuario que inicia una sesión y proporciona el audio.")
-Person(receptor, "Usuario receptor", "Usuario que se incorpora a una sesión y escucha el audio.")
+Person(emisor, "Usuario emisor", "Usuario que inicia una sesion y proporciona el audio.")
+Person(receptor, "Usuario receptor", "Usuario que se incorpora a una sesion y escucha el audio.")
 
-System(audioShare, "AudioShare", "Aplicación multiplataforma que transmite audio en tiempo real entre dispositivos conectados a la misma red Wi-Fi.")
+System(audioShare, "AudioShare", "Aplicacion multiplataforma que transmite audio en tiempo real entre dispositivos conectados a la misma red Wi-Fi.")
 
-Rel(emisor, audioShare, "Inicia una sesión y comparte audio", "Interfaz de AudioShare")
-Rel(receptor, audioShare, "Se une a una sesión y controla la reproducción", "Interfaz de AudioShare")
+Rel(emisor, audioShare, "Inicia una sesion y comparte audio", "Interfaz de AudioShare")
+Rel(receptor, audioShare, "Se une a una sesion y controla la reproduccion", "Interfaz de AudioShare")
