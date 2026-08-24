@@ -4,7 +4,7 @@
 
 Tipo: Organizativa
 
-*Restricción:**  
+**Restricción:**  
 El primer prototipo de AudioShare deberá desarrollarse utilizando
 herramientas y servicios gratuitos que no generen costos económicos
 obligatorios.
