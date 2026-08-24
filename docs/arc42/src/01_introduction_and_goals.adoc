@@ -18,10 +18,13 @@ El primer prototipo funcionará y estará enfocada sobre dispositivos en una red
 # Objetivos de calidad
 
 Buscaremos principalmente los siguientes aspectos: 
-- Rendimiento: Tratar de mantener una baja latencia durante la transmisión para que no haya mucho retraso al escuchar el audio.
-- Disponibilidad: Tratar de mantener activa y funcional la transmisión el mayor tiempo posible siempre que exista una conexión estable entre
-  los dispositivos.
-- Tolerancia a fallos: Buscar que en caso de una interrupción en la conexión, se pueda poder reconectar.
-- Escalabilidad: Permitir que una sala pueda tener y manejar a varios dispositivos receptores. 
+
+- Rendimiento: Tratar de mantener una baja latencia durante la transmisión para que no haya mucho retraso al escuchar el audio. Este objetivo es importante para los usuarios receptores y el usuario emisor, ya que se necesita que el audio se reproduzca de manera sincronizada.
+
+- Disponibilidad: Tratar de mantener activa y funcional la transmisión el mayor tiempo posible siempre que exista una conexión estable entre los dispositivos. Es importante para los usuarios receptores, el usuario emisor y el moderador, ya que todos dependen de que la sala permanezca disponible durante la reproducción.
+
+- Tolerancia a fallos: Buscar que en caso de una interrupción en la conexión, se pueda poder reconectar. Es importante para los usuarios receptores y el usuario emisor, ya que una interrupción de la conexión no debería obligarlos a abandonar la sala y comenzar nuevamente el proceso de conexión.
+
+- Escalabilidad: Permitir que una sala pueda tener y manejar a varios dispositivos receptores. Es importante para el usuario emisor y el moderador, ya que son quienes necesitan gestionar una sala con múltiples participantes y dispositivos.
 
 
