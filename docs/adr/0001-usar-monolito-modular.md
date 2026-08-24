@@ -12,24 +12,24 @@ El proyecto debe contar con una separación muy adecuada de responsabilidades y 
 
 ## Alternativas consideradas
 
-###A. Arquitectura en capas
+### A. Arquitectura en capas
 Organiza la aplicación mediante capas con responsabilidades específicas, como presentación, aplicación, dominio y acceso a datos.
-**-A favor:** estructura sencilla de comprender y separación clara de responsabilidades.
-**-En contra:** las dependencias entre capas pueden generar acoplamiento y dificultar la evolución de funcionalidades cuando el sistema aumenta en complejidad.
-**-Por qué no se eligió:** aunque proporciona una organización inicial adecuada, ofrece una separación menos orientada a las funcionalidades del sistema que el monolito modular.
+- **A favor:** estructura sencilla de comprender y separación clara de responsabilidades.
+- **En contra:** las dependencias entre capas pueden generar acoplamiento y dificultar la evolución de funcionalidades cuando el sistema aumenta en complejidad.
+- **Por qué no se eligió:** aunque proporciona una organización inicial adecuada, ofrece una separación menos orientada a las funcionalidades del sistema que el monolito modular.
 
-###B. Arquitectura hexagonal
+### B. Arquitectura hexagonal
 Organiza el sistema alrededor de la lógica central y utiliza puertos y adaptadores para separar el núcleo de las dependencias externas.
 
-**-A favor:** favorece la testabilidad, reduce el acoplamiento con componentes externos y facilita el reemplazo de implementaciones.
-**-En contra:** introduce una mayor complejidad inicial y requiere más abstracciones y estructuras.
-**-Por qué no se eligió:** para la etapa actual de AudioShare se consideró que la complejidad adicional no resulta necesaria frente a las necesidades actuales del proyecto.
+- **A favor:** favorece la testabilidad, reduce el acoplamiento con componentes externos y facilita el reemplazo de implementaciones.
+- **En contra:** introduce una mayor complejidad inicial y requiere más abstracciones y estructuras.
+- **Por qué no se eligió:** para la etapa actual de AudioShare se consideró que la complejidad adicional no resulta necesaria frente a las necesidades actuales del proyecto.
 
-C. Monolito modular
+###C. Monolito modular
 Mantiene la aplicación como una única unidad de ejecución, pero divide internamente sus responsabilidades en módulos independientes y claramente delimitados.
-**-A favor:** permite mantener una estructura organizada, separar responsabilidades y facilitar el mantenimiento y las pruebas sin introducir la complejidad de una aplicación distribuida.
-**-En contra:** los módulos continúan formando parte de una misma aplicación y requieren reglas claras para evitar dependencias innecesarias entre ellos.
-**-Por qué se eligió:** ofrece un equilibrio adecuado entre organización, mantenibilidad, facilidad de desarrollo y complejidad inicial para AudioShare.
+- **A favor:** permite mantener una estructura organizada, separar responsabilidades y facilitar el mantenimiento y las pruebas sin introducir la complejidad de una aplicación distribuida.
+- **En contra:** los módulos continúan formando parte de una misma aplicación y requieren reglas claras para evitar dependencias innecesarias entre ellos.
+- **Por qué se eligió:** ofrece un equilibrio adecuado entre organización, mantenibilidad, facilidad de desarrollo y complejidad inicial para AudioShare.
 
 ## Decisión
 
