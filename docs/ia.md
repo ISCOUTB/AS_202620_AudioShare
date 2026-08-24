@@ -61,10 +61,11 @@ del equipo y no por la herramienta de Inteligencia Artificial.
 | Semana 2 | Requisitos de calidad | Identificar atributos y escenarios medibles | Se propusieron objetivos de calidad y métricas |
 | Semana 2 | C4 | Elaborar el diagrama de contexto | Se generó el código Mermaid y la imagen del C4 de contexto |
 | Semana 2 | Documentación | Revisar la organización de los documentos | Se estructuró la documentación dentro del repositorio |
+| Semana 3 | Consulta | Investigación de los estilos arquitectónicos | Se generó con la investigación la matriz comparativa |
 
 ### Estado
 
-Documento actualizado durante la semana 2.
+Documento actualizado durante la semana 3.
 
 El registro continuará actualizándose durante las siguientes etapas del
 proyecto, indicando los usos relevantes de Inteligencia Artificial,
