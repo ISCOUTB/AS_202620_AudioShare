@@ -46,6 +46,6 @@ La decisión se toma a partir de la comparación realizada en la Sección 4 de a
 ## Trazabilidad
 
 - Requisito / aspecto: organización, mantenibilidad, testabilidad y evolución de la arquitectura de AudioShare.
-- Elementos C4 afectados: …
-- Implementación: commit / PR …
-- Pruebas que lo cubren: …
+- Elementos C4 afectados: Ninguno. El único diagrama existente (context.mmd / context.png) corresponde al Nivel 1 y no se modifica con esta decisión, ya que representa el sistema como una caja única sin exponer su estructura interna. Esta decisión deberá reflejarse más adelante en los diagramas de Contenedores y Componentes, aún no creados.
+- Implementación: Pendiente por resolver.
+- Pruebas que lo cubren: Pendiente de implementar la prueba automatizada.
