@@ -25,7 +25,7 @@ Organiza el sistema alrededor de la lógica central y utiliza puertos y adaptado
 - **En contra:** introduce una mayor complejidad inicial y requiere más abstracciones y estructuras.
 - **Por qué no se eligió:** para la etapa actual de AudioShare se consideró que la complejidad adicional no resulta necesaria frente a las necesidades actuales del proyecto.
 
-###C. Monolito modular
+### C. Monolito modular
 Mantiene la aplicación como una única unidad de ejecución, pero divide internamente sus responsabilidades en módulos independientes y claramente delimitados.
 - **A favor:** permite mantener una estructura organizada, separar responsabilidades y facilitar el mantenimiento y las pruebas sin introducir la complejidad de una aplicación distribuida.
 - **En contra:** los módulos continúan formando parte de una misma aplicación y requieren reglas claras para evitar dependencias innecesarias entre ellos.
