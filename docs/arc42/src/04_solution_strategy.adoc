@@ -16,7 +16,6 @@ AudioShare:
 * Arquitectura hexagonal.
 * Monolito modular.
 
-include::Matriz Comparativa de Arquitectura[docs/arc42/src/Matriz_Comparativa.md]
 
 La selección se realizará considerando principalmente la sincronización
 de audio, mantenibilidad, facilidad de pruebas, complejidad y las
