@@ -1,0 +1,96 @@
+== 4. Solution Strategy
+
+La arquitectura de AudioShare se diseñará buscando principalmente la
+sincronización de reproducción de audio entre varios dispositivos
+receptores conectados a una misma red Wi-Fi. Las decisiones
+arquitectónicas estarán orientadas a mantener una baja latencia,
+facilitar la comunicación entre dispositivos y permitir que el sistema
+pueda evolucionar durante el desarrollo.
+
+=== 4.1 Estilo arquitectónico
+
+Se evaluarán tres alternativas principales para la arquitectura de
+AudioShare:
+
+* Arquitectura por capas.
+* Arquitectura hexagonal.
+* Monolito modular.
+
+
+La selección se realizará considerando principalmente la sincronización
+de audio, mantenibilidad, facilidad de pruebas, complejidad y las
+necesidades del prototipo.
+
+La decisión final y sus consecuencias se documentarán en el ADR
+correspondiente.
+
+=== 4.2 Sincronización de reproducción
+
+La sincronización de reproducción será uno de los principales objetivos
+arquitectónicos de AudioShare.
+
+El sistema deberá coordinar el envío de audio desde el dispositivo
+emisor hacia los dispositivos receptores y controlar el momento en que
+cada receptor inicia o continúa la reproducción.
+
+Esta estrategia busca cumplir los escenarios de calidad definidos para
+el aspecto A-01, especialmente:
+
+* Diferencia máxima de 100 ms al iniciar la reproducción.
+* Diferencia máxima de 200 ms ante variaciones moderadas de latencia.
+* Diferencia máxima de 100 ms después de pausar y reanudar.
+
+=== 4.3 Comunicación mediante Wi-Fi
+
+AudioShare utilizará una red Wi-Fi compartida como medio de
+comunicación entre el dispositivo emisor y los dispositivos receptores.
+
+La solución deberá permitir que un emisor transmita audio hacia uno o
+varios receptores sin depender de cables, adaptadores o múltiples
+conexiones Bluetooth.
+
+La comunicación deberá considerar la latencia y posibles variaciones
+de la red debido a su impacto directo en la sincronización.
+
+=== 4.4 Manejo de múltiples receptores
+
+La arquitectura deberá permitir que un dispositivo emisor pueda
+comunicarse con varios dispositivos receptores simultáneamente.
+
+La solución deberá evitar que la incorporación de nuevos receptores
+afecte significativamente la reproducción de los dispositivos que ya
+están conectados.
+
+=== 4.5 Pruebas de sincronización
+
+Se utilizarán pruebas automatizadas para verificar el comportamiento de
+los componentes principales del sistema.
+
+Además, se realizarán pruebas específicas relacionadas con los
+escenarios de calidad de sincronización, utilizando las medidas
+definidas para determinar si la diferencia de reproducción se encuentra
+dentro de los límites establecidos.
+
+=== 4.6 Estrategia de desarrollo inicial
+
+Durante la primera etapa se priorizará la construcción de un esqueleto
+ejecutable del sistema y la definición de sus principales componentes.
+
+La implementación de la lógica completa de transmisión y sincronización
+se realizará progresivamente a medida que se definan y validen las
+decisiones arquitectónicas.
+
+=== 4.7 Decisiones pendientes
+
+Quedan pendientes de evaluación y decisión:
+
+* Selección definitiva entre arquitectura por capas, hexagonal o
+  monolito modular.
+* Tecnología y protocolo utilizado para la transmisión del audio.
+* Mecanismo específico para lograr la sincronización entre receptores.
+* Estrategia para manejar variaciones de latencia y pérdida de datos.
+
+Fecha: 23/08/2026
+
+
+

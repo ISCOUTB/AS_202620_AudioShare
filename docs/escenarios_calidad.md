@@ -7,39 +7,68 @@ dispositivos receptores conectados a la misma red Wi-Fi.
 
 ## EC-01 — Sincronización inicial
 
+### Fuente
+
+Dispositivo emisor que inicia la reproducción del audio.
+
 ### Estímulo
 
-Un dispositivo emisor inicia la reproducción de audio mientras uno o
-varios dispositivos receptores están conectados a la misma red Wi-Fi.
+El dispositivo emisor inicia la reproducción de audio mientras uno o varios
+dispositivos receptores están conectados a la misma red Wi-Fi local.
+
+### Artefacto
+
+Es el mecanismo de transmisión y sincronización de AudioShare, junto con los
+dispositivos receptores conectados a la sala.
+
+### Entorno
+
+Funcionamiento normal del sistema dentro de una red Wi-Fi local estable,
+con los dispositivos conectados a la misma sala.
 
 ### Respuesta esperada
 
-Todos los dispositivos receptores deben comenzar la reproducción del
-audio de manera prácticamente simultánea.
+Todos los dispositivos receptores deben comenzar la reproducción del audio
+de manera simultanea o muy parecida.
 
 ### Medida
 
-La diferencia máxima entre el inicio de reproducción de los receptores
-no debe superar los **100 ms**.
+La diferencia máxima entre el inicio de reproducción de los receptores no
+debe superar los 100 ms.
 
 ### Restricción
 
 Los dispositivos deben estar conectados a la misma red Wi-Fi y mantener
-una conexión estable durante toda la prueba.
+una conexión estable durante la prueba.
 
 ### Justificación
 
-Esta restricción permite evaluar la sincronización bajo las condiciones
-normales de funcionamiento previstas para AudioShare.
+Permite evaluar si AudioShare puede mantener una reproducción sincronizada
+entre varios dispositivos bajo las condiciones normales previstas para el
+primer prototipo.
 
 ---
 
 ## EC-02 — Variación moderada de latencia
 
+### Fuente
+
+La red Wi-Fi utilizada por los dispositivos conectados a la sala.
+
 ### Estímulo
 
 Durante la reproducción se presenta un aumento moderado de la latencia
 de la red Wi-Fi.
+
+### Artefacto
+
+Mecanismo de transmisión de audio de AudioShare y dispositivos receptores
+que participan en la reproducción.
+
+### Entorno
+
+Sistema funcionando dentro de una red Wi-Fi local que presenta una
+variación moderada de latencia, sin pérdida completa de conexión.
 
 ### Respuesta esperada
 
@@ -49,7 +78,7 @@ intentando mantener la sincronización entre ellos.
 ### Medida
 
 La diferencia de reproducción entre los receptores no debe superar los
-**200 ms** durante la variación de la red.
+200 ms durante la variación de la red.
 
 ### Restricción
 
@@ -58,28 +87,41 @@ completa de conexión con la red Wi-Fi.
 
 ### Justificación
 
-Las condiciones de una red Wi-Fi pueden variar durante el
-funcionamiento del sistema. AudioShare debe tolerar variaciones
-moderadas sin perder significativamente la sincronización.
+Permite comprobar la tolerancia del sistema ante variaciones normales
+que pueden presentarse en una red Wi-Fi.
 
 ---
 
 ## EC-03 — Pausa y reanudación
+
+### Fuente
+
+Usuario del dispositivo emisor que controla la reproducción.
 
 ### Estímulo
 
 El dispositivo emisor pausa el audio y posteriormente reanuda la
 reproducción.
 
+### Artefacto
+
+Mecanismo de control de reproducción y dispositivos receptores
+conectados a la sala.
+
+### Entorno
+
+AudioShare funcionando normalmente dentro de una red Wi-Fi local estable,
+con los dispositivos receptores conectados a la sala.
+
 ### Respuesta esperada
 
 Los dispositivos receptores deben pausar y reanudar la reproducción de
-acuerdo con las acciones realizadas por el dispositivo emisor.
+acuerdo con las acciones realizadas desde el dispositivo emisor.
 
 ### Medida
 
 Después de reanudar la reproducción, la diferencia entre los receptores
-no debe superar los **100 ms**.
+no debe superar los 100 ms.
 
 ### Restricción
 
@@ -88,27 +130,41 @@ Wi-Fi durante la pausa y la reanudación.
 
 ### Justificación
 
-Permite verificar que las acciones realizadas desde el dispositivo
-emisor se reflejen de manera sincronizada en todos los receptores.
+Permite verificar que las acciones de reproducción realizadas por el
+emisor se reflejen de manera sincronizada en los receptores.
 
 ---
 
 ## EC-04 — Incorporación de nuevo receptor
 
+### Fuente
+
+Usuario que desea incorporarse a una sala existente.
+
 ### Estímulo
 
-Un nuevo dispositivo receptor se conecta a la red Wi-Fi mientras el
-audio ya está siendo reproducido.
+Un nuevo dispositivo receptor se conecta a la sala mientras el audio ya
+está siendo reproducido.
+
+### Artefacto
+
+Mecanismo de incorporación de usuarios, sala de AudioShare y mecanismo
+de transmisión de audio.
+
+### Entorno
+
+AudioShare funcionando dentro de una red Wi-Fi local, con una sala
+existente y otros dispositivos reproduciendo audio.
 
 ### Respuesta esperada
 
 El nuevo receptor debe incorporarse a la reproducción y sincronizarse
-con los demás dispositivos.
+con los demás dispositivos sin interrumpir la reproducción existente.
 
 ### Medida
 
 El nuevo receptor debe alcanzar la sincronización con los demás
-dispositivos en un tiempo máximo de **3 segundos**.
+dispositivos en un tiempo máximo de 3 segundos.
 
 ### Restricción
 
