@@ -2,7 +2,9 @@
 
 ## R-01 — Uso de herramientas gratuitas
 
-**Restricción:**  
+Tipo: Organizativa
+
+*Restricción:**  
 El primer prototipo de AudioShare deberá desarrollarse utilizando
 herramientas y servicios gratuitos que no generen costos económicos
 obligatorios.
@@ -21,15 +23,17 @@ gratuitas suficientes para desarrollar y probar el prototipo.
 
 ## R-02 — Funcionamiento sobre una red Wi-Fi local
 
+**Tipo:** Técnica
+
 **Restricción:**  
-El prototipo deberá funcionar inicialmente dentro de una misma red
-Wi-Fi local.
+El primer prototipo deberá funcionar inicialmente dentro de una misma
+red Wi-Fi local.
 
 **Justificación:**  
 El objetivo de AudioShare es permitir que varios dispositivos cercanos
 compartan el mismo audio sin utilizar cables, adaptadores o depender
-de conexiones Bluetooth múltiples. Una red Wi-Fi local permite realizar
-estas pruebas sin necesidad de infraestructura pública.
+de múltiples conexiones Bluetooth. Una red Wi-Fi local permite realizar
+las pruebas sin necesidad de infraestructura pública.
 
 **Consecuencia arquitectónica:**  
 La arquitectura deberá permitir la comunicación y transmisión de audio
@@ -37,54 +41,47 @@ entre dispositivos conectados a la misma red local.
 
 ---
 
-## R-03 — Transmisión de audio en tiempo real
+## R-03 — Evaluación del mecanismo de comunicación
+
+**Tipo:** Técnica
 
 **Restricción:**  
-La solución deberá utilizar un mecanismo de comunicación que permita
-transmitir el audio mientras se reproduce en el dispositivo emisor.
+El mecanismo de comunicación para la transmisión de audio deberá
+seleccionarse después de evaluar diferentes alternativas tecnológicas.
 
 **Justificación:**  
-AudioShare tiene como objetivo que los dispositivos receptores puedan
-escuchar simultáneamente el audio compartido. Por lo tanto, una solución
-basada únicamente en la transferencia completa de archivos no cumpliría
-el propósito principal del sistema.
-
-**Consecuencia arquitectónica:**  
-El mecanismo de comunicación deberá ser evaluado teniendo en cuenta
-principalmente la latencia y la continuidad de la transmisión.
-
----
-
-## R-04 — Evaluación del mecanismo de comunicación
-
-**Restricción:**  
-No se establecerá inicialmente una tecnología definitiva para la
-transmisión de audio. Se deberán evaluar diferentes alternativas antes
-de seleccionar el mecanismo de comunicación.
-
-**Justificación:**  
+AudioShare necesita transmitir audio en tiempo real entre dispositivos.
 El equipo considera alternativas como WebRTC y WebSockets, pero la
-elección debe realizarse considerando las necesidades del proyecto,
-especialmente la latencia y las características de la transmisión.
+tecnología definitiva deberá seleccionarse teniendo en cuenta las
+necesidades del sistema, especialmente la latencia y la continuidad
+de la transmisión.
 
 **Consecuencia arquitectónica:**  
-La selección de la tecnología deberá justificarse posteriormente
-mediante la comparación de alternativas y las decisiones arquitectónicas
-correspondientes.
+La selección del mecanismo de comunicación deberá justificarse mediante
+la comparación de las alternativas consideradas y una decisión
+arquitectónica documentada en un ADR.
 
 ---
 
-## R-05 — Múltiples dispositivos receptores
+## R-04 — Restricciones legales
+
+**Tipo:** Legal
 
 **Restricción:**  
-La solución deberá permitir que una sala pueda manejar varios
-dispositivos receptores simultáneamente.
+En el alcance actual del prototipo no se ha identificado una
+restricción legal específica que limite la arquitectura del sistema.
 
 **Justificación:**  
-El propósito de AudioShare es compartir el mismo audio entre varias
-personas y dispositivos dentro de una misma sala.
+El primer prototipo funcionará dentro de una red Wi-Fi local y se
+utilizará con fines académicos. Por el momento no se ha establecido
+un requisito legal específico que obligue a adoptar una determinada
+tecnología o arquitectura.
 
 **Consecuencia arquitectónica:**  
-La arquitectura deberá considerar el impacto que tiene el número de
-receptores sobre la latencia, la transmisión y el consumo de recursos
-de la red.
+Si durante el desarrollo se identifican requisitos relacionados con
+licencias, derechos de autor, privacidad o tratamiento de datos,
+deberán incorporarse como restricciones legales y reflejarse en la
+arquitectura.
+
+---
+
