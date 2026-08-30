@@ -1,1 +1,280 @@
+# Building Block View
+
+## Whitebox Overall System
+
+AudioShare se estructura como un Monolito Modular. El sistema está
+dividido en módulos con responsabilidades específicas, buscando reducir
+el acoplamiento y facilitar el mantenimiento, las pruebas y la evolución
+del proyecto.
+
+La vista general del sistema está compuesta por los módulos Session,
+Audio y Sync, además de elementos compartidos agrupados en Shared.
+
+[source]
+----
+                         +----------------------+
+                         |      AudioShare      |
+                         |   Monolito Modular   |
+                         +----------+-----------+
+                                    |
+              +---------------------+---------------------+
+              |                     |                     |
+              v                     v                     v
+       +-------------+       +-------------+       +-------------+
+       |   Session   |       |    Audio    |       |    Sync     |
+       +-------------+       +-------------+       +-------------+
+              |                     |                     |
+              +---------------------+---------------------+
+                                    |
+                                    v
+                             +-------------+
+                             |   Shared    |
+                             +-------------+
+----
+
+### Motivation
+
+La división en módulos permite separar las principales responsabilidades
+de AudioShare y evitar que toda la lógica del sistema se encuentre
+concentrada en un único bloque.
+
+Esta organización también permite trabajar de forma independiente sobre
+la gestión de sesiones, el manejo del audio y la sincronización de la
+reproducción.
+
+La separación es especialmente importante para el aspecto A-01 —
+Sincronización de reproducción de audio, debido a que la sincronización
+representa uno de los principales retos del sistema.
+
+### Contained Building Blocks
+
+Los principales bloques de construcción del sistema son:
+
+* *Session:* gestión de sesiones y participantes.
+* *Audio:* manejo y transmisión del audio.
+* *Sync:* coordinación de la reproducción del audio.
+* *Shared:* elementos y configuraciones compartidas entre los módulos.
+
+### Important Interfaces
+
+Los módulos deberán comunicarse mediante interfaces públicas que
+permitan utilizar las funcionalidades necesarias sin acceder
+directamente a la implementación interna de otros módulos.
+
+Cada módulo deberá exponer únicamente los elementos necesarios para su
+interacción con los demás módulos.
+
+Esta estrategia busca mantener límites claros entre los módulos y reducir
+el acoplamiento.
+
+### Session
+
+El módulo Session administra las sesiones de AudioShare y los
+dispositivos que participan en ellas.
+
+*Purpose/Responsibility*
+
+Sus responsabilidades principales son:
+
+* Gestionar las sesiones.
+* Gestionar los dispositivos participantes.
+* Identificar el rol de cada dispositivo.
+* Diferenciar entre el dispositivo emisor y los dispositivos receptores.
+* Gestionar la incorporación y salida de participantes.
+
+*Interface(s)*
+
+El módulo deberá proporcionar una interfaz pública para que otros módulos
+puedan consultar y utilizar la información relacionada con las sesiones
+y sus participantes.
+
+*(Optional) Quality/Performance Characteristics*
+
+La gestión de sesiones deberá permitir la incorporación de uno o varios
+dispositivos receptores sin afectar la sesión existente.
+
+*(Optional) Directory/File Location*
+
+`src/modules/session/`
+
+*(Optional) Fulfilled Requirements*
+
+Este módulo está relacionado principalmente con el requisito de permitir
+la participación de uno o varios dispositivos receptores en una sesión
+de AudioShare.
+
+*(Optional) Open Issues/Problems/Risks*
+
+La implementación detallada de la gestión de sesiones y participantes
+será definida durante las siguientes etapas del proyecto.
+
+### Audio
+
+El módulo Audio contiene las responsabilidades relacionadas con el
+manejo y transmisión del audio entre el dispositivo emisor y los
+dispositivos receptores.
+
+*Purpose/Responsibility*
+
+Sus responsabilidades previstas son:
+
+* Capturar o recibir el audio del dispositivo emisor.
+* Preparar los datos de audio para su transmisión.
+* Transmitir los datos hacia los dispositivos receptores.
+* Recibir los datos de audio en los dispositivos receptores.
+* Proporcionar los datos necesarios para la reproducción.
+
+*Interface(s)*
+
+El módulo deberá proporcionar interfaces para iniciar y gestionar el
+flujo de audio entre el emisor y los receptores.
+
+*(Optional) Quality/Performance Characteristics*
+
+La transmisión deberá considerar la latencia de la red y el flujo
+continuo de datos debido a su impacto sobre la sincronización de la
+reproducción.
+
+*(Optional) Directory/File Location*
+
+`src/modules/audio/`
+
+*(Optional) Fulfilled Requirements*
+
+Este módulo está relacionado con el requisito que establece que un
+dispositivo emisor debe poder transmitir audio a uno o varios
+dispositivos receptores conectados a la misma red Wi-Fi.
+
+*(Optional) Open Issues/Problems/Risks*
+
+Todavía está pendiente definir el mecanismo y protocolo específico que
+se utilizará para la transmisión del audio.
+
+### Sync
+
+El módulo Sync se encarga de coordinar la reproducción del audio entre
+los dispositivos receptores.
+
+*Purpose/Responsibility*
+
+Sus responsabilidades previstas son:
+
+* Coordinar el inicio de reproducción.
+* Coordinar las acciones de pausa y reanudación.
+* Mantener sincronizados los dispositivos receptores.
+* Considerar las variaciones de latencia de la red.
+* Detectar diferencias de reproducción.
+* Aplicar mecanismos para corregir las diferencias cuando sea necesario.
+
+*Interface(s)*
+
+El módulo deberá proporcionar interfaces relacionadas con el control y
+la coordinación del estado de reproducción entre los dispositivos
+receptores.
+
+*(Optional) Quality/Performance Characteristics*
+
+Este módulo deberá contribuir al cumplimiento de los escenarios de
+calidad definidos para A-01.
+
+Los objetivos iniciales establecidos son:
+
+* Diferencia máxima de 100 ms durante el inicio de reproducción.
+* Diferencia máxima de 200 ms ante variaciones moderadas de latencia.
+* Diferencia máxima de 100 ms después de pausar y reanudar.
+* Sincronización de un nuevo receptor en un tiempo máximo de 3 segundos.
+
+*(Optional) Directory/File Location*
+
+`src/modules/sync/`
+
+*(Optional) Fulfilled Requirements*
+
+Este módulo está directamente relacionado con el requisito de que los
+dispositivos receptores reproduzcan el audio transmitido de forma
+sincronizada.
+
+*(Optional) Open Issues/Problems/Risks*
+
+Está pendiente definir el mecanismo específico que permitirá medir,
+mantener y corregir la sincronización entre los dispositivos.
+
+### Shared
+
+El módulo Shared contiene elementos comunes utilizados por los
+diferentes módulos de AudioShare.
+
+*Purpose/Responsibility*
+
+Sus responsabilidades principales son:
+
+* Proporcionar configuraciones compartidas.
+* Contener tipos o estructuras comunes.
+* Proporcionar utilidades utilizadas por diferentes módulos.
+* Centralizar elementos transversales de la aplicación.
+
+*Interface(s)*
+
+Los elementos de Shared podrán ser utilizados por los módulos que
+necesiten funcionalidades o configuraciones comunes.
+
+*(Optional) Directory/File Location*
+
+`src/shared/`
+
+*(Optional) Open Issues/Problems/Risks*
+
+Se deberá evitar colocar en Shared lógica específica que pertenezca a
+los módulos Session, Audio o Sync.
+
+## Level 2
+
+En esta etapa, los módulos principales se consideran los bloques de
+construcción de segundo nivel de AudioShare.
+
+El detalle interno de cada módulo será desarrollado progresivamente a
+medida que avance la implementación y se definan sus componentes e
+interfaces.
+
+### White Box Session
+
+El módulo Session se implementará internamente mediante componentes
+encargados de la gestión de sesiones y participantes.
+
+Por el momento no se definen componentes internos adicionales debido a
+que la implementación de la lógica de negocio se encuentra pendiente.
+
+### White Box Audio
+
+El módulo Audio se implementará internamente mediante componentes
+relacionados con el manejo, transmisión y recepción del audio.
+
+La división interna será definida cuando se determine el mecanismo de
+transmisión que utilizará AudioShare.
+
+### White Box Sync
+
+El módulo Sync se implementará internamente mediante componentes
+relacionados con el control y coordinación de la reproducción.
+
+La estructura interna será definida posteriormente, teniendo en cuenta
+los escenarios de calidad de sincronización y el mecanismo de
+comunicación seleccionado.
+
+### White Box Shared
+
+El módulo Shared contendrá los elementos transversales necesarios para
+el funcionamiento de los demás módulos.
+
+Su estructura interna será definida conforme aparezcan necesidades
+concretas durante la implementación.
+
+## Level 3
+
+En esta etapa del proyecto no se define todavía un nivel 3 de detalle.
+
+Los componentes internos de Session, Audio, Sync y Shared serán
+documentados en esta sección cuando sus responsabilidades e interfaces
+se encuentren definidas mediante la implementación y las decisiones
+arquitectónicas posteriores.
 
