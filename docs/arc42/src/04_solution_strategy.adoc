@@ -1,4 +1,4 @@
-== 4. Solution Strategy
+== Solution Strategy
 
 La arquitectura de AudioShare se diseñará buscando principalmente la
 sincronización de reproducción de audio entre varios dispositivos
@@ -7,7 +7,7 @@ arquitectónicas estarán orientadas a mantener una baja latencia,
 facilitar la comunicación entre dispositivos y permitir que el sistema
 pueda evolucionar durante el desarrollo.
 
-=== 4.1 Estilo arquitectónico
+=== Estilo arquitectónico
 
 Se evaluarán tres alternativas principales para la arquitectura de
 AudioShare:
@@ -24,7 +24,7 @@ necesidades del prototipo.
 La decisión final y sus consecuencias se documentarán en el ADR
 correspondiente.
 
-=== 4.2 Sincronización de reproducción
+=== Sincronización de reproducción
 
 La sincronización de reproducción será uno de los principales objetivos
 arquitectónicos de AudioShare.
@@ -40,7 +40,7 @@ el aspecto A-01, especialmente:
 * Diferencia máxima de 200 ms ante variaciones moderadas de latencia.
 * Diferencia máxima de 100 ms después de pausar y reanudar.
 
-=== 4.3 Comunicación mediante Wi-Fi
+=== Comunicación mediante Wi-Fi
 
 AudioShare utilizará una red Wi-Fi compartida como medio de
 comunicación entre el dispositivo emisor y los dispositivos receptores.
@@ -52,7 +52,7 @@ conexiones Bluetooth.
 La comunicación deberá considerar la latencia y posibles variaciones
 de la red debido a su impacto directo en la sincronización.
 
-=== 4.4 Manejo de múltiples receptores
+=== Manejo de múltiples receptores
 
 La arquitectura deberá permitir que un dispositivo emisor pueda
 comunicarse con varios dispositivos receptores simultáneamente.
@@ -61,7 +61,7 @@ La solución deberá evitar que la incorporación de nuevos receptores
 afecte significativamente la reproducción de los dispositivos que ya
 están conectados.
 
-=== 4.5 Pruebas de sincronización
+=== Pruebas de sincronización
 
 Se utilizarán pruebas automatizadas para verificar el comportamiento de
 los componentes principales del sistema.
@@ -71,7 +71,7 @@ escenarios de calidad de sincronización, utilizando las medidas
 definidas para determinar si la diferencia de reproducción se encuentra
 dentro de los límites establecidos.
 
-=== 4.6 Estrategia de desarrollo inicial
+=== Estrategia de desarrollo inicial
 
 Durante la primera etapa se priorizará la construcción de un esqueleto
 ejecutable del sistema y la definición de sus principales componentes.
@@ -80,7 +80,7 @@ La implementación de la lógica completa de transmisión y sincronización
 se realizará progresivamente a medida que se definan y validen las
 decisiones arquitectónicas.
 
-=== 4.7 Decisiones pendientes
+=== Decisiones pendientes
 
 Quedan pendientes de evaluación y decisión:
 
