@@ -1,6 +1,4 @@
-# Building Block View
-
-## Whitebox Overall System
+## Building Block View
 
 AudioShare se estructura como un Monolito Modular. El sistema está
 dividido en módulos con responsabilidades específicas, buscando reducir
