@@ -1,96 +1,74 @@
-== Estrategia de solución
+ifndef::imagesdir[:imagesdir: ../images]
 
-La arquitectura de AudioShare se diseñará buscando principalmente la
-sincronización de reproducción de audio entre varios dispositivos
-receptores conectados a una misma red Wi-Fi. Las decisiones
-arquitectónicas estarán orientadas a mantener una baja latencia,
-facilitar la comunicación entre dispositivos y permitir que el sistema
-pueda evolucionar durante el desarrollo.
+[[section-solution-strategy]]
+== Solution Strategy
 
 === Estilo arquitectónico
 
-Se evaluarán tres alternativas principales para la arquitectura de
-AudioShare:
+AudioShare utilizará un estilo de arquitectura de **monolito modular**.
 
-* Arquitectura por capas.
-* Arquitectura hexagonal.
-* Monolito modular.
+La aplicación implementará como una única unidad de ejecución, pero
+sus responsabilidades estarán separadas en módulos con límites definidos.
 
+Los principales módulos serán:
 
-La selección se realizará considerando principalmente la sincronización
-de audio, mantenibilidad, facilidad de pruebas, complejidad y las
-necesidades del prototipo.
+* `Módulo sesión`: gestión de salas, participantes y roles.
+* `Módulo audio`: manejo y transmisión del audio.
+* `sync`: sincronización de la reproducción entre los dispositivos.
 
-La decisión final y sus consecuencias se documentarán en el ADR
-correspondiente.
+Esta decisión corresponde al ADR-001 documentado en
+`docs/adr/0001-usar-monolito-modular.md`.
 
-=== Sincronización de reproducción
+=== Estrategia de sincronización
 
-La sincronización de reproducción será uno de los principales objetivos
-arquitectónicos de AudioShare.
+La sincronización de reproducción es el principal aspecto arquitectónico
+del sistema (A-01). Las decisiones de implementación deberán considerar
+la latencia y la diferencia de reproducción entre los dispositivos
+receptores.
 
-El sistema deberá coordinar el envío de audio desde el dispositivo
-emisor hacia los dispositivos receptores y controlar el momento en que
-cada receptor inicia o continúa la reproducción.
+=== Tácticas arquitectónicas para los escenarios de calidad
 
-Esta estrategia busca cumplir los escenarios de calidad definidos para
-el aspecto A-01, especialmente:
+==== EC-01: Sincronización inicial
 
-* Diferencia máxima de 100 ms al iniciar la reproducción.
-* Diferencia máxima de 200 ms ante variaciones moderadas de latencia.
-* Diferencia máxima de 100 ms después de pausar y reanudar.
+Para reducir la diferencia de reproducción al iniciar una sesión se
+utilizará una referencia temporal común para coordinar el inicio de los
+receptores.
 
-=== Comunicación mediante Wi-Fi
+Se medirá la diferencia entre el momento esperado de inicio y el momento
+real de reproducción en los dispositivos receptores.
 
-AudioShare utilizará una red Wi-Fi compartida como medio de
-comunicación entre el dispositivo emisor y los dispositivos receptores.
+==== EC-02: Variación de latencia de red
 
-La solución deberá permitir que un emisor transmita audio hacia uno o
-varios receptores sin depender de cables, adaptadores o múltiples
-conexiones Bluetooth.
+Para manejar variaciones de latencia se utilizará un mecanismo de
+compensación temporal en los receptores.
 
-La comunicación deberá considerar la latencia y posibles variaciones
-de la red debido a su impacto directo en la sincronización.
+El cliente receptor podrá ajustar el momento de reproducción utilizando
+la información de sincronización recibida, evitando depender únicamente
+del tiempo local de cada dispositivo.
 
-=== Manejo de múltiples receptores
+==== EC-03: Pausa y reanudación
 
-La arquitectura deberá permitir que un dispositivo emisor pueda
-comunicarse con varios dispositivos receptores simultáneamente.
+Después de una pausa, la reproducción deberá volver a sincronizarse
+antes de continuar.
 
-La solución deberá evitar que la incorporación de nuevos receptores
-afecte significativamente la reproducción de los dispositivos que ya
-están conectados.
+La táctica será enviar un nuevo estado de reproducción y una referencia
+temporal para que los receptores puedan ajustar su posición antes de
+reanudar.
 
-=== Pruebas de sincronización
+==== EC-04: Incorporación de un nuevo receptor
 
-Se utilizarán pruebas automatizadas para verificar el comportamiento de
-los componentes principales del sistema.
+Cuando un nuevo dispositivo se incorpore a una sala que ya está
+reproduciendo audio, recibirá el estado actual de la sesión y una
+referencia temporal de reproducción.
 
-Además, se realizarán pruebas específicas relacionadas con los
-escenarios de calidad de sincronización, utilizando las medidas
-definidas para determinar si la diferencia de reproducción se encuentra
-dentro de los límites establecidos.
+El receptor utilizará esta información para incorporarse a la
+reproducción sin modificar el estado de los participantes que ya están
+conectados.
 
-=== Estrategia de desarrollo inicial
+=== Resumen de la estrategia
 
-Durante la primera etapa se priorizará la construcción de un esqueleto
-ejecutable del sistema y la definición de sus principales componentes.
+La solución combina un monolito modular con una separación explícita
+entre gestión de sesiones, transmisión de audio y sincronización.
 
-La implementación de la lógica completa de transmisión y sincronización
-se realizará progresivamente a medida que se definan y validen las
-decisiones arquitectónicas.
-
-=== Decisiones pendientes
-
-Quedan pendientes de evaluación y decisión:
-
-* Selección definitiva entre arquitectura por capas, hexagonal o
-  monolito modular.
-* Tecnología y protocolo utilizado para la transmisión del audio.
-* Mecanismo específico para lograr la sincronización entre receptores.
-* Estrategia para manejar variaciones de latencia y pérdida de datos.
-
-Fecha: 23/08/2026
-
-
-
+El módulo `sync` tendrá un papel central para cumplir los escenarios
+EC-01 a EC-04 y el aspecto arquitectónico A-01.
