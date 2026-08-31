@@ -1,6 +1,6 @@
-### ADR-001: Monolito modular
+== ADR-001: Monolito modular
 
-## Contexto
+== Contexto
 
 AudioShare necesita integrar la gestión de salas, la transmisión de audio
 y la sincronización de reproducción. Como se trata de un prototipo, se
