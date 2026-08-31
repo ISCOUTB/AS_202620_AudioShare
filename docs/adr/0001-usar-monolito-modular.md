@@ -3,7 +3,7 @@
 - **Estado:** propuesto
 - **Fecha:** 2026-08-23
 - **Decide:** Yeiver Andres Verjel Perez, Elian Daniel Perea Vanegas, Santiago Adolfo Camacho Hernandez y Vincent Cardona Castro.
-- **Escenario de calidad relacionado:** EC-nn
+- **Escenario de calidad relacionado:** [EC-01 — Sincronización inicial](../escenarios_calidad.md#ec-01--sincronización-inicial)
 
 ## Contexto
 
