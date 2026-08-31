@@ -1,0 +1,145 @@
+== Vista en tiempo de ejecución
+
+La vista de ejecución describe cómo interactúan los diferentes bloques de
+AudioShare durante situaciones relevantes del funcionamiento del sistema.
+
+Los escenarios seleccionados representan las operaciones principales del
+prototipo: creación de una sala, incorporación de un receptor, transmisión
+de audio y pausa/reanudación de la reproducción.
+
+=== Creación de una sala
+
+El usuario emisor inicia el proceso de creación de una sala desde su
+dispositivo.
+
+* El usuario emisor solicita al sistema la creación de una nueva sala.
+* El módulo de Salas genera un identificador para la sala.
+* El módulo de Sesiones registra la sesión del usuario emisor.
+* El sistema genera un código que permite a otros dispositivos ingresar
+  a la sala.
+* El código es mostrado al usuario emisor para que pueda compartirlo con
+  los usuarios receptores.
+
+La interacción principal es:
+
+[source,text]
+----
+Usuario Emisor
+      |
+      | Crear sala
+      v
+    Salas
+      |
+      | Crear sesión
+      v
+   Sesiones
+      |
+      | Código de acceso
+      v
+Usuario Emisor
+----
+
+Los módulos de Salas y Sesiones colaboran para crear y mantener el estado
+de la nueva sala.
+
+=== Incorporación de un dispositivo receptor
+
+Un usuario receptor utiliza el código de una sala existente para unirse
+a la transmisión.
+
+* El usuario receptor introduce el código de la sala.
+* El módulo de Salas verifica que la sala exista.
+* El módulo de Sesiones registra al nuevo participante.
+* El módulo de Moderación verifica los permisos del participante.
+* El receptor queda asociado a la sala y preparado para recibir el audio.
+
+La interacción principal es:
+
+[source,text]
+----
+Usuario Receptor
+      |
+      | Código de sala
+      v
+    Salas
+      |
+      +-----------------> Sesiones
+      |
+      +-----------------> Moderación
+      |
+      | Confirmación
+      v
+Usuario Receptor
+----
+
+La incorporación de un nuevo receptor no debe afectar las sesiones de los
+usuarios que ya se encuentran conectados.
+
+=== Transmisión de audio
+
+El usuario emisor inicia la reproducción de audio mientras existen uno o
+varios dispositivos receptores conectados.
+
+* El dispositivo emisor captura el audio que será compartido.
+* El módulo de Audio recibe el flujo de audio.
+* El módulo de Audio distribuye el flujo hacia los dispositivos receptores.
+* Cada receptor recibe y reproduce el audio.
+* El sistema intenta mantener sincronizada la reproducción entre los
+  receptores.
+
+La interacción principal es:
+
+[source,text]
+----
+Usuario Emisor
+      |
+      | Flujo de audio
+      v
+    Audio
+      |
+      +------------------> Receptor 1
+      |
+      +------------------> Receptor 2
+      |
+      +------------------> Receptor n
+----
+
+El módulo de Audio es el elemento principal de este escenario. La
+transmisión debe priorizar una baja latencia y mantener la sincronización
+entre los receptores.
+
+La comunicación utilizada para la transmisión de audio será definida
+posteriormente después de evaluar alternativas como WebRTC y WebSockets.
+
+=== Pausa y reanudación de la reproducción
+
+El usuario emisor pausa la reproducción y posteriormente la reanuda.
+
+* El usuario emisor solicita pausar la reproducción.
+* El sistema comunica el cambio de estado a los dispositivos receptores.
+* Los receptores pausan la reproducción.
+* Cuando el emisor reanuda el audio, el sistema comunica nuevamente el
+  cambio de estado.
+* Los receptores reanudan la reproducción intentando mantener la
+  sincronización.
+
+La interacción principal es:
+
+[source,text]
+----
+Usuario Emisor
+      |
+      | Pausar / Reanudar
+      v
+    Audio
+      |
+      +------------------> Receptor 1
+      |
+      +------------------> Receptor 2
+      |
+      +------------------> Receptor n
+----
+
+El estado de reproducción debe mantenerse consistente entre el emisor y
+los receptores. Después de la reanudación, el sistema debe intentar que
+los receptores continúen reproduciendo el audio de forma sincronizada.
