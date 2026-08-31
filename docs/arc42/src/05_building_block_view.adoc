@@ -1,6 +1,6 @@
 ## Building Block View
 
-AudioShare se estructura como un Monolito Modular. El sistema está
+AudioShare se estructura como un Monolito Modular. El sistema estara
 dividido en módulos con responsabilidades específicas, buscando reducir
 el acoplamiento y facilitar el mantenimiento, las pruebas y la evolución
 del proyecto.
@@ -30,7 +30,7 @@ Audio y Sync, además de elementos compartidos agrupados en Shared.
                              +-------------+
 ----
 
-### Motivation
+### Motivacion
 
 La división en módulos permite separar las principales responsabilidades
 de AudioShare y evitar que toda la lógica del sistema se encuentre
@@ -44,7 +44,7 @@ La separación es especialmente importante para el aspecto A-01 —
 Sincronización de reproducción de audio, debido a que la sincronización
 representa uno de los principales retos del sistema.
 
-### Contained Building Blocks
+### Bloques de construcción contenidos
 
 Los principales bloques de construcción del sistema son:
 
@@ -53,7 +53,7 @@ Los principales bloques de construcción del sistema son:
 * *Sync:* coordinación de la reproducción del audio.
 * *Shared:* elementos y configuraciones compartidas entre los módulos.
 
-### Important Interfaces
+### Interfaces Importante
 
 Los módulos deberán comunicarse mediante interfaces públicas que
 permitan utilizar las funcionalidades necesarias sin acceder
