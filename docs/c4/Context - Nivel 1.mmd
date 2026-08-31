@@ -1,0 +1,24 @@
+graph TD
+    %% Personas / Usuarios
+    mod["👤 Moderador / Anfitrión<br/><i>[Persona]</i><br/>Inicia la transmisión y gestiona la sala en la misma red Wi-Fi local."]
+    oye["👤 Oyente / Cliente<br/><i>[Persona]</i><br/>Se conecta a la sesión para escuchar el audio en la misma red Wi-Fi local."]
+
+    %% Sistema Central
+    sys["🔊 Sistema AudioShare<br/><i>[Software System]</i><br/>Coordina las sesiones y la distribución de audio sintonizado en tiempo real."]
+
+    %% Conexiones con propósito y tecnología
+    mod -->|Inicia sesión y transmite audio<br/>Wi-Fi Local / WebRTC / HTTP| sys
+    oye -->|Se une a la sesión y recibe audio<br/>Wi-Fi Local / WebRTC / HTTP| sys
+
+    %% Leyenda
+    subgraph Leyenda
+        direction LR
+        L_Person["👤 Persona / Usuario"] --- L_System["🔊 Software System (AudioShare)"]
+        L_Rel["─── Direction / Protocolo ───►"]
+    end
+
+    %% Estilos
+    style mod fill:#08427b,stroke:#052e56,color:#fff
+    style oye fill:#08427b,stroke:#052e56,color:#fff
+    style sys fill:#1168bd,stroke:#0b4884,color:#fff
+    style Leyenda fill:#f9f9f9,stroke:#ccc,color:#333
