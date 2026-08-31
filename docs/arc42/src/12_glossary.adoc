@@ -27,3 +27,83 @@ reproduce.
 | Moderador
 | Participante con permisos para administrar una sala y controlar la
 participación de otros dispositivos.
+
+| Participante
+| Dispositivo o usuario conectado a una sesión de AudioShare.
+
+| Audio
+| Flujo de información sonora que se captura, prepara, transmite y
+reproduce durante una sesión.
+
+| Transmisión
+| Proceso mediante el cual el audio es enviado desde el emisor hacia
+los dispositivos receptores.
+
+| Sincronización
+| Proceso mediante el cual se busca mantener coordinada la reproducción
+del audio entre los diferentes dispositivos receptores.
+
+| Sesión
+| Instancia activa de una sala de AudioShare junto con los participantes
+y el estado asociado a la reproducción.
+
+| Latencia
+| Tiempo que transcurre entre un evento relacionado con la transmisión
+y la recepción o reproducción de ese evento en otro dispositivo.
+
+| Wi-Fi
+| Tecnología de comunicación inalámbrica utilizada por el primer
+prototipo para conectar los dispositivos a una misma red local.
+
+| Monolito modular
+| Estilo arquitectónico en el que la aplicación se ejecuta como una
+única unidad, pero organiza sus responsabilidades mediante módulos con
+límites definidos.
+
+| Módulo
+| Unidad de organización del sistema que agrupa responsabilidades
+relacionadas y expone una interfaz pública para interactuar con otras
+partes del sistema.
+
+| Session
+| Módulo encargado de gestionar las salas, los participantes y los
+roles dentro de AudioShare.
+
+| Audio modulo
+| Módulo encargado de las responsabilidades relacionadas con el manejo
+y transmisión del audio.
+
+| Sync
+| Módulo encargado de coordinar la reproducción del audio entre los
+dispositivos receptores.
+
+| Aspecto arquitectónico
+| Preocupación que influye en las decisiones de arquitectura y que debe
+ser considerada durante el diseño, implementación y evaluación del
+sistema.
+
+| A-01
+| Identificador del aspecto arquitectónico relacionado con la
+sincronización de reproducción de audio en AudioShare.
+
+| Escenario de calidad
+| Situación concreta y medible utilizada para evaluar un atributo de
+calidad del sistema.
+
+| EC-01
+| Escenario de calidad que evalúa la sincronización inicial de los
+dispositivos receptores.
+
+| EC-02
+| Escenario de calidad que evalúa el comportamiento de la sincronización
+ante una variación moderada de la latencia de la red.
+
+| EC-03
+| Escenario de calidad que evalúa la sincronización después de pausar y
+reanudar la reproducción.
+
+| EC-04
+| Escenario de calidad que evalúa la incorporación de un nuevo receptor
+a una sala que ya se encuentra reproduciendo audio.
+|===
+
