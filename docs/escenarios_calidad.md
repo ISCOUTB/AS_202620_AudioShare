@@ -47,6 +47,14 @@ Permite evaluar si AudioShare puede mantener una reproducción sincronizada
 entre varios dispositivos bajo las condiciones normales previstas para el
 primer prototipo.
 
+### EC-01 — Sincronización inicial
+
+...
+
+**Aspecto relacionado:** [A-01 — Sincronización de reproducción de audio](./aspectos.md#a-01--sincronización-de-reproducción-de-audio)
+
+**ADR relacionado:** [ADR-0001 — Selección del estilo arquitectónico](./adr/0001-usar-monolito-modular.md)
+
 ---
 
 ## EC-02 — Variación moderada de latencia
