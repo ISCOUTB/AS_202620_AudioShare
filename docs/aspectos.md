@@ -28,7 +28,6 @@ Permite establecer una comunicación entre un dispositivo emisor y varios dispos
 * [EC-02 — Variación moderada de latencia](escenarios_calidad.md#ec-02--variación-moderada-de-latencia)
 * [EC-03 — Pausa y reanudación](escenarios_calidad.md#ec-03--pausa-y-reanudación)
 * [EC-04 — Incorporación de nuevo receptor](escenarios_calidad.md#ec-04--incorporación-de-nuevo-receptor)
-* ### ADR relacionado
 
 ### Matriz de trazabilidad
 
