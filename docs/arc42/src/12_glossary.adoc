@@ -11,3 +11,19 @@ ifndef::imagesdir[:imagesdir: ../images]
 | Sistema que permite transmitir audio en tiempo real desde un
 dispositivo emisor hacia múltiples dispositivos receptores conectados
 a una misma sala.
+
+| Sala
+| Espacio lógico dentro de AudioShare que agrupa a los dispositivos que
+participan en una misma sesión de reproducción.
+
+| Emisor
+| Dispositivo que proporciona el audio que será transmitido a los
+dispositivos receptores de una sala.
+
+| Receptor
+| Dispositivo que recibe el audio transmitido por el emisor y lo
+reproduce.
+
+| Moderador
+| Participante con permisos para administrar una sala y controlar la
+participación de otros dispositivos.
