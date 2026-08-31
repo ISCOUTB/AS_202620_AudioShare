@@ -49,8 +49,6 @@ primer prototipo.
 
 ### EC-01 — Sincronización inicial
 
-...
-
 **Aspecto relacionado:** [A-01 — Sincronización de reproducción de audio](./aspectos.md#a-01--sincronización-de-reproducción-de-audio)
 
 **ADR relacionado:** [ADR-0001 — Selección del estilo arquitectónico](./adr/0001-usar-monolito-modular.md)
