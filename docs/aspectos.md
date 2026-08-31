@@ -30,6 +30,13 @@ Permite establecer una comunicación entre un dispositivo emisor y varios dispos
 * [EC-04 — Incorporación de nuevo receptor](escenarios_calidad.md#ec-04--incorporación-de-nuevo-receptor)
 * ### ADR relacionado
 
+Matriz de trazabilidad
+ID	Aspecto	Escenario de calidad	Objetivo / métrica	Decisión arquitectónica	ADR	Implementación	Pruebas
+A-01	Sincronización de reproducción de audio	EC-01 — Sincronización inicial	Diferencia máxima entre receptores ≤ 100 ms	Monolito modular	ADR-0001 — Selección del estilo arquitectónico	src/modules/session/, src/modules/audio/, src/modules/sync/	tests/
+A-01	Sincronización de reproducción de audio	EC-02 — Variación moderada de latencia	Diferencia entre receptores ≤ 200 ms durante la variación	Monolito modular	ADR-0001 — Selección del estilo arquitectónico	src/modules/audio/, src/modules/sync/	tests/
+A-01	Sincronización de reproducción de audio	EC-03 — Pausa y reanudación	Diferencia entre receptores ≤ 100 ms después de reanudar	Monolito modular	ADR-0001 — Selección del estilo arquitectónico	src/modules/audio/, src/modules/sync/	tests/
+A-01	Sincronización de reproducción de audio	EC-04 — Incorporación de nuevo receptor	Nuevo receptor sincronizado en ≤ 3 s	Monolito modular	ADR-0001 — Selección del estilo arquitectónico	src/modules/session/, src/modules
+
 [ADR-0001 — Usar monolito modular](adr/0001-usar-monolito-modular.md)
 
 ### Implementación
