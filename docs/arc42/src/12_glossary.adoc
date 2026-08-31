@@ -1,1 +1,13 @@
+ifndef::imagesdir[:imagesdir: ../images]
 
+[[section-glossary]]
+== Glossary
+
+[cols="1,3"]
+|===
+| Término | Definición
+
+| AudioShare
+| Sistema que permite transmitir audio en tiempo real desde un
+dispositivo emisor hacia múltiples dispositivos receptores conectados
+a una misma sala.
