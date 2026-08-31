@@ -65,11 +65,11 @@ límites definidos.
 relacionadas y expone una interfaz pública para interactuar con otras
 partes del sistema.
 
-| Session
+| Módulo sesión 
 | Módulo encargado de gestionar las salas, los participantes y los
 roles dentro de AudioShare.
 
-| Audio modulo
+| Módulo audio
 | Módulo encargado de las responsabilidades relacionadas con el manejo
 y transmisión del audio.
 
