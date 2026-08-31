@@ -1,4 +1,4 @@
-== Solution Strategy
+== Estrategia de solución
 
 La arquitectura de AudioShare se diseñará buscando principalmente la
 sincronización de reproducción de audio entre varios dispositivos
