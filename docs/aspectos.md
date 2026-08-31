@@ -31,12 +31,25 @@ Permite establecer una comunicación entre un dispositivo emisor y varios dispos
 
 ### Matriz de trazabilidad
 
-| ID | Aspecto | Escenario | Objetivo / métrica | Decisión arquitectónica | ADR | Implementación | Pruebas |
-|---|---|---|---|---|---|---|---|
-| A-01 | Sincronización de reproducción de audio | [EC-01 — Sincronización inicial](./escenarios_calidad.md#ec-01--sincronización-inicial) | Diferencia máxima entre receptores ≤ 100 ms | Monolito Modular | [ADR-0001 — Selección del estilo arquitectónico](./adr/0001-usar-monolito-modular.md) | `src/modules/session/`, `src/modules/audio/`, `src/modules/sync/` | `tests/` |
-| A-01 | Sincronización de reproducción de audio | [EC-02 — Variación moderada de latencia](./escenarios_calidad.md#ec-02--variación-moderada-de-latencia) | Diferencia entre receptores ≤ 200 ms | Monolito Modular | [ADR-0001 — Selección del estilo arquitectónico](./adr/0001-usar-monolito-modular.md) | `src/modules/audio/`, `src/modules/sync/` | `tests/` |
-| A-01 | Sincronización de reproducción de audio | [EC-03 — Pausa y reanudación](./escenarios_calidad.md#ec-03--pausa-y-reanudación) | Diferencia entre receptores ≤ 100 ms después de reanudar | Monolito Modular | [ADR-0001 — Selección del estilo arquitectónico](./adr/0001-usar-monolito-modular.md) | `src/modules/audio/`, `src/modules/sync/` | `tests/` |
-| A-01 | Sincronización de reproducción de audio | [EC-04 — Incorporación de nuevo receptor](./escenarios_calidad.md#ec-04--incorporación-de-nuevo-receptor) | Nuevo receptor sincronizado en ≤ 3 s | Monolito Modular | [ADR-0001 — Selección del estilo arquitectónico](./adr/0001-usar-monolito-modular.md) | `src/modules/session/`, `src/modules/sync/` | `tests/` |
+| ID   | Aspecto                                 | Escenario                                                                                                 | Objetivo / métrica                                       | Decisión arquitectónica | ADR                                                                     | Implementación                                                    | Pruebas                                                                    |
+| ---- | --------------------------------------- | --------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- | ----------------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| A-01 | Sincronización de reproducción de audio | [EC-01 — Sincronización inicial](./escenarios_calidad.md#ec-01--sincronización-inicial)                   | Diferencia máxima entre receptores ≤ 100 ms              | Monolito Modular        | [ADR-0001 — Usar monolito modular](./adr/0001-usar-monolito-modular.md) | `src/modules/session/`, `src/modules/audio/`, `src/modules/sync/` | `tests/health.test.ts` y pruebas específicas de sincronización pendientes  |
+| A-01 | Sincronización de reproducción de audio | [EC-02 — Variación moderada de latencia](./escenarios_calidad.md#ec-02--variación-moderada-de-latencia)   | Diferencia entre receptores ≤ 200 ms                     | Monolito Modular        | [ADR-0001 — Usar monolito modular](./adr/0001-usar-monolito-modular.md) | `src/modules/audio/`, `src/modules/sync/`                         | `tests/health.test.ts` y pruebas de variación de latencia pendientes       |
+| A-01 | Sincronización de reproducción de audio | [EC-03 — Pausa y reanudación](./escenarios_calidad.md#ec-03--pausa-y-reanudación)                         | Diferencia entre receptores ≤ 100 ms después de reanudar | Monolito Modular        | [ADR-0001 — Usar monolito modular](./adr/0001-usar-monolito-modular.md) | `src/modules/audio/`, `src/modules/sync/`                         | `tests/health.test.ts` y pruebas de pausa/reanudación pendientes           |
+| A-01 | Sincronización de reproducción de audio | [EC-04 — Incorporación de nuevo receptor](./escenarios_calidad.md#ec-04--incorporación-de-nuevo-receptor) | Nuevo receptor sincronizado en ≤ 3 s                     | Monolito Modular        | [ADR-0001 — Usar monolito modular](./adr/0001-usar-monolito-modular.md) | `src/modules/session/`, `src/modules/sync/`                       | `tests/health.test.ts` y pruebas de incorporación de receptores pendientes |
+
+### Resumen de trazabilidad
+
+| Elemento                           | Referencia                                                                                            |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| **Aspecto**                        | A-01 — Sincronización de reproducción de audio                                                        |
+| **Requisitos**                     | RF-01, RF-02                                                                                          |
+| **Escenarios**                     | EC-01, EC-02, EC-03, EC-04                                                                            |
+| **ADR**                            | [ADR-0001 — Usar monolito modular](./adr/0001-usar-monolito-modular.md)                               |
+| **Implementación**                 | `src/modules/session/`, `src/modules/audio/`, `src/modules/sync/`                                     |
+| **Punto de composición**           | `src/app.ts`                                                                                          |
+| **Prueba existente**               | `tests/health.test.ts`                                                                                |
+| **Pruebas específicas pendientes** | Sincronización inicial, variación de latencia, pausa/reanudación e incorporación de nuevos receptores |
 
 ### Decisión arquitectónica relacionada
 
