@@ -45,7 +45,7 @@ Cada módulo expone su API pública únicamente a través de su `index.ts`. Ning
 
 ## Estado
 
-Esqueleto ejecutable de la semana 3: aún sin lógica de negocio. La implementación de cada módulo se construye a partir de los aspectos declarados en [`docs/aspectos.md`](docs/aspectos.md).
+Esqueleto ejecutable de la semana 4: aún sin lógica de negocio. La implementación de cada módulo se construye a partir de los aspectos declarados en [`docs/aspectos.md`](docs/aspectos.md).
 
 ## Corte vertical A-01 — Sincronización de reproducción de audio
 
