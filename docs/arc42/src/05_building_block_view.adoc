@@ -8,7 +8,6 @@ ifndef::imagesdir[:imagesdir: ../images]
 
 AudioShare se estructura como un **Monolito Modular**. El sistema está dividido en módulos con responsabilidades específicas, buscando reducir el acoplamiento y facilitar el mantenimiento, las pruebas y la evolución del proyecto.
 
-## [source]
 
 ```
                      +----------------------+
