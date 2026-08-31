@@ -16,7 +16,7 @@ Se decidió utilizar un monolito modular para AudioShare.
 La aplicación se mantiene como una única unidad de ejecución, pero sus
 responsabilidades se separan en módulos independientes.
 
-==== Justificación
+## Justificación
 
 El monolito modular permite mantener una estructura clara sin introducir
 la complejidad de desplegar y comunicar múltiples servicios.
@@ -24,7 +24,7 @@ la complejidad de desplegar y comunicar múltiples servicios.
 Además, permite separar las principales responsabilidades del sistema y
 facilita las pruebas y el mantenimiento del prototipo.
 
-==== Consecuencias
+## Consecuencias
 
 * El sistema se despliega inicialmente como una única aplicación.
 * Las responsabilidades se separan mediante módulos.
@@ -34,15 +34,15 @@ facilita las pruebas y el mantenimiento del prototipo.
   de escalabilidad lo justifican.
 
 
-=== ADR-002: Separación en módulos session, audio y sync
+# ADR-002: Separación en módulos session, audio y sync
 
-==== Contexto
+## Contexto
 
 AudioShare tiene tres responsabilidades principales: gestionar las salas
 y participantes, transmitir el audio y mantener sincronizada la
 reproducción entre los dispositivos.
 
-==== Decisión
+## Decisión
 
 Se dividirá la aplicación en tres módulos principales:
 
@@ -50,7 +50,7 @@ Se dividirá la aplicación en tres módulos principales:
 * `audio`: gestiona las funciones relacionadas con el audio.
 * `sync`: gestiona la sincronización de reproducción entre los receptores.
 
-==== Justificación
+## Justificación
 
 La separación permite mantener responsabilidades claras y reducir el
 acoplamiento entre las diferentes partes del sistema.
@@ -58,7 +58,7 @@ acoplamiento entre las diferentes partes del sistema.
 También permite que cada módulo pueda evolucionar y probarse de forma
 más independiente.
 
-==== Consecuencias
+## Consecuencias
 
 * Cada módulo tendrá una responsabilidad definida.
 * Se facilita el mantenimiento del código.
@@ -66,9 +66,9 @@ más independiente.
 * Se deberá evitar crear dependencias innecesarias entre módulos.
 
 
-=== ADR-003: Priorizar la sincronización de audio
+# ADR-003: Priorizar la sincronización de audio
 
-==== Contexto
+## Contexto
 
 La principal característica de AudioShare es permitir que varios
 dispositivos escuchen el mismo audio de forma coordinada.
@@ -76,7 +76,7 @@ dispositivos escuchen el mismo audio de forma coordinada.
 Por esta razón, la sincronización entre los dispositivos receptores es
 un aspecto importante de la arquitectura.
 
-==== Decisión
+## Decisión
 
 La sincronización de reproducción se tratará como una preocupación
 arquitectónica prioritaria.
@@ -85,7 +85,7 @@ Las decisiones relacionadas con la transmisión y reproducción del audio
 deberán evaluarse considerando su impacto sobre la sincronización entre
 los dispositivos.
 
-==== Justificación
+## Justificación
 
 El árbol de utilidad y los escenarios de calidad del proyecto establecen
 la sincronización y el rendimiento como aspectos importantes del sistema.
@@ -94,7 +94,7 @@ Los escenarios definidos permiten medir el comportamiento de la
 sincronización mediante valores concretos de latencia y diferencia de
 reproducción.
 
-==== Consecuencias
+## Consecuencias
 
 * Las decisiones de transmisión deberán considerar la latencia.
 * La sincronización deberá poder medirse mediante pruebas.
