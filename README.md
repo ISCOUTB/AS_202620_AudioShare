@@ -46,3 +46,25 @@ Cada módulo expone su API pública únicamente a través de su `index.ts`. Ning
 ## Estado
 
 Esqueleto ejecutable de la semana 3: aún sin lógica de negocio. La implementación de cada módulo se construye a partir de los aspectos declarados en [`docs/aspectos.md`](docs/aspectos.md).
+
+## Corte vertical A-01 — Sincronización de reproducción de audio
+
+El corte vertical A-01 implementa un flujo básico de sincronización de
+reproducción entre un emisor y múltiples receptores.
+
+### Flujo implementado
+
+1. El emisor crea una sala.
+2. Se pueden agregar múltiples receptores.
+3. Los receptores se registran en la sala.
+4. El emisor puede iniciar la reproducción mediante `PLAY`.
+5. El módulo `Sync` genera un `startAt` común.
+6. El módulo `Audio` genera y distribuye paquetes de audio.
+7. Se puede consultar el estado de la sala.
+
+### Ejecución
+
+Instalar dependencias:
+
+```bash
+npm install
