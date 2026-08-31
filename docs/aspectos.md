@@ -30,22 +30,22 @@ Permite establecer una comunicación entre un dispositivo emisor y varios dispos
 * [EC-04 — Incorporación de nuevo receptor](escenarios_calidad.md#ec-04--incorporación-de-nuevo-receptor)
 * ### ADR relacionado
 
-### Escenarios de calidad asociados
-
-* [EC-01 — Sincronización inicial](./escenarios_calidad.md#ec-01--sincronización-inicial)
-* [EC-02 — Variación moderada de latencia](./escenarios_calidad.md#ec-02--variación-moderada-de-latencia)
-* [EC-03 — Pausa y reanudación](./escenarios_calidad.md#ec-03--pausa-y-reanudación)
-* [EC-04 — Incorporación de nuevo receptor](./escenarios_calidad.md#ec-04--incorporación-de-nuevo-receptor)
-
 ### Matriz de trazabilidad
 
-| ID   | Aspecto                                 | Escenario de calidad                                                                                      | Objetivo / métrica                                        | Decisión arquitectónica | ADR                                                                                   | Implementación                                                    | Pruebas  |
-| ---- | --------------------------------------- | --------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- | ----------------------- | ------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | -------- |
-| A-01 | Sincronización de reproducción de audio | [EC-01 — Sincronización inicial](./escenarios_calidad.md#ec-01--sincronización-inicial)                   | Diferencia máxima entre receptores ≤ 100 ms               | Monolito modular        | [ADR-0001 — Selección del estilo arquitectónico](./adr/0001-usar-monolito-modular.md) | `src/modules/session/`, `src/modules/audio/`, `src/modules/sync/` | `tests/` |
-| A-01 | Sincronización de reproducción de audio | [EC-02 — Variación moderada de latencia](./escenarios_calidad.md#ec-02--variación-moderada-de-latencia)   | Diferencia entre receptores ≤ 200 ms durante la variación | Monolito modular        | [ADR-0001 — Selección del estilo arquitectónico](./adr/0001-usar-monolito-modular.md) | `src/modules/audio/`, `src/modules/sync/`                         | `tests/` |
-| A-01 | Sincronización de reproducción de audio | [EC-03 — Pausa y reanudación](./escenarios_calidad.md#ec-03--pausa-y-reanudación)                         | Diferencia entre receptores ≤ 100 ms después de reanudar  | Monolito modular        | [ADR-0001 — Selección del estilo arquitectónico](./adr/0001-usar-monolito-modular.md) | `src/modules/audio/`, `src/modules/sync/`                         | `tests/` |
-| A-01 | Sincronización de reproducción de audio | [EC-04 — Incorporación de nuevo receptor](./escenarios_calidad.md#ec-04--incorporación-de-nuevo-receptor) | Nuevo receptor sincronizado en ≤ 3 s                      | Monolito modular        | [ADR-0001 — Selección del estilo arquitectónico](./adr/0001-usar-monolito-modular.md) | `src/modules/session/`, `src/modules/sync/`                       | `tests/` |
+| ID | Aspecto | Escenario | Objetivo / métrica | Decisión arquitectónica | ADR | Implementación | Pruebas |
+|---|---|---|---|---|---|---|---|
+| A-01 | Sincronización de reproducción de audio | [EC-01 — Sincronización inicial](./escenarios_calidad.md#ec-01--sincronización-inicial) | Diferencia máxima entre receptores ≤ 100 ms | Monolito Modular | [ADR-0001 — Selección del estilo arquitectónico](./adr/0001-usar-monolito-modular.md) | `src/modules/session/`, `src/modules/audio/`, `src/modules/sync/` | `tests/` |
+| A-01 | Sincronización de reproducción de audio | [EC-02 — Variación moderada de latencia](./escenarios_calidad.md#ec-02--variación-moderada-de-latencia) | Diferencia entre receptores ≤ 200 ms | Monolito Modular | [ADR-0001 — Selección del estilo arquitectónico](./adr/0001-usar-monolito-modular.md) | `src/modules/audio/`, `src/modules/sync/` | `tests/` |
+| A-01 | Sincronización de reproducción de audio | [EC-03 — Pausa y reanudación](./escenarios_calidad.md#ec-03--pausa-y-reanudación) | Diferencia entre receptores ≤ 100 ms después de reanudar | Monolito Modular | [ADR-0001 — Selección del estilo arquitectónico](./adr/0001-usar-monolito-modular.md) | `src/modules/audio/`, `src/modules/sync/` | `tests/` |
+| A-01 | Sincronización de reproducción de audio | [EC-04 — Incorporación de nuevo receptor](./escenarios_calidad.md#ec-04--incorporación-de-nuevo-receptor) | Nuevo receptor sincronizado en ≤ 3 s | Monolito Modular | [ADR-0001 — Selección del estilo arquitectónico](./adr/0001-usar-monolito-modular.md) | `src/modules/session/`, `src/modules/sync/` | `tests/` |
 
+### Decisión arquitectónica relacionada
+
+La decisión arquitectónica asociada al aspecto A-01 se encuentra
+documentada en [ADR-0001 — Selección del estilo arquitectónico](./adr/0001-usar-monolito-modular.md).
+
+El escenario que motiva principalmente esta decisión es
+[EC-01 — Sincronización inicial](./escenarios_calidad.md#ec-01--sincronización-inicial).
 
 ### Implementación
 
