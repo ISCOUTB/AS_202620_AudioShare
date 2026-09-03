@@ -1,70 +1,78 @@
 # AS_202620_AudioShare
 
-Plataforma para transmitir audio en tiempo real desde un dispositivo a múltiples dispositivos conectados.
+Plataforma para transmitir audio en tiempo real desde un dispositivo a
+múltiples dispositivos conectados.
 
-## Cómo arrancar
+## Arranque
 
 Requisitos: Node.js 20+.
 
+Instala las dependencias una vez con `npm install`. Después, el **único
+comando de arranque** del proyecto es:
+
 ```bash
-npm install
 npm run dev
 ```
 
-Con eso el sistema queda escuchando en `http://localhost:3000` (configurable con `PORT`, ver `.env.example`). Para comprobar que arrancó:
+El servidor queda disponible en `http://localhost:3000`.
 
-```bash
-curl http://localhost:3000/health
-```
-
-## Cómo probar
+## Pruebas
 
 ```bash
 npm test
 ```
 
-## Estructura
+La prueba `tests/a01.test.ts` recorre el corte vertical A-01 desde la API,
+pasa por `Session`, persiste la sala y sus participantes, ejecuta
+`SyncCoordinator` y genera un `audio.chunk`.
 
-Arquitectura: **monolito modular** (ver [`docs/adr/0001-usar-monolito-modular.md`](docs/adr/0001-usar-monolito-modular.md) y [`docs/Matriz_Comparativa.md`](docs/Matriz_Comparativa.md)).
+## Arquitectura
 
-```
+AudioShare utiliza un **monolito modular**. La decisión está documentada en
+[`docs/adr/0001-usar-monolito-modular.md`](docs/adr/0001-usar-monolito-modular.md).
+
+```text
 src/
-  app.ts              composition root: ensambla los módulos, sin lógica de negocio
-  server.ts           punto de entrada del proceso
-  shared/             configuración transversal (único lugar que lee variables de entorno)
+  app.ts
+  server.ts
+  shared/
   modules/
-    session/          salas y roles (emisor, receptor, moderador)
-    audio/             captura, empaquetado y transmisión del audio
-    sync/               coordinación de reproducción entre receptores
+    session/   salas, participantes y persistencia
+    audio/     paquetes de audio
+    sync/      eventos de sincronización
+
 tests/
-  health.test.ts       verifica que el esqueleto arranca y expone los tres módulos
-docs/                  arc42, ADR, C4, aspectos y registro de uso de IA
+  health.test.ts
+  a01.test.ts
 ```
 
-Cada módulo expone su API pública únicamente a través de su `index.ts`. Ningún módulo importa archivos internos de otro módulo; si dos módulos necesitan comunicarse, ese cableado se decide en `src/app.ts` o se documenta en un ADR si implica una decisión estructural.
+## Corte vertical A-01
 
-## Estado
+```text
+HTTP /rooms
+    ↓
+SessionManager
+    ↓
+RoomRepository
+    ↓
+data/rooms.json
+    ↓
+HTTP /rooms/:roomId/play
+    ↓
+SyncCoordinator → sync.start
+    ↓
+HTTP /rooms/:roomId/audio
+    ↓
+AudioStreamHub → audio.chunk
+```
 
-Esqueleto ejecutable de la semana 4: aún sin lógica de negocio. La implementación de cada módulo se construye a partir de los aspectos declarados en [`docs/aspectos.md`](docs/aspectos.md).
+La captura de audio físico y la reproducción real en dispositivos quedan
+fuera de este corte; el recorrido demuestra la integración ejecutable de la
+lógica de sesión, persistencia, sincronización y representación del flujo de
+audio.
 
-## Corte vertical A-01 — Sincronización de reproducción de audio
+## CI
 
-El corte vertical A-01 implementa un flujo básico de sincronización de
-reproducción entre un emisor y múltiples receptores.
-
-### Flujo implementado
-
-1. El emisor crea una sala.
-2. Se pueden agregar múltiples receptores.
-3. Los receptores se registran en la sala.
-4. El emisor puede iniciar la reproducción mediante `PLAY`.
-5. El módulo `Sync` genera un `startAt` común.
-6. El módulo `Audio` genera y distribuye paquetes de audio.
-7. Se puede consultar el estado de la sala.
-
-### Ejecución
-
-Instalar dependencias:
-
-```bash
-npm install
+GitHub Actions ejecuta `npm test` automáticamente en cada push y pull
+request. El estado verde del workflow constituye la evidencia de ejecución
+automática de las pruebas.
