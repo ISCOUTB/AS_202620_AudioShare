@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#102a43" />
+    <title>AudioShare | Demo A-01</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand-lockup">
+          <div class="brand-mark" aria-hidden="true">AS</div>
+          <div>
+            <p class="eyebrow">DEMO DE CORTE VERTICAL</p>
+            <h1>AudioShare</h1>
+          </div>
+        </div>
+        <div class="topbar-meta">
+          <span class="connection-badge"><i></i> Sistema conectado</span>
+          <span class="network-badge"><span aria-hidden="true">⌁</span> Wi-Fi / Red local</span>
+        </div>
+      </header>
+
+      <main>
+        <section class="hero">
+          <div>
+            <p class="eyebrow accent">A-01 · SINCRONIZACIÓN DE REPRODUCCIÓN</p>
+            <h2>Una sala. Un pulso.<br /><em>Todos a tiempo.</em></h2>
+            <p class="hero-copy">Panel de demostración conectado a los endpoints reales de AudioShare. Cada acción viaja por Session, Repository, SQLite, Sync y Audio.</p>
+          </div>
+          <div class="hero-stamp">
+            <span class="stamp-label">FUENTE DE VERDAD</span>
+            <strong>BACKEND + SQLITE</strong>
+            <span>sin datos simulados</span>
+          </div>
+        </section>
+
+        <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
+
+        <section class="dashboard-grid">
+          <article class="panel room-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="panel-kicker">01 / SALA</p>
+                <h3>Sala de reproducción</h3>
+              </div>
+              <span id="status-pill" class="status-pill status-idle">SIN SALA</span>
+            </div>
+            <div class="room-id-block">
+              <span>ROOM ID</span>
+              <strong id="room-id">Aún no creada</strong>
+              <button id="copy-room" class="icon-button" type="button" title="Copiar Room ID" aria-label="Copiar Room ID" disabled>⧉</button>
+            </div>
+            <dl class="facts-grid">
+              <div><dt>Estado</dt><dd id="room-status">—</dd></div>
+              <div><dt>playbackState</dt><dd id="playback-state">—</dd></div>
+              <div><dt>startAt</dt><dd id="start-at">—</dd></div>
+              <div><dt>Creada</dt><dd id="created-at">—</dd></div>
+            </dl>
+          </article>
+
+          <article class="panel participants-panel">
+            <div class="panel-heading">
+              <div><p class="panel-kicker">02 / SESSION</p><h3>Participantes</h3></div>
+              <span id="participant-count" class="count-badge">0</span>
+            </div>
+            <div id="participants-list" class="participant-list">
+              <div class="empty-state"><span class="empty-icon">○</span><p>Primero crea una sala.</p><small>El emisor aparecerá aquí desde SQLite.</small></div>
+            </div>
+          </article>
+
+          <article class="panel controls-panel">
+            <div class="panel-heading">
+              <div><p class="panel-kicker">03 / OPERACIÓN</p><h3>Controles de demo</h3></div>
+              <span class="live-dot"><i></i> EN VIVO</span>
+            </div>
+            <div class="identity-fields">
+              <label for="emitter-id">ID del emisor <input id="emitter-id" placeholder="Opcional: se genera automáticamente" autocomplete="off" /></label>
+              <label for="receiver-id">ID del receptor <input id="receiver-id" placeholder="Se genera al agregar" autocomplete="off" /></label>
+            </div>
+            <div class="control-row">
+              <button id="create-room" class="action-button primary" type="button"><span>＋</span> Crear sala</button>
+              <button id="add-receiver" class="action-button" type="button" disabled><span>＋</span> Agregar receptor</button>
+            </div>
+            <div class="control-row">
+              <button id="play-room" class="action-button play" type="button" disabled><span>▶</span> Iniciar reproducción</button>
+              <button id="pause-room" class="action-button stop" type="button" disabled><span>■</span> Detener</button>
+            </div>
+            <p class="control-hint">Cada botón ejecuta una petición HTTP y luego vuelve a consultar la sala.</p>
+          </article>
+
+          <article class="panel persistence-panel">
+            <div class="panel-heading">
+              <div><p class="panel-kicker">04 / EVIDENCIA</p><h3>Persistencia</h3></div>
+              <span class="sqlite-badge"><span>●</span> SQLite</span>
+            </div>
+            <ul class="evidence-list">
+              <li id="evidence-room" class="pending"><span>○</span><div><strong>Sala persistida</strong><small>Esperando creación</small></div></li>
+              <li id="evidence-participants" class="pending"><span>○</span><div><strong>Participantes persistidos</strong><small>Esperando receptores</small></div></li>
+              <li id="evidence-state" class="pending"><span>○</span><div><strong>Estado de reproducción persistido</strong><small>Esperando PLAY</small></div></li>
+              <li id="evidence-start" class="pending"><span>○</span><div><strong>startAt persistido</strong><small>Esperando referencia temporal</small></div></li>
+            </ul>
+          </article>
+
+          <article class="panel flow-panel">
+            <div class="panel-heading">
+              <div><p class="panel-kicker">05 / RECORRIDO</p><h3>Flujo del corte vertical</h3></div>
+              <span id="flow-label" class="flow-label">LISTO</span>
+            </div>
+            <div class="flow-diagram" id="flow-diagram">
+              <div class="flow-node" data-node="emitter"><span>01</span> EMISOR</div><b>↓</b>
+              <div class="flow-node" data-node="http"><span>02</span> HTTP</div><b>↓</b>
+              <div class="flow-node" data-node="session"><span>03</span> SESSION</div><b>↓</b>
+              <div class="flow-node" data-node="usecase"><span>04</span> CASO DE USO</div><b>↓</b>
+              <div class="flow-node" data-node="repository"><span>05</span> REPOSITORY</div><b>↓</b>
+              <div class="flow-node" data-node="sqlite"><span>06</span> SQLITE</div><b>↓</b>
+              <div class="flow-node" data-node="sync"><span>07</span> SYNC</div><b>↓</b>
+              <div class="flow-node" data-node="audio"><span>08</span> AUDIO</div><b>↓</b>
+              <div class="flow-node" data-node="receivers"><span>09</span> RECEPTORES</div>
+            </div>
+          </article>
+
+          <article class="panel activity-panel">
+            <div class="panel-heading"><div><p class="panel-kicker">06 / REGISTRO</p><h3>Actividad reciente</h3></div></div>
+            <div id="activity-list" class="activity-list"><p class="muted">Las operaciones aparecerán aquí.</p></div>
+          </article>
+        </section>
+
+        <section class="response-section">
+          <div class="response-heading"><div><p class="panel-kicker">07 / TRANSPARENCIA</p><h3>Respuesta del backend</h3></div><span>JSON REAL</span></div>
+          <pre id="backend-response"><code>Esperando la primera operación...</code></pre>
+        </section>
+      </main>
+
+      <footer><span>AudioShare / A-01</span><span>Demostración académica · audio físico fuera del alcance</span></footer>
+    </div>
+    <script src="/app.js" defer></script>
+  </body>
+</html>

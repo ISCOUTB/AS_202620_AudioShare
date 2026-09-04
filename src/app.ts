@@ -1,22 +1,34 @@
 import express, { type Express, type Request, type Response } from "express";
-import { SessionManager } from "./modules/session/index.js";
+import { fileURLToPath } from "node:url";
+import { dirname, resolve } from "node:path";
+import {
+  SessionApplication,
+  SQLiteRoomRepository,
+} from "./modules/session/index.js";
 import { AudioStreamHub } from "./modules/audio/index.js";
 import { SyncCoordinator } from "./modules/sync/index.js";
+import { config } from "./shared/config.js";
 
 interface Client {
   id: string;
   send: (event: unknown) => void;
 }
 
-export function createApp(): Express {
+export function createApp(options: { databaseFile?: string } = {}): Express {
   const app = express();
 
   app.use(express.json());
 
-  const sessions = new SessionManager();
+  const sessions = new SessionApplication(
+    new SQLiteRoomRepository(options.databaseFile ?? config.databaseFile),
+  );
   const audio = new AudioStreamHub();
 
   const streams = new Map<string, Map<string, Client>>();
+
+  app.locals.close = () => sessions.close();
+
+  app.use(express.static(resolve(dirname(fileURLToPath(import.meta.url)), "../public")));
 
   /*
    * Crea una sala.
@@ -80,7 +92,9 @@ export function createApp(): Express {
         return;
       }
 
-      const receiver = room.participants.get(receiverId);
+      const receiver = room.participants.find(
+        (participant) => participant.id === receiverId,
+      );
 
       if (!receiver || receiver.role !== "receiver") {
         res.status(404).json({
@@ -137,16 +151,27 @@ export function createApp(): Express {
 
     const sync = new SyncCoordinator();
     const event = sync.start();
+    const updatedRoom = sessions.startPlayback(roomId, event.startAt);
+    const audioChunk = audio.createChunk(req.body?.payload ?? "audio-demo");
 
     const roomStreams = streams.get(roomId);
 
     if (roomStreams) {
       for (const client of roomStreams.values()) {
         client.send(event);
+        client.send(audioChunk);
       }
     }
 
-    res.status(200).json(event);
+    res.status(200).json({
+      ...event,
+      roomId: updatedRoom.id,
+      status: updatedRoom.status,
+      playbackState: updatedRoom.playbackState,
+      startAt: updatedRoom.startAt,
+      participants: updatedRoom.participants,
+      audioChunk,
+    });
   });
 
   /*
@@ -168,6 +193,7 @@ export function createApp(): Express {
 
     const sync = new SyncCoordinator();
     const event = sync.pause();
+    const updatedRoom = sessions.pausePlayback(roomId, event.positionMs);
 
     const roomStreams = streams.get(roomId);
 
@@ -177,7 +203,13 @@ export function createApp(): Express {
       }
     }
 
-    res.status(200).json(event);
+    res.status(200).json({
+      ...event,
+      roomId: updatedRoom.id,
+      status: updatedRoom.status,
+      playbackState: updatedRoom.playbackState,
+      startAt: updatedRoom.startAt,
+    });
   });
 
   /*
@@ -232,6 +264,10 @@ export function createApp(): Express {
 
     res.status(200).json({
       roomId: room.id,
+      createdAt: room.createdAt,
+      status: room.status,
+      playbackState: room.playbackState,
+      startAt: room.startAt,
       participants: Array.from(room.participants.values()),
       connectedReceivers: streams.get(roomId)?.size ?? 0,
     });

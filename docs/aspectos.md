@@ -37,6 +37,13 @@ Permite establecer una comunicación entre un dispositivo emisor y varios dispos
 | A-01 | Sincronización de reproducción de audio | [EC-02 — Variación moderada de latencia](./escenarios_calidad.md#ec-02--variación-moderada-de-latencia) | Diferencia entre receptores ≤ 200 ms | RF-02 | Monolito Modular | [ADR-0001 — Usar monolito modular](./adr/0001-usar-monolito-modular.md) | [C4 Nivel 2 — Contenedores](./c4/Contenedor%20-%20Nivel%202.mmd) | `src/modules/sync/`, `src/modules/audio/` | [`tests/a01.test.ts`](../tests/a01.test.ts) como recorrido base; medición de latencia queda pendiente |
 | A-01 | Sincronización de reproducción de audio | [EC-03 — Pausa y reanudación](./escenarios_calidad.md#ec-03--pausa-y-reanudación) | Diferencia entre receptores ≤ 100 ms después de reanudar | RF-02 | Monolito Modular | [ADR-0001 — Usar monolito modular](./adr/0001-usar-monolito-modular.md) | [C4 Nivel 2 — Contenedores](./c4/Contenedor%20-%20Nivel%202.mmd) | `src/modules/sync/` | [`tests/a01.test.ts`](../tests/a01.test.ts) como recorrido base; caso específico pendiente |
 | A-01 | Sincronización de reproducción de audio | [EC-04 — Incorporación de nuevo receptor](./escenarios_calidad.md#ec-04--incorporación-de-nuevo-receptor) | Nuevo receptor sincronizado ≤ 3 s | RF-01, RF-02 | Monolito Modular | [ADR-0001 — Usar monolito modular](./adr/0001-usar-monolito-modular.md) | [C4 Nivel 2 — Contenedores](./c4/Contenedor%20-%20Nivel%202.mmd) | `src/modules/session/`, `src/modules/sync/` | [`tests/a01.test.ts`](../tests/a01.test.ts) como recorrido base; caso específico pendiente |
+| ID   | Aspecto                                 | Escenario                                                                                                 | Objetivo / métrica                                       | Decisión arquitectónica | ADR                                                                     | Implementación                                                    | Pruebas                                                                    |
+| ---- | --------------------------------------- | --------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- | ----------------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| A-01 | Sincronización de reproducción de audio | [EC-01 — Sincronización inicial](./escenarios_calidad.md#ec-01--sincronización-inicial)                   | Diferencia máxima entre receptores ≤ 100 ms              | Monolito Modular        | [ADR-0001 — Usar monolito modular](./adr/0001-usar-monolito-modular.md) | `src/modules/session/`, `src/modules/session/application/`, `src/modules/session/infrastructure/persistence/`, `src/modules/audio/`, `src/modules/sync/` | [`tests/a01.test.ts`](../tests/a01.test.ts) y [`tests/health.test.ts`](../tests/health.test.ts) |
+| A-01 | Sincronización de reproducción de audio | [EC-02 — Variación moderada de latencia](./escenarios_calidad.md#ec-02--variación-moderada-de-latencia)   | Diferencia entre receptores ≤ 200 ms                     | Monolito Modular        | [ADR-0001 — Usar monolito modular](./adr/0001-usar-monolito-modular.md) | `src/modules/audio/`, `src/modules/sync/`                         | [`tests/a01.test.ts`](../tests/a01.test.ts): distribución simulada y persistencia |
+| A-01 | Sincronización de reproducción de audio | [EC-03 — Pausa y reanudación](./escenarios_calidad.md#ec-03--pausa-y-reanudación)                         | Diferencia entre receptores ≤ 100 ms después de reanudar | Monolito Modular        | [ADR-0001 — Usar monolito modular](./adr/0001-usar-monolito-modular.md) | `src/modules/audio/`, `src/modules/sync/`                         | [`tests/a01.test.ts`](../tests/a01.test.ts): estado de reproducción persistido |
+| A-01 | Sincronización de reproducción de audio | [EC-04 — Incorporación de nuevo receptor](./escenarios_calidad.md#ec-04--incorporación-de-nuevo-receptor) | Nuevo receptor sincronizado en ≤ 3 s                     | Monolito Modular        | [ADR-0001 — Usar monolito modular](./adr/0001-usar-monolito-modular.md) | `src/modules/session/`, `src/modules/sync/`                       | [`tests/a01.test.ts`](../tests/a01.test.ts): incorporación y recuperación desde SQLite |
+
 ### Resumen de trazabilidad
 
 | Elemento                           | Referencia                                                                                            |
@@ -47,8 +54,9 @@ Permite establecer una comunicación entre un dispositivo emisor y varios dispos
 | **ADR**                            | [ADR-0001 — Usar monolito modular](./adr/0001-usar-monolito-modular.md)                               |
 | **Implementación**                 | `src/modules/session/`, `src/modules/audio/`, `src/modules/sync/`                                     |
 | **Punto de composición**           | `src/app.ts`                                                                                          |
-| **Prueba existente**               | `tests/health.test.ts`                                                                                |
-| **Pruebas específicas pendientes** | Sincronización inicial, variación de latencia, pausa/reanudación e incorporación de nuevos receptores |
+| **Prueba del recorrido A-01**       | [`tests/a01.test.ts`](../tests/a01.test.ts)                                                          |
+| **Pruebas de arranque**             | [`tests/health.test.ts`](../tests/health.test.ts)                                                    |
+| **Persistencia**                    | `SQLiteRoomRepository` guarda y recupera salas desde `DATABASE_FILE`                                 |
 
 ### Decisión arquitectónica relacionada
 
@@ -62,7 +70,8 @@ El escenario que motiva principalmente esta decisión es
 
 El corte vertical A-01 se implementa siguiendo la arquitectura de monolito modular definida para AudioShare. La funcionalidad se divide en los módulos `Session`, `Sync` y `Audio`, cuya integración se realiza desde `app.ts`.
 
-* **SessionManager:** gestiona las salas y sus participantes, diferenciando entre el dispositivo emisor y los dispositivos receptores.
+* **SessionApplication:** ejecuta los casos de uso de salas, participantes y estado de reproducción mediante el puerto `RoomRepository`.
+* **SQLiteRoomRepository:** implementa el puerto de persistencia y mantiene las tablas `rooms` y `participants` en `data/audioshare.sqlite`.
 * **SyncCoordinator:** genera el evento `sync.start` cuando el emisor inicia la reproducción. Este evento contiene un valor `startAt` que funciona como referencia temporal común.
 * **AudioStreamHub:** genera los paquetes `audio.chunk`, que representan los datos de audio que serán distribuidos a los receptores.
 * **app.ts:** actúa como punto de composición y conecta los módulos mediante los endpoints HTTP.
@@ -76,12 +85,14 @@ El corte vertical permite ejecutar el siguiente flujo:
 5. El módulo de sincronización genera un evento `sync.start` con un `startAt`.
 6. Se genera un paquete `audio.chunk`.
 7. Los datos generados quedan disponibles para ser distribuidos a los receptores mediante el mecanismo de streaming.
+8. La petición de `PLAY` actualiza `status`, `playback_state` y `start_at` en SQLite antes de responder.
 
-El corte actual valida la comunicación, sincronización y distribución de datos de audio a nivel de aplicación. La captura de audio desde un dispositivo físico y su reproducción mediante los altavoces quedan fuera de este corte vertical.
+El corte actual valida la comunicación, sincronización, distribución simulada de audio y persistencia SQLite a nivel de aplicación. El `audio.chunk` no contiene audio real: es una representación del paquete. La captura desde un dispositivo físico, su reproducción mediante altavoces y la autenticación quedan fuera de este corte vertical.
 
 ### Pruebas
 
-La implementación se valida mediante la prueba de integración `tests/a01.test.ts`.
+La implementación se valida mediante la prueba de integración
+[`tests/a01.test.ts`](../tests/a01.test.ts).
 
 La prueba verifica:
 
@@ -93,8 +104,11 @@ La prueba verifica:
 6. La generación de un valor `startAt`.
 7. La generación de un paquete `audio.chunk`.
 8. La secuencia y el contenido del paquete de audio.
+9. La recuperación de la sala y sus receptores desde una nueva instancia de
+   aplicación tras cerrar y reabrir la conexión SQLite.
 
-La prueba se ejecuta junto con las pruebas existentes mediante:
+La prueba usa una base SQLite temporal para evitar contaminar la base de
+desarrollo y se ejecuta junto con las pruebas existentes mediante:
 
 ```bash
 npm test
@@ -104,5 +118,10 @@ Resultado actual:
 
 ```text
 Test Files  2 passed (2)
-Tests       3 passed (3)
+Tests       5 passed (5)
 ```
+
+La integración continua ejecuta `npm run verify`, que compila TypeScript y
+ejecuta este recorrido junto con las pruebas de arranque en cada push y pull
+request. La última verificación local quedó en verde con 2 archivos y 4
+pruebas aprobadas.
