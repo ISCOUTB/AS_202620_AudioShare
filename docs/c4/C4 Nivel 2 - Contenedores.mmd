@@ -1,0 +1,67 @@
+%% C4 Nivel 2 — Contenedores · AudioShare
+%% Diagrama de tipo: C4 Model, Nivel 2 (Contenedores)
+%% Fecha: 2026-09-04
+%% Corresponde a la implementación real en src/ al commit del corte 1.
+%% Reemplaza la versión anterior, que dibujaba un Frontend SPA, un servicio
+%% de Discovery (mDNS), un servidor de Signaling (WebSocket) y un Media
+%% Engine (WebRTC/mediasoup) que nunca se implementaron. El sistema real es
+%% un monolito modular Node.js/Express con persistencia en SQLite.
+
+graph TB
+    %% Usuarios del Nivel 1
+    subgraph Emisor_Node ["<center><b>&laquo;person&raquo;</b><br/>👤<br/><b>Usuario Emisor / Moderador</b></center>"]
+        E_desc["Crea la sala, administra la sesión e inicia la reproducción desde el navegador."]
+    end
+
+    subgraph Receptor_Node ["<center><b>&laquo;person&raquo;</b><br/>👤<br/><b>Usuario Receptor</b></center>"]
+        R_desc["Se une a la sala en la misma red Wi-Fi y recibe los eventos de reproducción."]
+    end
+
+    %% Límite del Sistema AudioShare (Contenedores reales)
+    subgraph System_Boundary ["<b>Sistema AudioShare (Límite del Sistema)</b>"]
+
+        %% Contenedor 1: Cliente Web (servido como estático por el mismo servidor)
+        subgraph WebClient
+            WC_desc["Ejecuta en el navegador. Consume la API REST y el stream NDJSON. Servido como archivos estáticos (public/) por el propio servidor Express — no es un proceso independiente."]
+        end
+
+        %% Contenedor 2: Servidor AudioShare (monolito modular)
+        subgraph AppServer
+            AS_desc["Expone la API REST y el stream de eventos NDJSON. Internamente organizado en los módulos Session, Sync y Audio (ver ADR-0001 y C4 Nivel 3)."]
+        end
+
+        %% Contenedor 3: Base de datos
+        subgraph SqliteDb ["<center><b>&laquo;container: SQLite (archivo)&raquo;</b><br/>🗄️<br/><b>Base de datos de salas</b></center>"]
+            DB_desc["Persiste salas, participantes y estado de reproducción en data/audioshare.sqlite mediante better-sqlite3."]
+        end
+
+    end
+
+    %% Relaciones entre Usuarios y Contenedores
+    Emisor_Node -->|"1. Abre el dashboard y controla la sala<br/><i>[HTTPS]</i>"| WebClient
+    Receptor_Node -->|"2. Abre el dashboard y se une a la sala<br/><i>[HTTPS]</i>"| WebClient
+
+    %% Relaciones Internas entre Contenedores
+    WebClient -->|"3. Crea sala, agrega receptores, consulta estado, PLAY/PAUSE<br/><i>[JSON / HTTPS REST]</i>"| AppServer
+    WebClient -->|"4. Recibe eventos sync.start, sync.pause y audio.chunk<br/><i>[NDJSON / HTTP streaming]</i>"| AppServer
+    AppServer -->|"5. Lee y escribe salas, participantes y estado de reproducción<br/><i>[SQL / better-sqlite3]</i>"| SqliteDb
+
+    %% Leyenda explícita
+    subgraph Leyenda ["Leyenda del Diagrama (C4 Nivel 2)"]
+        L_Person["👤 Persona / Actor"]
+        L_Container["📦 Contenedor Desplegable (App / Servicio / Datos)"]
+        L_Rel["───► Flujo con Propósito y Tecnología"]
+    end
+
+    %% Estilos CSS
+    classDef personStyle fill:#08427b,stroke:#052e56,color:#fff,stroke-width:1px;
+    classDef containerStyle fill:#1168bd,stroke:#0b4884,color:#fff,stroke-width:1px;
+    classDef dbStyle fill:#0d5c3f,stroke:#083f2b,color:#fff,stroke-width:1px;
+    classDef boundaryStyle fill:none,stroke:#666,stroke-width:2px,stroke-dasharray: 5 5;
+    classDef legendStyle fill:#f9f9f9,stroke:#ccc,color:#333;
+
+    class Emisor_Node,Receptor_Node,L_Person personStyle;
+    class WebClient,AppServer,L_Container containerStyle;
+    class SqliteDb dbStyle;
+    class System_Boundary boundaryStyle;
+    class Leyenda legendStyle;

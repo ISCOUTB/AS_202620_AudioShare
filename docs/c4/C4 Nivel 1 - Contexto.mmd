@@ -7,8 +7,8 @@ graph TD
     sys["🔊 Sistema AudioShare<br/><i>[Software System]</i><br/>Coordina las sesiones y la distribución de audio sintonizado en tiempo real."]
 
     %% Conexiones con propósito y tecnología
-    mod -->|Inicia sesión y transmite audio<br/>Wi-Fi Local / WebRTC / HTTP| sys
-    oye -->|Se une a la sesión y recibe audio<br/>Wi-Fi Local / WebRTC / HTTP| sys
+    mod -->|Inicia sesión y transmite audio<br/>Wi-Fi Local / HTTP REST + streaming NDJSON| sys
+    oye -->|Se une a la sesión y recibe audio<br/>Wi-Fi Local / HTTP REST + streaming NDJSON| sys
 
     %% Leyenda
     subgraph Leyenda
