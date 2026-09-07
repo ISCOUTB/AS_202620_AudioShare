@@ -14,7 +14,7 @@ del proceso.
 
 ## Cómo arrancar
 
-Requisitos: Node.js 20+.
+Requisitos: Node.js 22+.
 
 Instala las dependencias una vez con `npm install`. Después, el **único
 comando de arranque** del proyecto es:
