@@ -33,30 +33,25 @@ Permite establecer una comunicación entre un dispositivo emisor y varios dispos
 
 | ID | Aspecto | Escenario | Objetivo / métrica | Requisito | Decisión arquitectónica | ADR | C4 | Implementación | Pruebas |
 |---|---|---|---|---|---|---|---|---|---|
-| A-01 | Sincronización de reproducción de audio | [EC-01 — Sincronización inicial](./escenarios_calidad.md#ec-01--sincronización-inicial) | Diferencia máxima entre receptores ≤ 100 ms | RF-01: transmitir audio a uno o varios receptores; RF-02: usar una referencia temporal común | Monolito Modular | [ADR-0001 — Usar monolito modular](./adr/0001-usar-monolito-modular.md) | [C4 Nivel 2 — Contenedores](./c4/Contenedor%20-%20Nivel%202.mmd) | `src/app.ts`, `src/modules/session/`, `src/modules/sync/`, `src/modules/audio/`, `src/modules/session/repository.ts` | [`tests/a01.test.ts`](../tests/a01.test.ts) |
-| A-01 | Sincronización de reproducción de audio | [EC-02 — Variación moderada de latencia](./escenarios_calidad.md#ec-02--variación-moderada-de-latencia) | Diferencia entre receptores ≤ 200 ms | RF-02 | Monolito Modular | [ADR-0001 — Usar monolito modular](./adr/0001-usar-monolito-modular.md) | [C4 Nivel 2 — Contenedores](./c4/Contenedor%20-%20Nivel%202.mmd) | `src/modules/sync/`, `src/modules/audio/` | [`tests/a01.test.ts`](../tests/a01.test.ts) como recorrido base; medición de latencia queda pendiente |
-| A-01 | Sincronización de reproducción de audio | [EC-03 — Pausa y reanudación](./escenarios_calidad.md#ec-03--pausa-y-reanudación) | Diferencia entre receptores ≤ 100 ms después de reanudar | RF-02 | Monolito Modular | [ADR-0001 — Usar monolito modular](./adr/0001-usar-monolito-modular.md) | [C4 Nivel 2 — Contenedores](./c4/Contenedor%20-%20Nivel%202.mmd) | `src/modules/sync/` | [`tests/a01.test.ts`](../tests/a01.test.ts) como recorrido base; caso específico pendiente |
-| A-01 | Sincronización de reproducción de audio | [EC-04 — Incorporación de nuevo receptor](./escenarios_calidad.md#ec-04--incorporación-de-nuevo-receptor) | Nuevo receptor sincronizado ≤ 3 s | RF-01, RF-02 | Monolito Modular | [ADR-0001 — Usar monolito modular](./adr/0001-usar-monolito-modular.md) | [C4 Nivel 2 — Contenedores](./c4/Contenedor%20-%20Nivel%202.mmd) | `src/modules/session/`, `src/modules/sync/` | [`tests/a01.test.ts`](../tests/a01.test.ts) como recorrido base; caso específico pendiente |
-| ID   | Aspecto                                 | Escenario                                                                                                 | Objetivo / métrica                                       | Decisión arquitectónica | ADR                                                                     | Implementación                                                    | Pruebas                                                                    |
-| ---- | --------------------------------------- | --------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- | ----------------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| A-01 | Sincronización de reproducción de audio | [EC-01 — Sincronización inicial](./escenarios_calidad.md#ec-01--sincronización-inicial)                   | Diferencia máxima entre receptores ≤ 100 ms              | Monolito Modular        | [ADR-0001 — Usar monolito modular](./adr/0001-usar-monolito-modular.md) | `src/modules/session/`, `src/modules/session/application/`, `src/modules/session/infrastructure/persistence/`, `src/modules/audio/`, `src/modules/sync/` | [`tests/a01.test.ts`](../tests/a01.test.ts) y [`tests/health.test.ts`](../tests/health.test.ts) |
-| A-01 | Sincronización de reproducción de audio | [EC-02 — Variación moderada de latencia](./escenarios_calidad.md#ec-02--variación-moderada-de-latencia)   | Diferencia entre receptores ≤ 200 ms                     | Monolito Modular        | [ADR-0001 — Usar monolito modular](./adr/0001-usar-monolito-modular.md) | `src/modules/audio/`, `src/modules/sync/`                         | [`tests/a01.test.ts`](../tests/a01.test.ts): distribución simulada y persistencia |
-| A-01 | Sincronización de reproducción de audio | [EC-03 — Pausa y reanudación](./escenarios_calidad.md#ec-03--pausa-y-reanudación)                         | Diferencia entre receptores ≤ 100 ms después de reanudar | Monolito Modular        | [ADR-0001 — Usar monolito modular](./adr/0001-usar-monolito-modular.md) | `src/modules/audio/`, `src/modules/sync/`                         | [`tests/a01.test.ts`](../tests/a01.test.ts): estado de reproducción persistido |
-| A-01 | Sincronización de reproducción de audio | [EC-04 — Incorporación de nuevo receptor](./escenarios_calidad.md#ec-04--incorporación-de-nuevo-receptor) | Nuevo receptor sincronizado en ≤ 3 s                     | Monolito Modular        | [ADR-0001 — Usar monolito modular](./adr/0001-usar-monolito-modular.md) | `src/modules/session/`, `src/modules/sync/`                       | [`tests/a01.test.ts`](../tests/a01.test.ts): incorporación y recuperación desde SQLite |
+| A-01 | Sincronización de reproducción de audio | [EC-01 — Sincronización inicial](./escenarios_calidad.md#ec-01--sincronización-inicial) | Diferencia máxima entre receptores ≤ 100 ms | RF-01: transmitir audio a uno o varios receptores; RF-02: usar una referencia temporal común | Monolito Modular | [ADR-0001 — Usar monolito modular](./adr/0001-usar-monolito-modular.md) | [C4 Nivel 2 — Contenedores](./c4/C4%20Nivel%202%20-%20Contenedores.mmd) | `src/app.ts`, `src/modules/session/`, `src/modules/session/application/`, `src/modules/session/infrastructure/persistence/`, `src/modules/audio/`, `src/modules/sync/` | [`tests/a01.test.ts`](../tests/a01.test.ts) y [`tests/health.test.ts`](../tests/health.test.ts) |
+| A-01 | Sincronización de reproducción de audio | [EC-02 — Variación moderada de latencia](./escenarios_calidad.md#ec-02--variación-moderada-de-latencia) | Diferencia entre receptores ≤ 200 ms | RF-02 | Monolito Modular | [ADR-0001 — Usar monolito modular](./adr/0001-usar-monolito-modular.md) | [C4 Nivel 2 — Contenedores](./c4/C4%20Nivel%202%20-%20Contenedores.mmd) | `src/modules/audio/`, `src/modules/sync/` | [`tests/a01.test.ts`](../tests/a01.test.ts) como recorrido base; distribución simulada y persistencia. Medición de latencia real queda pendiente |
+| A-01 | Sincronización de reproducción de audio | [EC-03 — Pausa y reanudación](./escenarios_calidad.md#ec-03--pausa-y-reanudación) | Diferencia entre receptores ≤ 100 ms después de reanudar | RF-02 | Monolito Modular | [ADR-0001 — Usar monolito modular](./adr/0001-usar-monolito-modular.md) | [C4 Nivel 2 — Contenedores](./c4/C4%20Nivel%202%20-%20Contenedores.mmd) | `src/modules/audio/`, `src/modules/sync/` | [`tests/a01.test.ts`](../tests/a01.test.ts) como recorrido base; estado de reproducción persistido. Caso específico de pausa/reanudación queda pendiente |
+| A-01 | Sincronización de reproducción de audio | [EC-04 — Incorporación de nuevo receptor](./escenarios_calidad.md#ec-04--incorporación-de-nuevo-receptor) | Nuevo receptor sincronizado ≤ 3 s | RF-01, RF-02 | Monolito Modular | [ADR-0001 — Usar monolito modular](./adr/0001-usar-monolito-modular.md) | [C4 Nivel 2 — Contenedores](./c4/C4%20Nivel%202%20-%20Contenedores.mmd) | `src/modules/session/`, `src/modules/sync/` | [`tests/a01.test.ts`](../tests/a01.test.ts): incorporación y recuperación desde SQLite |
 
 ### Resumen de trazabilidad
 
-| Elemento                           | Referencia                                                                                            |
-| ---------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| **Aspecto**                        | A-01 — Sincronización de reproducción de audio                                                        |
-| **Requisitos**                     | RF-01, RF-02                                                                                          |
-| **Escenarios**                     | EC-01, EC-02, EC-03, EC-04                                                                            |
-| **ADR**                            | [ADR-0001 — Usar monolito modular](./adr/0001-usar-monolito-modular.md)                               |
-| **Implementación**                 | `src/modules/session/`, `src/modules/audio/`, `src/modules/sync/`                                     |
-| **Punto de composición**           | `src/app.ts`                                                                                          |
-| **Prueba del recorrido A-01**       | [`tests/a01.test.ts`](../tests/a01.test.ts)                                                          |
-| **Pruebas de arranque**             | [`tests/health.test.ts`](../tests/health.test.ts)                                                    |
-| **Persistencia**                    | `SQLiteRoomRepository` guarda y recupera salas desde `DATABASE_FILE`                                 |
+| Elemento | Referencia |
+| --- | --- |
+| **Aspecto** | A-01 — Sincronización de reproducción de audio |
+| **Requisitos** | RF-01, RF-02 |
+| **Escenarios** | EC-01, EC-02, EC-03, EC-04 |
+| **ADR** | [ADR-0001 — Usar monolito modular](./adr/0001-usar-monolito-modular.md) |
+| **C4** | [Nivel 1 — Contexto](./c4/C4%20Nivel%201%20-%20Contexto.mmd), [Nivel 2 — Contenedores](./c4/C4%20Nivel%202%20-%20Contenedores.mmd) |
+| **Implementación** | `src/modules/session/`, `src/modules/audio/`, `src/modules/sync/` |
+| **Punto de composición** | `src/app.ts` |
+| **Prueba del recorrido A-01** | [`tests/a01.test.ts`](../tests/a01.test.ts) |
+| **Pruebas de arranque** | [`tests/health.test.ts`](../tests/health.test.ts) |
+| **Persistencia** | `SQLiteRoomRepository` guarda y recupera salas desde `DATABASE_FILE` |
 
 ### Decisión arquitectónica relacionada
 
@@ -122,6 +117,5 @@ Tests       5 passed (5)
 ```
 
 La integración continua ejecuta `npm run verify`, que compila TypeScript y
-ejecuta este recorrido junto con las pruebas de arranque en cada push y pull
-request. La última verificación local quedó en verde con 2 archivos y 4
-pruebas aprobadas.
+ejecuta este mismo recorrido junto con las pruebas de arranque en cada push
+y pull request.

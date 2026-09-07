@@ -1,6 +1,6 @@
 # 0001 — Selección del estilo arquitectónico
 
-- **Estado:** propuesto
+- **Estado:** aceptado
 - **Fecha:** 2026-08-23
 - **Decide:** Yeiver Andres Verjel Perez, Elian Daniel Perea Vanegas, Santiago Adolfo Camacho Hernandez y Vincent Cardona Castro.
 - **Escenario de calidad relacionado:** [EC-01 — Sincronización inicial](../escenarios_calidad.md#ec-01--sincronización-inicial)
@@ -46,6 +46,6 @@ La decisión se toma a partir de la comparación realizada en la Sección 4 de a
 ## Trazabilidad
 
 - Requisito / aspecto: organización, mantenibilidad, testabilidad y evolución de la arquitectura de AudioShare.
-- Elementos C4 afectados: Ninguno. El único diagrama existente (context.mmd / context.png) corresponde al Nivel 1 y no se modifica con esta decisión, ya que representa el sistema como una caja única sin exponer su estructura interna. Esta decisión deberá reflejarse más adelante en los diagramas de Contenedores y Componentes, aún no creados.
+- Elementos C4 afectados: [C4 Nivel 1 — Contexto](../c4/C4%20Nivel%201%20-%20Contexto.mmd) (sin cambios, representa el sistema como una caja única) y [C4 Nivel 2 — Contenedores](../c4/C4%20Nivel%202%20-%20Contenedores.mmd), que ya materializa esta decisión: un único contenedor de aplicación (Node.js/Express) con los módulos internos `session`, `audio` y `sync`, más el contenedor de persistencia SQLite. El C4 Nivel 3 (Componentes) queda pendiente para cuando se detalle la estructura interna de cada módulo.
 - Implementación: `src/modules/session/`, `src/modules/audio/`, `src/modules/sync/` y `src/app.ts`.
 - Pruebas que lo cubren: [`tests/a01.test.ts`](../../tests/a01.test.ts) y [`tests/health.test.ts`](../../tests/health.test.ts).
