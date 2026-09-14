@@ -35,6 +35,28 @@ ha sido utilizada como apoyo en las siguientes actividades:
 * Apoyo en el diseño y revisión de pruebas de integración.
 * Revisión cruzada de la documentación del repositorio contra la Guía
   del curso y el feedback recibido, previa al corte 1.
+* Apoyo en la elaboración del mapa de contextos de AudioShare,
+  identificando los principales contextos del sistema y sus relaciones.
+* Apoyo en la identificación de las responsabilidades de los módulos
+  `Session`, `Sync` y `Audio`.
+* Apoyo en la elaboración de la tabla módulo → datos, identificando los
+  datos manejados por cada módulo y estableciendo un dueño único para
+  cada dato.
+* Revisión de la separación de responsabilidades entre los módulos para
+  evitar que diferentes módulos sean responsables del mismo dato.
+* Apoyo en la identificación de errores y no conformidades presentes en
+  el estado actual del proyecto.
+* Apoyo en la clasificación de las no conformidades según su impacto y
+  prioridad de corrección.
+* Apoyo en la elaboración del plan de corrección de las no conformidades
+  detectadas.
+* Revisión de la diferencia entre funcionalidades actualmente
+  implementadas, funcionalidades simuladas y funcionalidades pendientes
+  del prototipo.
+* Apoyo en la organización de los nuevos documentos de arquitectura
+  dentro del directorio `docs/`.
+* Revisión de la coherencia entre la documentación de arquitectura y la
+  estructura actual de los módulos del código.
 
 ## Herramientas utilizadas
 
@@ -70,7 +92,7 @@ del equipo y no por la herramienta de Inteligencia Artificial.
 | Semana 2 | C4 | Elaborar el diagrama de contexto | Se generó el código Mermaid y la imagen del C4 de contexto | Se rechazaron elementos que pertenecían a niveles inferiores de C4 y no al contexto. El diagrama se limitó al sistema AudioShare, sus usuarios y sistemas externos relevantes. |
 | Semana 2 | Documentación | Revisar la organización de los documentos | Se estructuró la documentación dentro del repositorio | Se descartaron estructuras de carpetas innecesariamente complejas para el alcance actual del proyecto. Se mantuvo una organización compatible con arc42, ADR, C4 y los documentos solicitados. |
 | Semana 3 | Consulta | Investigación de los estilos arquitectónicos | Se generó la matriz comparativa | Se rechazó una comparación basada únicamente en ventajas y desventajas generales. Se decidió relacionar cada estilo directamente con los escenarios EC-01 a EC-04 del árbol de utilidad. |
-| Semana 4 | Corte vertical A-01 | Apoyar la implementación del corte vertical ejecutable de sincronización de reproducción de audio | Se implementó el flujo de creación de salas, incorporación de receptores, sincronización mediante `startAt` y generación de paquetes `audio.chunk` | Se descartaron propuestas que ampliaban el alcance del corte vertical con funcionalidades no necesarias para demostrar la sincronización. Se mantuvo el flujo mínimo necesario para validar A-01. |
+| Semana 4 | Corte vertical A-01 | Apoyar la implementación del corte vertical ejecutable de sincronización de reproducción de audio | Se implementó el flujo de creación de salas, incorporación de receptores, sincronización mediante `startAt` y generación de eventos `audio.chunk` | Se descartaron propuestas que ampliaban el alcance del corte vertical con funcionalidades no necesarias para demostrar la sincronización. Se mantuvo el flujo mínimo necesario para validar A-01. |
 | Semana 4 | Pruebas | Diseñar y revisar la prueba de integración del corte vertical A-01 | Se creó `tests/a01.test.ts`, verificando la creación de una sala, dos receptores, la operación `PLAY` y la generación de eventos de sincronización y audio | Se rechazaron pruebas que verificaban únicamente funciones aisladas. Se priorizó una prueba de integración que recorriera el flujo completo del corte vertical. |
 | Semana 4 | Documentación técnica | Actualizar el README y la documentación del aspecto A-01 | Se documentaron la implementación, el flujo de ejecución y las pruebas realizadas | Se descartó documentar funcionalidades que todavía no forman parte del corte vertical implementado. La documentación se limitó al comportamiento realmente disponible y verificable. |
 | Semana 4 | Revisión y corrección | Analizar errores encontrados durante la ejecución de las pruebas | Se corrigió la prueba de integración hasta obtener 3 pruebas aprobadas en 2 archivos | Se rechazaron correcciones que modificaban el comportamiento esperado del sistema únicamente para hacer pasar las pruebas. Se corrigió la implementación o la prueba según el comportamiento definido. |
@@ -78,6 +100,12 @@ del equipo y no por la herramienta de Inteligencia Artificial.
 | Semana 4 | Persistencia del corte vertical | Incorporar persistencia real al corte vertical A-01 | Se implementó `SQLiteRoomRepository` con tablas `rooms` y `participants`, y se extendió `tests/a01.test.ts` para verificar la recuperación de una sala tras reabrir la base de datos | Se rechazó mantener el estado únicamente en memoria del proceso, porque no permitía demostrar persistencia real ni sobrevivir a un reinicio del servidor. También se rechazó introducir un motor de base de datos externo (por ejemplo PostgreSQL) por añadir una dependencia de infraestructura innecesaria para el alcance actual del prototipo. |
 | Semana 4 | Corrección del C4 Nivel 2 | Alinear el diagrama de contenedores con el código real | Se rehízo `C4 Nivel 2 - Contenedores.mmd` para mostrar el cliente web, el servidor de aplicación y la base SQLite reales | Se rechazó la versión anterior del diagrama, que mostraba un Frontend SPA, un servicio de Discovery, un servidor de Signaling y un Media Engine que nunca se implementaron. Se descartó mantenerlos como "plan futuro" dentro del mismo diagrama para no mezclar lo implementado con lo especulativo; ese contenido se dejará para una futura actualización del diagrama cuando exista código real que lo respalde. |
 | Semana 5 | Revisión pre-corte 1 | Contrastar `docs/aspectos.md`, `docs/ia.md`, arc42 y el ADR contra la Guía del curso y el feedback recibido en semanas 1 a 4 | Se identificó que `docs/aspectos.md` contenía dos tablas de trazabilidad casi idénticas, una de ellas con un enlace roto al diagrama C4 Nivel 2 (`Contenedor - Nivel 2.mmd`, un nombre de archivo que ya no existe) | Se rechazó conservar ambas tablas "por si acaso": se consolidaron en una sola tabla, usando las columnas y el nivel de detalle de la más completa, y se corrigió la ruta del enlace al nombre real del archivo (`C4 Nivel 2 - Contenedores.mmd`). También se rechazó reescribir el resto del documento desde cero: se conservó el contenido ya aceptado en semanas anteriores (descripción, requisitos, implementación, pruebas) sin modificarlo. |
+| Semana 6 | Mapa de contextos | Apoyar la identificación y organización de los principales contextos del sistema AudioShare y sus relaciones | Se elaboró el mapa de contextos para representar de forma clara los límites y relaciones entre los contextos principales del sistema | Se rechazó incluir elementos que no correspondían al alcance actual de AudioShare o que representaban detalles internos que debían documentarse en niveles inferiores de arquitectura. |
+| Semana 6 | Módulo → datos | Identificar qué datos son responsabilidad de cada módulo y establecer un dueño único para cada dato | Se elaboró la tabla módulo → datos, relacionando `Session`, `Sync`, `Audio` y persistencia con los datos que manejan y sus responsabilidades | Se rechazó una distribución en la que varios módulos fueran responsables de modificar directamente el mismo dato. Se estableció un único dueño por dato para mejorar la separación de responsabilidades. |
+| Semana 6 | Separación de responsabilidades | Revisar que las responsabilidades de los módulos sean coherentes con la arquitectura de Monolito Modular | Se revisó la responsabilidad de los módulos `Session`, `Sync` y `Audio`, evitando duplicidad en el manejo de datos | Se rechazó asignar responsabilidades de persistencia, sincronización y transmisión de audio de forma indistinta entre módulos. Cada módulo mantiene una responsabilidad específica y se comunica mediante sus interfaces. |
+| Semana 6 | No conformidades | Identificar errores, funcionalidades pendientes y diferencias entre el estado actual del prototipo y el comportamiento esperado | Se elaboró una lista de no conformidades identificando aspectos como audio simulado, reproducción física pendiente, validación de sincronización, pausa/reanudación, incorporación de nuevos receptores y medición de latencia | Se rechazó considerar como completamente implementadas funcionalidades que actualmente solo están simuladas o documentadas. Se diferenciaron las funcionalidades implementadas de las pendientes. |
+| Semana 6 | Plan de corrección | Organizar las acciones necesarias para resolver las no conformidades detectadas | Se elaboró un plan de corrección con prioridad para transmisión de audio real, reproducción en receptores, validación de sincronización, pausa/reanudación, nuevos receptores y métricas de latencia | Se rechazó intentar corregir todas las no conformidades simultáneamente. Se estableció un orden de corrección basado en dependencias e impacto sobre el funcionamiento del sistema. |
+| Semana 6 | Organización de documentación | Definir la ubicación de los nuevos documentos relacionados con el análisis arquitectónico | Se organizaron los documentos `docs/mapa_contextos.md`, `docs/modulos_datos.md` y `docs/no_conformidades.md` dentro del directorio `docs/` | Se rechazó colocar estos documentos fuera de la estructura de documentación existente, manteniendo la organización del repositorio y la trazabilidad de la arquitectura. |
 
 ## Propuestas de IA rechazadas
 
@@ -128,13 +156,38 @@ del equipo y no por la herramienta de Inteligencia Artificial.
   generales y no mostraba claramente el impacto sobre cada escenario del
   árbol de utilidad. La nueva matriz utiliza EC-01 a EC-04 como filas y
   especifica qué mejora y qué empeora con cada estilo.
+* **Semana 6 — Mapa de contextos:** se rechazó incluir detalles de
+  implementación dentro del mapa de contextos, ya que este debe
+  representar los límites y relaciones de los contextos y no reemplazar
+  los diagramas C4 ni la documentación de módulos.
+* **Semana 6 — Módulo → datos:** se rechazó asignar el mismo dato a
+  varios módulos como responsables directos. Se estableció el principio
+  de dueño único para evitar responsabilidades duplicadas y facilitar el
+  mantenimiento.
+* **Semana 6 — No conformidades:** se rechazó presentar como errores
+  únicamente los problemas de código. También se registraron
+  funcionalidades pendientes o no validadas experimentalmente cuando
+  afectan el cumplimiento de los requisitos y escenarios de calidad.
+* **Semana 6 — Plan de corrección:** se rechazó un plan sin prioridades.
+  Las correcciones se organizaron según su impacto y dependencia,
+  comenzando por la transmisión y reproducción de audio antes de
+  realizar las validaciones avanzadas de sincronización y latencia.
+* **Semana 6 — Organización de documentación:** se rechazó colocar los
+  nuevos documentos fuera de la estructura `docs/`, manteniendo la
+  organización existente del proyecto y facilitando la trazabilidad de
+  la arquitectura.
 
 La decisión final sobre aceptar, modificar o rechazar una propuesta
 corresponde al equipo.
 
 ## Estado
 
-Documento actualizado durante la semana 5, previo al corte 1.
+Documento actualizado durante la semana 6.
+
+Durante esta semana se incorporó el análisis del mapa de contextos,
+la relación módulo → datos con definición de dueño único y la
+identificación de errores o no conformidades del estado actual del
+proyecto junto con su correspondiente plan de corrección.
 
 El registro continuará actualizándose durante las siguientes etapas del
 proyecto, indicando los usos relevantes de Inteligencia Artificial,
