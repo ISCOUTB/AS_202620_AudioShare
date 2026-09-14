@@ -53,6 +53,11 @@ Permite establecer una comunicación entre un dispositivo emisor y varios dispos
 | **Pruebas de arranque** | [`tests/health.test.ts`](../tests/health.test.ts) |
 | **Persistencia** | `SQLiteRoomRepository` guarda y recupera salas desde `DATABASE_FILE` |
 
+### Evidencia S6 — Contextos delimitados y propiedad de datos
+
+[Ver Contextos delimitados y propiedad de datos](./contextos-delimitados.md)
+
+
 ### Decisión arquitectónica relacionada
 
 La decisión arquitectónica asociada al aspecto A-01 se encuentra
