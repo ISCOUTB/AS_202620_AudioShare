@@ -1,0 +1,340 @@
+openapi: 3.1.0
+info:
+  title: AudioShare API
+  description: >
+    API REST para la gestión de salas de AudioShare: creación de salas,
+    incorporación de receptores, control de reproducción (play/pause) y
+    consulta de estado. El canal de eventos en tiempo real (push hacia los
+    receptores) se describe por separado en docs/contracts/asyncapi.yaml.
+  version: 0.1.0
+servers:
+  - url: http://localhost:3000
+    description: Entorno local de desarrollo
+
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      summary: Estado del servicio
+      responses:
+        "200":
+          description: El servicio está operativo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /rooms:
+    post:
+      operationId: createRoom
+      summary: Crea una sala y registra al emisor
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                emitterId:
+                  type: string
+                  description: >
+                    Identificador del emisor. Si se omite, el servidor genera
+                    uno (crypto.randomUUID()).
+      responses:
+        "201":
+          description: Sala creada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateRoomResponse"
+
+  /rooms/{roomId}:
+    get:
+      operationId: getRoom
+      summary: Consulta el estado de una sala
+      parameters:
+        - $ref: "#/components/parameters/RoomId"
+      responses:
+        "200":
+          description: Estado actual de la sala
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoomState"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /rooms/{roomId}/receivers:
+    post:
+      operationId: addReceiver
+      summary: Agrega un receptor a una sala existente
+      parameters:
+        - $ref: "#/components/parameters/RoomId"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                receiverId:
+                  type: string
+      responses:
+        "201":
+          description: Receptor agregado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AddReceiverResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /rooms/{roomId}/play:
+    post:
+      operationId: playRoom
+      summary: Inicia la reproducción sincronizada en la sala
+      description: >
+        Genera un único `startAt` (timestamp del servidor) que se distribuye
+        a todos los receptores conectados por el canal de eventos
+        (ver asyncapi.yaml, mensaje sync.start).
+      parameters:
+        - $ref: "#/components/parameters/RoomId"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                payload:
+                  type: string
+      responses:
+        "200":
+          description: Reproducción iniciada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlayResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /rooms/{roomId}/pause:
+    post:
+      operationId: pauseRoom
+      summary: Pausa la reproducción de la sala
+      parameters:
+        - $ref: "#/components/parameters/RoomId"
+      responses:
+        "200":
+          description: Reproducción pausada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PauseResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /rooms/{roomId}/audio:
+    post:
+      operationId: sendAudioChunk
+      summary: Distribuye un paquete de audio a los receptores conectados
+      parameters:
+        - $ref: "#/components/parameters/RoomId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [payload]
+              properties:
+                payload:
+                  type: string
+      responses:
+        "200":
+          description: Paquete distribuido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AudioChunk"
+        "400":
+          description: payload inválido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+components:
+  parameters:
+    RoomId:
+      name: roomId
+      in: path
+      required: true
+      schema:
+        type: string
+
+  responses:
+    NotFound:
+      description: Sala no encontrada
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+  schemas:
+    HealthStatus:
+      type: object
+      required: [status, system, modules]
+      properties:
+        status:
+          type: string
+          const: ok
+        system:
+          type: string
+        modules:
+          type: array
+          items:
+            type: string
+
+    Participant:
+      type: object
+      required: [id, role, joinedAt]
+      properties:
+        id:
+          type: string
+        role:
+          type: string
+          enum: [emitter, receiver]
+        joinedAt:
+          type: string
+          format: date-time
+
+    PlaybackState:
+      type: object
+      required: [playing, positionMs]
+      properties:
+        playing:
+          type: boolean
+        positionMs:
+          type: number
+
+    RoomState:
+      type: object
+      required:
+        - roomId
+        - createdAt
+        - status
+        - playbackState
+        - startAt
+        - participants
+        - connectedReceivers
+      properties:
+        roomId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [stopped, playing, paused]
+        playbackState:
+          $ref: "#/components/schemas/PlaybackState"
+        startAt:
+          type: [number, "null"]
+        participants:
+          type: array
+          items:
+            $ref: "#/components/schemas/Participant"
+        connectedReceivers:
+          type: integer
+
+    CreateRoomResponse:
+      type: object
+      required: [roomId, emitterId]
+      properties:
+        roomId:
+          type: string
+        emitterId:
+          type: string
+
+    AddReceiverResponse:
+      type: object
+      required: [roomId, receiverId, role]
+      properties:
+        roomId:
+          type: string
+        receiverId:
+          type: string
+        role:
+          type: string
+          const: receiver
+
+    PlayResponse:
+      type: object
+      required:
+        - type
+        - startAt
+        - roomId
+        - status
+        - playbackState
+        - participants
+        - audioChunk
+      properties:
+        type:
+          type: string
+          const: sync.start
+        startAt:
+          type: number
+        roomId:
+          type: string
+        status:
+          type: string
+          enum: [stopped, playing, paused]
+        playbackState:
+          $ref: "#/components/schemas/PlaybackState"
+        participants:
+          type: array
+          items:
+            $ref: "#/components/schemas/Participant"
+        audioChunk:
+          $ref: "#/components/schemas/AudioChunk"
+
+    PauseResponse:
+      type: object
+      required: [type, positionMs, roomId, status, playbackState, startAt]
+      properties:
+        type:
+          type: string
+          const: sync.pause
+        positionMs:
+          type: number
+        roomId:
+          type: string
+        status:
+          type: string
+          enum: [stopped, playing, paused]
+        playbackState:
+          $ref: "#/components/schemas/PlaybackState"
+        startAt:
+          type: [number, "null"]
+
+    AudioChunk:
+      type: object
+      required: [type, sequence, payload]
+      properties:
+        type:
+          type: string
+          const: audio.chunk
+        sequence:
+          type: integer
+        payload:
+          type: string
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string

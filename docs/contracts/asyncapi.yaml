@@ -1,0 +1,105 @@
+asyncapi: 3.0.0
+info:
+  title: AudioShare - Canal de eventos de sala
+  version: 0.1.0
+  description: >
+    Canal push por el que el servidor distribuye eventos de sincronización y
+    audio a un receptor conectado. Hoy se transporta como NDJSON sobre HTTP
+    (una línea JSON por evento); el contrato de mensajes es el mismo si se
+    migra a WebSocket, que es el transporte previsto para el cliente móvil
+    (ver ADR 0002).
+
+    Este canal es asíncrono por diseño: el emisor de un evento (play/pause)
+    no espera a que cada receptor confirme la entrega antes de responder al
+    cliente que lo originó.
+
+channels:
+  roomStream:
+    address: /rooms/{roomId}/stream/{receiverId}
+    parameters:
+      roomId:
+        description: Identificador de la sala
+      receiverId:
+        description: >
+          Identificador del receptor. Debe corresponder a un participante
+          con role=receiver ya registrado en la sala.
+    messages:
+      syncStart:
+        $ref: "#/components/messages/SyncStart"
+      syncPause:
+        $ref: "#/components/messages/SyncPause"
+      audioChunk:
+        $ref: "#/components/messages/AudioChunk"
+
+operations:
+  receiveRoomEvents:
+    action: receive
+    channel:
+      $ref: "#/channels/roomStream"
+    summary: >
+      El receptor recibe eventos de sincronización y paquetes de audio
+      mientras permanece conectado a la sala.
+    messages:
+      - $ref: "#/channels/roomStream/messages/syncStart"
+      - $ref: "#/channels/roomStream/messages/syncPause"
+      - $ref: "#/channels/roomStream/messages/audioChunk"
+
+components:
+  messages:
+    SyncStart:
+      name: sync.start
+      title: Inicio de reproducción sincronizada
+      summary: >
+        Se emite a todos los receptores conectados cuando el emisor solicita
+        play. startAt es un timestamp único (reloj del servidor) que todos
+        los receptores deben usar como referencia para iniciar la
+        reproducción.
+      payload:
+        type: object
+        required: [type, startAt]
+        properties:
+          type:
+            type: string
+            const: sync.start
+          startAt:
+            type: number
+            description: Timestamp Unix en ms en el que debe iniciar la reproducción
+
+    SyncPause:
+      name: sync.pause
+      title: Pausa de reproducción
+      summary: Se emite a todos los receptores conectados cuando el emisor pausa.
+      payload:
+        type: object
+        required: [type, positionMs]
+        properties:
+          type:
+            type: string
+            const: sync.pause
+          positionMs:
+            type: number
+            description: Posición de reproducción, en ms, en el momento de la pausa
+
+    AudioChunk:
+      name: audio.chunk
+      title: Paquete de audio
+      summary: >
+        Paquete de datos de audio distribuido a los receptores conectados.
+        sequence es monótono creciente por sala y permite detectar paquetes
+        perdidos o fuera de orden en el cliente.
+      payload:
+        type: object
+        required: [type, sequence, payload]
+        properties:
+          type:
+            type: string
+            const: audio.chunk
+          sequence:
+            type: integer
+          payload:
+            type: string
+            description: >
+              Datos del paquete de audio. En el corte actual es un string de
+              demostración (ver NC-01 en docs/no_conformidades.md); el
+              contrato no cambia cuando se reemplace por audio real
+              codificado en base64.
