@@ -84,3 +84,64 @@ audio que serán recibidos por los dispositivos participantes.
 
      Gestión de          Sincronización       Transmisión
        sesiones          de reproducción       de audio
+```
+
+## Relaciones tipificadas
+
+`app.ts` es el composition root: instancia `SessionApplication`,
+`SyncCoordinator` y `AudioStreamHub` y orquesta las llamadas entre ellos en
+cada endpoint. Ningún módulo importa tipos de otro módulo directamente (una
+auditoría sobre el código — ver
+[`docs/auditoria-propiedad-datos.md`](./auditoria-propiedad-datos.md) — solo
+encuentra imports relativos dentro del propio módulo `session`), así que a
+nivel de tipos los tres contextos están desacoplados. La tipificación de
+cada relación, con el vocabulario de context mapping (DDD), es la siguiente:
+
+### `app.ts` → Session, `app.ts` → Sync, `app.ts` → Audio: **Cliente-Proveedor (Customer-Supplier)**
+
+Cada módulo expone una API pública propia (`SessionApplication`,
+`SyncCoordinator`, `AudioStreamHub`) que `app.ts` consume sin tocar sus
+internos (SQLite en el caso de Session, contadores en memoria en Sync y
+Audio). Cada módulo es el proveedor (upstream) de su propio comportamiento;
+`app.ts`, como cliente (downstream), decide cuándo y en qué orden invocar a
+cada uno. Es una relación sana: el acoplamiento es solo a través de la
+interfaz pública de cada clase.
+
+### Session ↔ Sync: **Núcleo compartido (Shared Kernel) no intencional — anomalía**
+
+Este es el caso que no debería existir tal como está. La tabla `rooms` de
+`SQLiteRoomRepository` (módulo **Session**) tiene columnas `status`,
+`playback_state` y `start_at` — exactamente los datos que
+`docs/contextos-delimitados.md` (sección 2, arriba) declara como propios de
+**Sync**. `SessionApplication.startPlayback()` y `.pausePlayback()` reciben
+ese dato desde `app.ts` (que lo obtuvo de un `SyncCoordinator` efímero,
+creado por request) y lo persisten como si fuera su propio modelo. No hay
+traducción ni contrato entre los dos: Session simplemente guarda una copia
+del estado de Sync en su propia tabla.
+
+Esto no es un Shared Kernel deliberado (que exigiría que ambos módulos
+acuerden y versionen conjuntamente ese subconjunto del modelo) — es una
+violación de propiedad de datos que se declara como no conformidad en
+[`docs/no_conformidades.md`](./no_conformidades.md) (NC-10). La relación
+objetivo, una vez corregida, debería ser **Cliente-Proveedor**: Sync como
+proveedor (dueño de `startAt` y del estado de reproducción), Session como
+cliente que solo guarda una referencia (`roomId`, `syncSessionId`) sin
+duplicar el modelo de Sync.
+
+### Session ↔ Audio: **Vías separadas (Separate Ways)**
+
+No hay import de tipos entre `session` y `audio`, ni persistencia
+compartida: `AudioStreamHub` es puramente transitorio (contador en memoria
+por sala) y `app.ts` solo pasa el `AudioChunk` ya construido a los
+`streams` de la sala. Los dos contextos evolucionan de forma
+independiente.
+
+### Contrato hacia el cliente móvil: **Lenguaje Publicado (Published Language)**
+
+`docs/contracts/openapi.yaml` y `docs/contracts/asyncapi.yaml`
+(ver [ADR-0002](./adr/0002-estrategia-integracion.md)) formalizan el
+formato de intercambio entre el backend y cualquier consumidor externo
+(hoy el cliente HTML de `public/`, luego el cliente Flutter). Es un
+lenguaje publicado porque su forma no depende del modelo interno de
+ningún módulo — es el contrato que consumidores externos pueden validar
+sin conocer la implementación.

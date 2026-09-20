@@ -1,0 +1,92 @@
+ifndef::imagesdir[:imagesdir: ../images]
+
+[[section-concepts]]
+
+== Conceptos Transversales
+
+=== Lenguaje ubicuo
+
+Los siguientes términos son el vocabulario común que el equipo usa para
+hablar de AudioShare, tanto en el código como en la documentación y la
+sustentación. El contenido de esta subsección es el mismo que vive en
+link:../../lenguaje-ubicuo.md[`docs/lenguaje-ubicuo.md`], traído aquí para
+que la sección 8 de arc42 no dependa de un `include` roto.
+
+[cols="1,3", options="header"]
+|===
+| Término | Definición
+
+| Emisor
+| Dispositivo que inicia y transmite el audio
+
+| Receptor
+| Dispositivo que recibe el audio
+
+| Sala
+| Espacio lógico donde se agrupan los participantes
+
+| Participante
+| Dispositivo conectado a una sala
+
+| Audio
+| Contenido que se transmite entre dispositivos
+
+| Sincronización
+| Coordinación del momento de reproducción entre los receptores
+
+| Estado de reproducción
+| Información relacionada con acciones como iniciar, pausar o reanudar
+|===
+
+Estos conceptos permiten identificar límites dentro del sistema y agrupar
+responsabilidades relacionadas en distintos contextos delimitados.
+
+=== Mapa de contextos delimitados
+
+AudioShare se organiza como un monolito modular compuesto por tres
+contextos delimitados: **Session**, **Sync** y **Audio**. El detalle de
+responsabilidades, datos propios y la tipificación de cada relación (con
+vocabulario de context mapping: Cliente-Proveedor, Núcleo Compartido, Vías
+Separadas, Lenguaje Publicado) vive en
+link:../../contextos-delimitados.md[`docs/contextos-delimitados.md`] — se
+mantiene como documento independiente en vez de copiarlo aquí porque crece
+con cada corte y una copia duplicada se desincronizaría del original.
+
+En resumen:
+
+[cols="1,3,1", options="header"]
+|===
+| Contexto | Responsabilidad | Datos propios
+
+| Session
+| Gestión de salas y participantes
+| `roomId`, participantes, información de sala
+
+| Sync
+| Coordinación de la reproducción sincronizada
+| `startAt`, eventos `sync.start`/`sync.pause`
+
+| Audio
+| Distribución de paquetes de audio
+| Eventos `audio.chunk`, secuencia
+|===
+
+Una relación entre contextos no está sana hoy: Session persiste datos que
+conceptualmente pertenecen a Sync (`start_at`, `playback_state`). Está
+declarada como no conformidad NC-10 en
+link:../../no_conformidades.md[`docs/no_conformidades.md`] y su recorrido
+de auditoría está en
+link:../../auditoria-propiedad-datos.md[`docs/auditoria-propiedad-datos.md`].
+
+=== Estrategia de integración
+
+La comunicación entre el backend y sus consumidores (hoy el cliente HTML
+en `public/`, más adelante el cliente Flutter) sigue dos modos distintos
+según el modo de fallo de cada operación: REST síncrono para gestión de
+sala, y un canal de eventos asíncrono (push) para la distribución de
+`sync.start`, `sync.pause` y `audio.chunk`. La justificación completa, con
+las alternativas descartadas, está en
+link:../adr/0002-estrategia-integracion.md[ADR-0002], y el contrato
+ejecutable en
+link:../../contracts/openapi.yaml[`docs/contracts/openapi.yaml`] y
+link:../../contracts/asyncapi.yaml[`docs/contracts/asyncapi.yaml`].
