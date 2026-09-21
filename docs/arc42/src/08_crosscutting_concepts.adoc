@@ -1,7 +1,0 @@
-== Conceptos transversales
-
-* **Errores:** `ApiClient` traduce respuestas no exitosas a `ApiException`; el ViewModel expone el mensaje a la pantalla.
-* **Persistencia:** SQLite vive solo en el backend.
-* **Sincronización:** `startAt`, estado y posición viajan en el contrato de sala y se representan mediante `SyncService`.
-* **Audio:** `AudioService` es una frontera reemplazable; `MockAudioService` deja claro el límite actual.
-* **Pruebas:** modelos, ViewModel y widgets se prueban en Dart; el contrato HTTP y SQLite se prueban en Vitest.
