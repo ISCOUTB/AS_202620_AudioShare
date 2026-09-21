@@ -1,4 +1,4 @@
-# ADR 0002 — Transición del cliente web a aplicación móvil Flutter
+# 0002 — Transición del cliente web a aplicación móvil Flutter
 
 - Estado: Aceptado
 - Fecha: 2026-09-20
