@@ -2,8 +2,13 @@
 
 ## Resumen de requisitos
 
-AudioShare permite que se pueda transmitir en tiempo real el audio reproducido en un dispositivo emisor hacia otros dispositivos receptores
-conectados en una misma sala. El objetivo principal es hacer que varias personas que quieren escuchar audio al mismo tiempo puedan hacerlo sin estar utilizando físicamente un único dispositivo de reproducción. 
+AudioShare busca permitir que un dispositivo emisor comparta audio en
+tiempo real con múltiples dispositivos receptores conectados a la misma
+red Wi-Fi.
+
+El sistema contará con una aplicación móvil desarrollada con Flutter
+como cliente y un backend responsable de gestionar las sesiones, el
+audio y la sincronización de la reproducción.
 
 Los requisitos funcionales son poder: 
 
