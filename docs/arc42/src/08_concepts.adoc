@@ -80,13 +80,31 @@ link:../../auditoria-propiedad-datos.md[`docs/auditoria-propiedad-datos.md`].
 
 === Estrategia de integración
 
-La comunicación entre el backend y sus consumidores (hoy el cliente HTML
-en `public/`, más adelante el cliente Flutter) sigue dos modos distintos
-según el modo de fallo de cada operación: REST síncrono para gestión de
-sala, y un canal de eventos asíncrono (push) para la distribución de
-`sync.start`, `sync.pause` y `audio.chunk`. La justificación completa, con
-las alternativas descartadas, está en
+La comunicación entre el backend y sus consumidores (el cliente Flutter,
+que ya consume esta API) sigue dos modos distintos según el modo de fallo
+de cada operación: REST síncrono para gestión de sala, y un canal de
+eventos asíncrono (push) para la distribución de `sync.start`,
+`sync.pause` y `audio.chunk`. La justificación completa, con las
+alternativas descartadas, está en
 link:../adr/0002-estrategia-integracion.md[ADR-0002], y el contrato
 ejecutable en
 link:../../contracts/openapi.yaml[`docs/contracts/openapi.yaml`] y
 link:../../contracts/asyncapi.yaml[`docs/contracts/asyncapi.yaml`].
+
+=== Conceptos propios del cliente Flutter
+
+- **Errores:** `ApiClient` traduce respuestas no exitosas a
+  `ApiException`; el ViewModel expone el mensaje a la pantalla.
+- **Persistencia:** SQLite vive solo en el backend; Flutter no persiste
+  estado localmente.
+- **Sincronización:** `startAt`, estado y posición viajan en el contrato
+  de sala (ver `docs/contracts/`) y se representan del lado de Flutter
+  mediante `SyncService`.
+- **Audio:** `AudioService` es una frontera reemplazable en el cliente;
+  `MockAudioService` deja explícito que la captura/reproducción física de
+  audio real sigue pendiente (NC-01, NC-02, NC-07 en
+  link:../../no_conformidades.md[`docs/no_conformidades.md`]).
+- **Pruebas:** modelos, ViewModel y widgets se prueban en Dart
+  (`flutter test`); el contrato HTTP y SQLite se prueban con Vitest
+  (`npm test`), incluida la prueba de contrato de
+  link:../../contracts/openapi.yaml[`docs/contracts/openapi.yaml`].
