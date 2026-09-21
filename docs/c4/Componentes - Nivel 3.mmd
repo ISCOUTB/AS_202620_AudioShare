@@ -1,21 +1,15 @@
 C4Component
-title Componentes principales del cliente Flutter AudioShare
-
-Person(user, "Usuario", "Persona que utiliza AudioShare")
-
-Container(flutter, "Cliente Flutter AudioShare", "Flutter", "Aplicacion movil para crear, unirse y controlar salas de audio")
-
-Component(home, "Home", "Flutter Widget", "Interfaz para crear o buscar una sala y ejecutar acciones")
-Component(session, "SessionViewModel", "Dart", "Coordina las acciones de la interfaz y el estado de la sesion")
-Component(repository, "RoomRepository", "Dart", "Gestiona las operaciones relacionadas con las salas")
-Component(api, "ApiClient", "Dart", "Realiza las solicitudes HTTP y procesa las respuestas JSON")
-Component(sync, "SyncService", "Dart", "Gestiona el estado y la referencia temporal de sincronizacion")
-Component(audio, "AudioService", "Dart", "Abstrae las operaciones de audio y control de reproduccion")
-
-Rel(user, home, "Utiliza")
-
-Rel(home, session, "Envia acciones de usuario")
-Rel(session, repository, "Solicita operaciones de sala")
-Rel(repository, api, "Realiza solicitudes HTTP")
-Rel(session, sync, "Gestiona sincronizacion")
-Rel(session, audio, "Controla operaciones de audio")
+ title Componentes principales de la aplicación Flutter AudioShare
+ Container_Boundary(flutter, "Aplicación Flutter") {
+   Component(home, "Home", "Widget", "Crea o busca una sala")
+   Component(session, "SessionViewModel", "ViewModel", "Orquesta crear, unirse, consultar y controlar")
+   Component(repository, "RoomRepository", "Dart", "Abstrae el contrato de salas")
+   Component(api, "ApiClient", "Dart HTTP", "Realiza llamadas al backend")
+   Component(sync, "SyncService", "Dart", "Expone startAt y estado temporal")
+   Component(audio, "AudioService", "Dart", "Abstracción de captura, transporte y volumen")
+ }
+ Rel(home, session, "Eventos de UI")
+ Rel(session, repository, "Casos de uso")
+ Rel(repository, api, "HTTP/JSON")
+ Rel(session, sync, "Actualiza snapshot")
+ Rel(session, audio, "Control de reproducción")
