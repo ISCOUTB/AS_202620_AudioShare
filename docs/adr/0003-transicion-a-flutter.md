@@ -1,6 +1,6 @@
 # 0003 — Transición del cliente web a aplicación móvil Flutter
 
-- Estado: Aceptado
+- Estado: Aceptado 
 - Fecha: 2026-09-20
 
 ## Contexto
