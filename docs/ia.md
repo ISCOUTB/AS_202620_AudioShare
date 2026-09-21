@@ -60,10 +60,15 @@ ha sido utilizada como apoyo en las siguientes actividades:
 
 ## Herramientas utilizadas
 
+## Herramientas utilizadas
+
 * ChatGPT.
 * Claude (Anthropic), usado en la revisión previa al corte 1 para
   contrastar la documentación del repositorio contra la Guía del curso
   y el historial de feedback.
+* GitHub Copilot, utilizado durante la semana 7 como herramienta de
+  apoyo para la migración del prototipo web de AudioShare hacia una
+  aplicación desarrollada con Flutter.
 
 Otras herramientas de Inteligencia Artificial podrán utilizarse durante
 las siguientes etapas cuando sean necesarias.
@@ -176,20 +181,41 @@ del equipo y no por la herramienta de Inteligencia Artificial.
   nuevos documentos fuera de la estructura `docs/`, manteniendo la
   organización existente del proyecto y facilitando la trazabilidad de
   la arquitectura.
+  * **Semana 7 — Migración a Flutter:** se utilizó GitHub Copilot como
+  herramienta de apoyo para transferir el prototipo de AudioShare desde
+  su implementación web hacia una aplicación desarrollada con Flutter.
+  Se rechazaron propuestas que trasladaban directamente la estructura
+  del proyecto web sin considerar las diferencias entre ambas
+  tecnologías. También se descartaron cambios que incorporaban
+  funcionalidades nuevas durante la migración y que no eran necesarias
+  para el alcance actual. La migración se enfocó en conservar las
+  funcionalidades existentes y adaptar su implementación a la nueva
+  tecnología. También se rechazó la redacción de Copilot a la hora de documentar.
+
 
 La decisión final sobre aceptar, modificar o rechazar una propuesta
 corresponde al equipo.
 
 ## Estado
 
-Documento actualizado durante la semana 6.
+Documento actualizado durante la semana 7.
 
-Durante esta semana se incorporó el análisis del mapa de contextos,
+Durante la semana 6 se incorporó el análisis del mapa de contextos,
 la relación módulo → datos con definición de dueño único y la
 identificación de errores o no conformidades del estado actual del
 proyecto junto con su correspondiente plan de corrección.
 
-El registro continuará actualizándose durante las siguientes etapas del
-proyecto, indicando los usos relevantes de Inteligencia Artificial,
-las propuestas consideradas, aquellas que fueron rechazadas y la
-justificación de las decisiones tomadas por el equipo.
+Durante la semana 7 se utilizó GitHub Copilot como herramienta de apoyo
+para transferir el proyecto AudioShare desde su implementación web hacia
+una aplicación desarrollada con Flutter. La IA fue utilizada
+principalmente como apoyo para adaptar la estructura y los componentes
+existentes a la nueva tecnología, manteniendo el alcance y las
+funcionalidades definidas previamente.
+
+La migración tecnológica no implica por sí misma una modificación de
+las decisiones arquitectónicas previamente documentadas. Sin embargo,
+la documentación del proyecto deberá actualizarse para reflejar la
+nueva tecnología utilizada en la implementación y verificar que los
+diagramas, descripciones, pruebas y referencias al código sean
+coherentes con el estado actual del sistema.
+
