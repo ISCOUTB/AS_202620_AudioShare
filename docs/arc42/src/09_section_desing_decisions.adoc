@@ -3,6 +3,6 @@
 Las decisiones arquitectónicas se mantienen como ADR independientes.
 
 * link:../../adr/0001-usar-monolito-modular.md[ADR-0001 — Monolito modular del backend]
-* link:../../adr/0002-cliente-flutter-backend-modular.md[ADR-0002 — Cliente Flutter y backend existente]
+* link:../../adr/0003-transicion-a-flutter.md[ADR-0003 — Transición del cliente web a aplicación móvil Flutter]
 
 El monolito modular se conserva en el backend. La estructura por funcionalidades de Flutter es una organización del cliente, no un cambio del estilo arquitectónico del servidor.
