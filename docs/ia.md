@@ -60,8 +60,6 @@ ha sido utilizada como apoyo en las siguientes actividades:
 
 ## Herramientas utilizadas
 
-## Herramientas utilizadas
-
 * ChatGPT.
 * Claude (Anthropic), usado en la revisión previa al corte 1 para
   contrastar la documentación del repositorio contra la Guía del curso
