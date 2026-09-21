@@ -8,11 +8,7 @@ AudioShare coordina una sala de reproducción de audio dentro de una red Wi-Fi l
 
 Conservar el corte vertical A-01: crear sala, registrar receptores, iniciar o pausar reproducción, generar `startAt`, distribuir eventos y consultar el estado persistido.
 
-<<<<<<< HEAD
-Requisitos: Node.js 22+.
-=======
 ## Funcionalidades
->>>>>>> be5a6af (Migrar AudioShare a Flutter)
 
 - Crear una sala como emisor.
 - Unirse a una sala como receptor mediante su código.
@@ -33,7 +29,7 @@ Flutter (UI -> ViewModel -> Repository -> ApiClient)
 Node/Express (Session, Sync, Audio) -> SQLite
 ```
 
-SQLite continúa siendo responsabilidad exclusiva del backend. La decisión está en [ADR-0001](docs/adr/0001-usar-monolito-modular.md) y su relación con Flutter en [ADR-0002](docs/adr/0002-cliente-flutter-backend-modular.md).
+SQLite continúa siendo responsabilidad exclusiva del backend. La decisión está en [ADR-0001](docs/adr/0001-usar-monolito-modular.md) y su relación con Flutter en [ADR-0003](docs/adr/0003-transicion-a-flutter.md).
 
 ## Tecnologías
 
@@ -59,7 +55,7 @@ docs/                        arquitectura y trazabilidad
 ## Requisitos
 
 - Flutter estable con soporte Android o Web.
-- Node.js 20+ para el backend.
+- Node.js 22+ para el backend (misma versión que usa `.github/workflows/ci.yml`).
 
 En GitHub Codespaces, el repositorio incluye `.devcontainer/devcontainer.json`. Al crear o reconstruir el Codespace se instalan automáticamente Flutter, Dart, Google Chrome y las extensiones de VS Code necesarias.
 
