@@ -137,6 +137,15 @@ La ruta recomendada en Codespaces es abrir el puerto `3000`, porque mantiene la 
 
 **Pendiente:** captura, codificación, transmisión y reproducción física; consumo Flutter del stream NDJSON; reconexión automática; mediciones que demuestren EC-01 (100 ms) y EC-02 (200 ms); control de acceso.
 
+## Evolución del proyecto
+
+AudioShare inició su desarrollo utilizando un cliente web. Durante la
+evolución del proyecto se tomó la decisión de realizar una transición
+hacia una aplicación móvil desarrollada con Flutter.
+
+El objetivo de esta transición es adaptar el cliente a dispositivos
+móviles manteniendo las responsabilidades principales del backend.
+
 ## CI
 
 `.github/workflows/flutter.yml` ejecuta `flutter pub get`, `flutter analyze`, `flutter test` y `flutter build web`. `.github/workflows/ci.yml` conserva la compilación y las pruebas del backend.
