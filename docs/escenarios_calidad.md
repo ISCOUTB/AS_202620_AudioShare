@@ -57,7 +57,7 @@ primer prototipo.
 
 ## EC-02 — Variación moderada de latencia
 
-**ADR relacionado:** [ADR-0002 — Cliente Flutter y backend modular](./adr/0002-cliente-flutter-backend-modular.md)
+**ADR relacionado:** [ADR-0003 — Transición del cliente web a aplicación móvil Flutter](./adr/0003-transicion-a-flutter.md)
 
 ### Fuente
 
@@ -102,7 +102,7 @@ que pueden presentarse en una red Wi-Fi.
 
 ## EC-03 — Pausa y reanudación
 
-**ADR relacionado:** [ADR-0002 — Cliente Flutter y backend modular](./adr/0002-cliente-flutter-backend-modular.md)
+**ADR relacionado:** [ADR-0003 — Transición del cliente web a aplicación móvil Flutter](./adr/0003-transicion-a-flutter.md)
 
 ### Fuente
 
@@ -147,7 +147,7 @@ emisor se reflejen de manera sincronizada en los receptores.
 
 ## EC-04 — Incorporación de nuevo receptor
 
-**ADR relacionado:** [ADR-0002 — Cliente Flutter y backend modular](./adr/0002-cliente-flutter-backend-modular.md)
+**ADR relacionado:** [ADR-0003 — Transición del cliente web a aplicación móvil Flutter](./adr/0003-transicion-a-flutter.md)
 
 ### Fuente
 
