@@ -179,7 +179,8 @@ del equipo y no por la herramienta de Inteligencia Artificial.
   nuevos documentos fuera de la estructura `docs/`, manteniendo la
   organización existente del proyecto y facilitando la trazabilidad de
   la arquitectura.
-  * **Semana 7 — Migración a Flutter:** se utilizó GitHub Copilot como
+
+* **Semana 7 — Migración a Flutter:** se utilizó GitHub Copilot como
   herramienta de apoyo para transferir el prototipo de AudioShare desde
   su implementación web hacia una aplicación desarrollada con Flutter.
   Se rechazaron propuestas que trasladaban directamente la estructura
