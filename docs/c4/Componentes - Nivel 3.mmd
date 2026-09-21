@@ -3,27 +3,21 @@ title Componentes principales del cliente Flutter AudioShare
 
 Container_Boundary(flutter, "Cliente Flutter AudioShare") {
 
-    Component(home, "Home", "Flutter Widget",
-        "Permite crear o buscar una sala y ejecutar acciones de usuario")
+    Component(home, "Home", "Flutter Widget", "Permite crear o buscar una sala y ejecutar acciones de usuario")
 
-    Component(session, "SessionViewModel", "Dart / ViewModel",
-        "Coordina las acciones de sesión y el estado presentado por la interfaz")
+    Component(session, "SessionViewModel", "Dart / ViewModel", "Coordina las acciones de sesion y el estado presentado por la interfaz")
 
-    Component(repository, "RoomRepository", "Dart",
-        "Define las operaciones necesarias para crear, unirse y consultar salas")
+    Component(repository, "RoomRepository", "Dart", "Define las operaciones necesarias para crear, unirse y consultar salas")
 
-    Component(api, "ApiClient", "Dart / HTTP",
-        "Realiza las solicitudes HTTP y procesa las respuestas JSON del backend")
+    Component(api, "ApiClient", "Dart / HTTP", "Realiza las solicitudes HTTP y procesa las respuestas JSON del backend")
 
-    Component(sync, "SyncService", "Dart",
-        "Gestiona el estado y la referencia temporal de sincronización")
+    Component(sync, "SyncService", "Dart", "Gestiona el estado y la referencia temporal de sincronizacion")
 
-    Component(audio, "AudioService", "Dart",
-        "Abstrae las operaciones de audio y el control de reproducción")
+    Component(audio, "AudioService", "Dart", "Abstrae las operaciones de audio y el control de reproduccion")
 }
 
-Rel(home, session, "Envía acciones de usuario")
+Rel(home, session, "Envia acciones de usuario")
 Rel(session, repository, "Solicita operaciones de sala")
 Rel(repository, api, "Realiza solicitudes mediante HTTP")
-Rel(session, sync, "Consulta y actualiza el estado de sincronización")
+Rel(session, sync, "Consulta y actualiza el estado de sincronizacion")
 Rel(session, audio, "Controla las operaciones de audio")
