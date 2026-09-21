@@ -1,137 +1,142 @@
-# AS_202620_AudioShare
+# AudioShare
 
-Plataforma para transmitir audio en tiempo real desde un dispositivo a
-múltiples dispositivos conectados.
+## Descripción
 
-## Qué busca el proyecto
+AudioShare coordina una sala de reproducción de audio dentro de una red Wi-Fi local. La aplicación Flutter permite crear o unirse a una sala, consultar participantes y controlar el estado de reproducción.
 
-AudioShare busca que un dispositivo emisor cree una sala y comparta audio
-sincronizado con varios receptores en la misma red Wi-Fi. El primer corte
-vertical demostrable es A-01: crear la sala, registrar receptores, iniciar la
-reproducción con una referencia temporal común y distribuir paquetes de audio.
-La sala queda persistida para que el flujo no dependa de una única instancia
-del proceso.
+## Objetivo
 
-## Cómo arrancar
+Conservar el corte vertical A-01: crear sala, registrar receptores, iniciar o pausar reproducción, generar `startAt`, distribuir eventos y consultar el estado persistido.
 
+<<<<<<< HEAD
 Requisitos: Node.js 22+.
+=======
+## Funcionalidades
+>>>>>>> be5a6af (Migrar AudioShare a Flutter)
 
-Instala las dependencias una vez con `npm install`. Después, el **único
-comando de arranque** del proyecto es:
+- Crear una sala como emisor.
+- Unirse a una sala como receptor mediante su código.
+- Mostrar participantes y receptores conectados.
+- Ejecutar play/pause desde el emisor.
+- Mostrar `startAt`, posición y estado de sincronización.
+- Encapsular volumen individual y audio tras servicios reemplazables.
+
+## Arquitectura
+
+La solución conserva el monolito modular del backend y añade Flutter como cliente:
+
+```text
+Flutter (UI -> ViewModel -> Repository -> ApiClient)
+                         |
+              HTTP/JSON y stream NDJSON
+                         v
+Node/Express (Session, Sync, Audio) -> SQLite
+```
+
+SQLite continúa siendo responsabilidad exclusiva del backend. La decisión está en [ADR-0001](docs/adr/0001-usar-monolito-modular.md) y su relación con Flutter en [ADR-0002](docs/adr/0002-cliente-flutter-backend-modular.md).
+
+## Tecnologías
+
+- Flutter/Dart, Material 3, null safety.
+- Node.js/Express para la API y la comunicación entre dispositivos.
+- SQLite para salas, participantes y estado.
+
+## Estructura del proyecto
+
+```text
+lib/                         cliente Flutter
+  app/                       aplicación y tema
+  core/network/              cliente HTTP y errores
+  features/session/          modelos, repositorio, ViewModel y páginas
+  features/audio/            AudioService y mock
+  features/sync/             SyncService y snapshot temporal
+src/                         backend modular conservado
+test/                        pruebas Flutter/Dart
+tests/                       pruebas del backend
+docs/                        arquitectura y trazabilidad
+```
+
+## Requisitos
+
+- Flutter estable con soporte Android o Web.
+- Node.js 20+ para el backend.
+
+En GitHub Codespaces, el repositorio incluye `.devcontainer/devcontainer.json`. Al crear o reconstruir el Codespace se instalan automáticamente Flutter, Dart, Google Chrome y las extensiones de VS Code necesarias.
+
+## Instalación
+
+```bash
+flutter pub get
+npm ci
+```
+
+## Ejecución
+
+Inicia el backend y la aplicación Flutter Web en `http://localhost:3000`:
 
 ```bash
 npm run dev
 ```
 
-El servidor queda disponible en `http://localhost:3000`.
+Cuando exista `build/web`, el backend sirve automáticamente esa aplicación Flutter en el mismo puerto. Para reconstruirla tras cambios:
 
 ```bash
-curl http://localhost:3000/health
+flutter build web
 ```
 
-También puedes abrir `http://localhost:3000/` en el navegador para ver el
-propósito de AudioShare y sus endpoints principales.
-
-La raíz sirve el dashboard de demostración A-01. Sus controles consumen la API
-real: `POST /rooms`, `POST /rooms/:roomId/receivers`, `GET /rooms/:roomId`,
-`POST /rooms/:roomId/play` y `POST /rooms/:roomId/pause`. La pantalla vuelve a
-consultar la sala después de cada operación para mostrar el estado persistido
-en SQLite.
-
-## Cómo probar
+Para desarrollo Flutter con recarga en caliente, usa otra terminal:
 
 ```bash
+flutter run -d web-server --web-hostname 0.0.0.0 --web-port 8080
+```
+
+En Android, configura el backend con una dirección accesible desde el dispositivo. El cliente usa `10.0.2.2:3000` por defecto en el emulador Android y la URL de la página en Web.
+
+## Tests
+
+```bash
+flutter analyze
+flutter test
 npm test
 ```
 
-La prueba `tests/a01.test.ts` recorre el corte vertical A-01 desde la API,
-pasa por `Session`, persiste la sala y sus participantes, ejecuta
-`SyncCoordinator` y genera un `audio.chunk`.
-
-La verificación completa, usada también por la integración continua, es:
+## Build
 
 ```bash
-npm run verify
+flutter build web
 ```
 
-La persistencia usa SQLite en `data/audioshare.sqlite` por defecto y se puede
-cambiar con `DATABASE_FILE`.
+### GitHub Codespaces
 
-## Estructura
+Después de crear un Codespace nuevo, espera a que termine `postCreateCommand` y verifica el entorno:
 
-## Arquitectura
-
-AudioShare utiliza un **monolito modular**. La decisión está documentada en
-[`docs/adr/0001-usar-monolito-modular.md`](docs/adr/0001-usar-monolito-modular.md).
-
-```text
-src/
-  app.ts              composition root: ensambla los módulos y sus casos de uso
-  server.ts           punto de entrada del proceso
-  shared/             configuración transversal (único lugar que lee variables de entorno)
-  modules/
-    session/          dominio, casos de uso y persistencia SQLite de salas
-    audio/             captura, empaquetado y transmisión del audio
-    sync/               coordinación de reproducción entre receptores
-tests/
-  health.test.ts
-  a01.test.ts
+```bash
+flutter --version
+dart --version
+flutter pub get
+flutter analyze
+flutter test
+flutter build web
 ```
 
-## Corte vertical A-01
+La ruta recomendada en Codespaces es abrir el puerto `3000`, porque mantiene la interfaz Flutter y la API en el mismo origen. El puerto `8080` queda disponible para el servidor de desarrollo con recarga en caliente. `flutter run -d chrome` requiere una sesión gráfica; Google Chrome queda instalado para pruebas headless y el build Web.
 
-```text
-HTTP /rooms
-    ↓
-SessionManager
-    ↓
-RoomRepository
-    ↓
-data/rooms.json
-    ↓
-HTTP /rooms/:roomId/play
-    ↓
-SyncCoordinator → sync.start
-    ↓
-HTTP /rooms/:roomId/audio
-    ↓
-AudioStreamHub → audio.chunk
-```
+## Arquitectura y documentación
 
-El corte vertical A-01 está implementado y probado de extremo a extremo a
-nivel HTTP, incluida la recuperación de una sala desde SQLite tras reabrir la
-base. La captura de audio desde un dispositivo físico y su reproducción mediante
-altavoces quedan fuera de este corte. La trazabilidad está en
-[`docs/aspectos.md`](docs/aspectos.md).
+- [arc42](docs/arc42/)
+- [ADRs](docs/adr/)
+- [Diagramas C4](docs/c4/)
+- [Trazabilidad](docs/aspectos.md)
+- [Escenarios de calidad](docs/escenarios_calidad.md)
+
+## Estado actual
+
+**Implementado:** cliente Flutter Material 3, creación y unión de salas, consulta de estado, participantes, play/pause, repositorio HTTP, ViewModel, persistencia SQLite en backend y pruebas automatizadas.
+
+**Simulado:** `AudioService` usa `MockAudioService`; el backend genera `audio.chunk` demostrativos y el stream NDJSON está disponible para integración.
+
+**Pendiente:** captura, codificación, transmisión y reproducción física; consumo Flutter del stream NDJSON; reconexión automática; mediciones que demuestren EC-01 (100 ms) y EC-02 (200 ms); control de acceso.
 
 ## CI
 
-GitHub Actions ejecuta `npm test` automáticamente en cada push y pull request.
-El estado verde del workflow constituye la evidencia de ejecución automática de
-las pruebas.
-
-El corte vertical A-01 implementa un flujo básico de sincronización de
-reproducción entre un emisor y múltiples receptores.
-
-### Flujo implementado
-
-1. El emisor crea una sala.
-2. Se pueden agregar múltiples receptores.
-3. Los receptores se registran en la sala.
-4. El emisor puede iniciar la reproducción mediante `PLAY`.
-5. El módulo `Sync` genera un `startAt` común.
-6. El módulo `Audio` genera y distribuye paquetes de audio.
-7. Se puede consultar el estado de la sala.
-8. El estado de reproducción y `startAt` quedan persistidos en SQLite.
-
-La petición atraviesa `app.ts`, `SessionApplication`, el puerto
-`RoomRepository` y `SQLiteRoomRepository` antes de volver como respuesta HTTP.
-El `audio.chunk` continúa siendo una representación simulada; la captura y
-reproducción física de audio quedan fuera de este corte.
-
-### Ejecución
-
-Instalar dependencias:
-
-```bash
-npm install
+`.github/workflows/flutter.yml` ejecuta `flutter pub get`, `flutter analyze`, `flutter test` y `flutter build web`. `.github/workflows/ci.yml` conserva la compilación y las pruebas del backend.

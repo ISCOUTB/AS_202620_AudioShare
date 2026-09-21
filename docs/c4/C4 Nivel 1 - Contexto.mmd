@@ -1,3 +1,4 @@
+<<<<<<< HEAD:docs/c4/C4 Nivel 1 - Contexto.mmd
 graph TD
     %% Personas / Usuarios
     mod["👤 Moderador / Anfitrión<br/><i>[Persona]</i><br/>Inicia la transmisión y gestiona la sala en la misma red Wi-Fi local."]
@@ -22,3 +23,12 @@ graph TD
     style oye fill:#08427b,stroke:#052e56,color:#fff
     style sys fill:#1168bd,stroke:#0b4884,color:#fff
     style Leyenda fill:#f9f9f9,stroke:#ccc,color:#333
+=======
+C4Context
+ title Contexto de AudioShare
+ Person(emitter, "Usuario emisor", "Controla la reproducción")
+ Person(receiver, "Usuario receptor", "Se une y recibe el estado")
+ System(audioshare, "AudioShare", "Cliente Flutter y backend modular para coordinar salas de audio en una red local")
+ Rel(emitter, audioshare, "Crea sala y controla play/pause")
+ Rel(receiver, audioshare, "Se une y consulta estado")
+>>>>>>> be5a6af (Migrar AudioShare a Flutter):docs/c4/Context - Nivel 1.mmd

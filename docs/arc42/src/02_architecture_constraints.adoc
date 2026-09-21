@@ -1,7 +1,8 @@
-# Restricciones de arquitectura
+== Restricciones arquitectónicas
 
-El primer prototipo va a desarrollarse sin ningún costo económico por lo que utilizaremos herramientas gratuitas que no impliquen ello, se 
-busca validar la estructura arquitectónica en esta primera versión. A su vez, el programa funcionará localmente sobre una red wifi, lo que nos 
-permitirá hacer pruebas de la transmisión sin usar infraestructura publica. Se deberá seleccionar un mecanismo que ayude con la transmisión de 
-audio y comunicación, por lo que se van a evaluar alternativas como WebRTC y WebSockets considerando cosas como la latencia y las necesidades
-del proyecto. 
+* La aplicación cliente objetivo es Flutter/Dart, null-safe y Material 3.
+* Android y Web son plataformas iniciales.
+* El backend Node.js/Express se conserva para comunicación entre dispositivos y persistencia SQLite.
+* El cliente no accede directamente a SQLite ni realiza HTTP desde widgets.
+* La solución debe operar dentro de una red Wi-Fi local.
+* La captura y transmisión de audio físico están fuera del corte actual.

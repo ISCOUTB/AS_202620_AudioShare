@@ -57,6 +57,8 @@ primer prototipo.
 
 ## EC-02 — Variación moderada de latencia
 
+**ADR relacionado:** [ADR-0002 — Cliente Flutter y backend modular](./adr/0002-cliente-flutter-backend-modular.md)
+
 ### Fuente
 
 La red Wi-Fi utilizada por los dispositivos conectados a la sala.
@@ -100,6 +102,8 @@ que pueden presentarse en una red Wi-Fi.
 
 ## EC-03 — Pausa y reanudación
 
+**ADR relacionado:** [ADR-0002 — Cliente Flutter y backend modular](./adr/0002-cliente-flutter-backend-modular.md)
+
 ### Fuente
 
 Usuario del dispositivo emisor que controla la reproducción.
@@ -142,6 +146,8 @@ emisor se reflejen de manera sincronizada en los receptores.
 ---
 
 ## EC-04 — Incorporación de nuevo receptor
+
+**ADR relacionado:** [ADR-0002 — Cliente Flutter y backend modular](./adr/0002-cliente-flutter-backend-modular.md)
 
 ### Fuente
 

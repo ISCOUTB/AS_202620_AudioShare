@@ -1,0 +1,15 @@
+C4Component
+ title Componentes principales de la aplicación Flutter AudioShare
+ Container_Boundary(flutter, "Aplicación Flutter") {
+   Component(home, "Home", "Widget", "Crea o busca una sala")
+   Component(session, "SessionViewModel", "ViewModel", "Orquesta crear, unirse, consultar y controlar")
+   Component(repository, "RoomRepository", "Dart", "Abstrae el contrato de salas")
+   Component(api, "ApiClient", "Dart HTTP", "Realiza llamadas al backend")
+   Component(sync, "SyncService", "Dart", "Expone startAt y estado temporal")
+   Component(audio, "AudioService", "Dart", "Abstracción de captura, transporte y volumen")
+ }
+ Rel(home, session, "Eventos de UI")
+ Rel(session, repository, "Casos de uso")
+ Rel(repository, api, "HTTP/JSON")
+ Rel(session, sync, "Actualiza snapshot")
+ Rel(session, audio, "Control de reproducción")

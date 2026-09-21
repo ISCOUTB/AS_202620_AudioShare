@@ -1,4 +1,5 @@
 import express, { type Express, type Request, type Response } from "express";
+import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import {
@@ -14,8 +15,29 @@ interface Client {
   send: (event: unknown) => void;
 }
 
-export function createApp(options: { databaseFile?: string } = {}): Express {
+export function createApp(
+  options: { databaseFile?: string; serveFlutterWeb?: boolean } = {},
+): Express {
   const app = express();
+
+  app.use((req: Request, res: Response, next) => {
+    const origin = req.header("Origin");
+
+    if (origin) {
+      res.setHeader("Access-Control-Allow-Origin", origin);
+      res.setHeader("Vary", "Origin");
+    }
+
+    res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+    if (req.method === "OPTIONS") {
+      res.sendStatus(204);
+      return;
+    }
+
+    next();
+  });
 
   app.use(express.json());
 
@@ -28,7 +50,17 @@ export function createApp(options: { databaseFile?: string } = {}): Express {
 
   app.locals.close = () => sessions.close();
 
-  app.use(express.static(resolve(dirname(fileURLToPath(import.meta.url)), "../public")));
+  const flutterWebDirectory = resolve(process.cwd(), "build/web");
+  const legacyWebDirectory = resolve(
+    dirname(fileURLToPath(import.meta.url)),
+    "../public",
+  );
+  const webDirectory = options.serveFlutterWeb &&
+      existsSync(resolve(flutterWebDirectory, "index.html"))
+    ? flutterWebDirectory
+    : legacyWebDirectory;
+
+  app.use(express.static(webDirectory));
 
   /*
    * Crea una sala.

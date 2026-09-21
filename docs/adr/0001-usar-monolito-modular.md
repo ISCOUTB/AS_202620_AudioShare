@@ -1,6 +1,10 @@
 # 0001 — Selección del estilo arquitectónico
 
+<<<<<<< HEAD
 - **Estado:** aceptado
+=======
+- **Estado:** aceptado; complementado por ADR-0002 para la separación cliente/backend
+>>>>>>> be5a6af (Migrar AudioShare a Flutter)
 - **Fecha:** 2026-08-23
 - **Decide:** Yeiver Andres Verjel Perez, Elian Daniel Perea Vanegas, Santiago Adolfo Camacho Hernandez y Vincent Cardona Castro.
 - **Escenario de calidad relacionado:** [EC-01 — Sincronización inicial](../escenarios_calidad.md#ec-01--sincronización-inicial)
@@ -33,7 +37,7 @@ Mantiene la aplicación como una única unidad de ejecución, pero divide intern
 
 ## Decisión
 
-Se elige Monolito Modular como estilo arquitectónico para AudioShare.
+Se elige Monolito Modular como estilo arquitectónico para el backend de AudioShare.
 La decisión se toma a partir de la comparación realizada en la Sección 4 de arc42, considerando las necesidades actuales del proyecto y los criterios establecidos en la matriz comparativa, el monolito modular permite mantener una única aplicación, pero establece límites entre las diferentes responsabilidades del sistema y esto va a permitir comenzar el desarrollo con una estructura controlada y facilita la evolución posterior del proyecto.
 
 ## Consecuencias
@@ -46,6 +50,10 @@ La decisión se toma a partir de la comparación realizada en la Sección 4 de a
 ## Trazabilidad
 
 - Requisito / aspecto: organización, mantenibilidad, testabilidad y evolución de la arquitectura de AudioShare.
+<<<<<<< HEAD
 - Elementos C4 afectados: [C4 Nivel 1 — Contexto](../c4/C4%20Nivel%201%20-%20Contexto.mmd) (sin cambios, representa el sistema como una caja única) y [C4 Nivel 2 — Contenedores](../c4/C4%20Nivel%202%20-%20Contenedores.mmd), que ya materializa esta decisión: un único contenedor de aplicación (Node.js/Express) con los módulos internos `session`, `audio` y `sync`, más el contenedor de persistencia SQLite. El C4 Nivel 3 (Componentes) queda pendiente para cuando se detalle la estructura interna de cada módulo.
+=======
+- Elementos C4 afectados: [Contexto](../c4/Context%20-%20Nivel%201.mmd), [Contenedores](../c4/Contenedor%20-%20Nivel%202.mmd) y [Componentes Flutter](../c4/Componentes%20-%20Nivel%203.mmd).
+>>>>>>> be5a6af (Migrar AudioShare a Flutter)
 - Implementación: `src/modules/session/`, `src/modules/audio/`, `src/modules/sync/` y `src/app.ts`.
 - Pruebas que lo cubren: [`tests/a01.test.ts`](../../tests/a01.test.ts) y [`tests/health.test.ts`](../../tests/health.test.ts).

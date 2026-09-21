@@ -1,14 +1,8 @@
 == Decisiones de diseño
 
-Las decisiones arquitectónicas se mantienen como ADR independientes y
-alcanzables desde el repositorio.
+Las decisiones arquitectónicas se mantienen como ADR independientes.
 
-* link:../../adr/0001-usar-monolito-modular.md[ADR-0001 — Selección del estilo arquitectónico]
+* link:../../adr/0001-usar-monolito-modular.md[ADR-0001 — Monolito modular del backend]
+* link:../../adr/0002-cliente-flutter-backend-modular.md[ADR-0002 — Cliente Flutter y backend existente]
 
-ADR-0001 establece el uso de un monolito modular. La implementación actual
-mantiene una única aplicación Node.js/Express y separa las responsabilidades
-en los módulos `session`, `audio` y `sync`. El corte vertical A-01 además
-utiliza persistencia mediante el almacén JSON de salas.
-
-No se duplican aquí las decisiones contenidas en los ADR; esta sección
-funciona como índice y punto de trazabilidad hacia los archivos reales.
+El monolito modular se conserva en el backend. La estructura por funcionalidades de Flutter es una organización del cliente, no un cambio del estilo arquitectónico del servidor.

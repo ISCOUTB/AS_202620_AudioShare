@@ -63,7 +63,7 @@ include::src/08_concepts.adoc[]
 
 <<<<
 // 9. Architecture Decisions
-include::src/09_architecture_decisions.adoc[]
+include::src/09_section_desing_decisions.adoc[]
 
 <<<<
 // 10. Quality Requirements
@@ -71,7 +71,7 @@ include::src/10_quality_requirements.adoc[]
 
 <<<<
 // 11. Technical Risks
-include::src/11_technical_risks.adoc[]
+include::src/11_risks_and_technical_debt.adoc[]
 
 <<<<
 // 12. Glossary
