@@ -24,15 +24,6 @@ Dos hechos de la Guía de despliegue y costos del curso aplican directo:
    del mismo proceso.** Cualquier plataforma que no garantice disco
    persistente pierde `data/audioshare.sqlite` en cada reinicio.
 
-R-01 exige herramientas gratuitas; ninguna cuenta de pago es
-obligatoria en el curso. Un integrante del equipo (Vincent Cardona)
-está matriculado en la Universidad Tecnológica de Bolívar y activó
-**Azure for Students** el 2026-09-27: acceso verificado por correo
-institucional, sin tarjeta de crédito, con $100 USD de crédito por 12
-meses más el tramo "Always Free" de varios servicios — entre ellos,
-la concesión mensual perpetua de Azure Container Apps (no expira con
-el crédito de estudiante, es una condición del servicio).
-
 ## Alternativas consideradas
 
 ### A. Servidor del laboratorio (contenedor Docker con volumen persistente)
