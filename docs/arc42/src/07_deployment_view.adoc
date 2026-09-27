@@ -1,0 +1,55 @@
+[[section-deployment-view]]
+== Vista de despliegue
+
+=== Infraestructura, nivel 1
+
+AudioShare tiene una sola pieza desplegable con estado propio: la API
+(proceso Node.js/Express con persistencia SQLite embebida). El cliente
+Flutter Web se sirve como estático desde el mismo proceso cuando existe
+`build/web`; el cliente Flutter Android se distribuye por separado (APK)
+y no requiere despliegue de servidor.
+
+[cols="1,2,2"]
+|===
+|Pieza |Dónde se ejecuta |Notas
+
+|API (Express + SQLite)
+|Contenedor Docker — Azure Container Apps (Azure for Students) como entorno público principal; servidor del laboratorio como alternativa sin tarjeta
+|Ver ADR-0004. Misma imagen (`Dockerfile`) en ambas alternativas.
+
+|Cliente Web (Flutter Web / legado `public/`)
+|Servido como estático por el mismo proceso de la API
+|No es un contenedor desplegable independiente hoy; ver C4 Nivel 2.
+
+|Cliente Android (Flutter)
+|Distribución directa (APK), sin servidor de por medio
+|Fuera del alcance de este despliegue.
+|===
+
+=== Motivación
+
+* R-01 (herramientas gratuitas) exige que al menos una alternativa
+  funcione sin tarjeta: el servidor del laboratorio la cubre.
+* El endpoint de stream NDJSON mantiene conexiones abiertas
+  (ver ADR-0002), lo que descarta una función serverless para esta
+  pieza (Guía de despliegue y costos, criterio 4: dependencias
+  persistentes).
+* La persistencia SQLite vive en el disco del mismo proceso: la
+  plataforma elegida debe declarar explícitamente si ese disco
+  sobrevive a un redeploy (ver ADR-0004, riesgo documentado para
+  Render plan Free).
+
+=== Elementos de infraestructura y mapeo
+
+`Dockerfile` construye una única imagen de producción para la API.
+`docker-compose.yml` reproduce el despliegue del servidor del
+laboratorio, con un volumen (`audioshare-data`) para que
+`data/audioshare.sqlite` persista entre reinicios. `docs/despliegue.md`
+documenta el despliegue equivalente en Azure Container Apps (`az
+containerapp up` sobre la misma imagen, con `minReplicas: 0` para
+mantenerse dentro del tramo gratis).
+
+=== Costo y capa gratuita
+
+Ver `docs/costos-mensuales.md` para la estimación con supuestos y el
+punto en que cada alternativa deja de ser gratuita.

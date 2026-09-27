@@ -9,6 +9,8 @@ import {
 import { AudioStreamHub } from "./modules/audio/index.js";
 import { SyncCoordinator } from "./modules/sync/index.js";
 import { config } from "./shared/config.js";
+import { log } from "./shared/logger.js";
+import { metrics, metricsHandler } from "./shared/metrics.js";
 
 interface Client {
   id: string;
@@ -73,6 +75,9 @@ export function createApp(
     const room = sessions.createRoom(emitterId);
 
     streams.set(room.id, new Map());
+
+    metrics.roomsCreated += 1;
+    log.info("room.created", { roomId: room.id, emitterId });
 
     res.status(201).json({
       roomId: room.id,
@@ -194,6 +199,15 @@ export function createApp(
         client.send(audioChunk);
       }
     }
+
+    metrics.playEvents += 1;
+    metrics.lastPlayReceiverCount = roomStreams?.size ?? 0;
+    metrics.lastPlayAt = new Date().toISOString();
+    log.info("room.play", {
+      roomId,
+      receiverCount: metrics.lastPlayReceiverCount,
+      startAt: event.startAt,
+    });
 
     res.status(200).json({
       ...event,
@@ -317,6 +331,12 @@ export function createApp(
       modules: ["session", "audio", "sync"],
     });
   });
+
+  /*
+   * Métrica consultable, ligada al aspecto A-01 y a EC-01/EC-04.
+   * Ver src/shared/metrics.ts para la nota honesta sobre qué mide hoy.
+   */
+  app.get("/metrics", metricsHandler);
 
   return app;
 }

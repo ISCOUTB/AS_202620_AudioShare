@@ -6,3 +6,10 @@
 * El cliente no accede directamente a SQLite ni realiza HTTP desde widgets.
 * La solución debe operar dentro de una red Wi-Fi local.
 * La captura y transmisión de audio físico están fuera del corte actual.
+* Presupuesto máximo del proyecto: $0 (R-01). Ninguna alternativa de
+  despliegue puede exigir una cuenta de pago obligatoria; al menos una
+  alternativa por pieza debe funcionar sin tarjeta de crédito (ver
+  `docs/adr/0004-despliegue-api-azure-vs-laboratorio.md` y
+  `docs/costos-mensuales.md`). La suscripción Azure for Students usada
+  para el despliegue principal tampoco exige tarjeta; se activó con
+  verificación por correo institucional @utb.edu.co.

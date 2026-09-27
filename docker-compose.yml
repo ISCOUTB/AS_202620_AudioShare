@@ -1,0 +1,32 @@
+# Infraestructura como código del entorno DESPLEGADO (no del devcontainer).
+#
+# Uso en el servidor del laboratorio o en cualquier máquina con Docker:
+#   docker compose up -d --build
+#   curl http://localhost:3000/health
+#
+# El volumen `audioshare-data` es lo que hace que data/audioshare.sqlite
+# sobreviva a un `docker compose up --build` posterior (redeploy). Sin este
+# volumen, cada redeploy empieza con una base de datos vacía.
+services:
+  api:
+    build: .
+    image: audioshare-api:latest
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - DATABASE_FILE=data/audioshare.sqlite
+      - LOG_LEVEL=info
+    volumes:
+      - audioshare-data:/app/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/health').then(r=>process.exit(r.status===200?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  audioshare-data:
