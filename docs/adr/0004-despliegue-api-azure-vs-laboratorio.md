@@ -1,6 +1,6 @@
 # 0004 — Desplegar la API en Azure Container Apps (Azure for Students), con el servidor del laboratorio como respaldo sin tarjeta
 
-- **Estado:** propuesto
+- **Estado:** aceptado
 - **Fecha:** 2026-09-27
 - **Decide:** equipo AudioShare (AS_202620_AudioShare)
 - **Escenario de calidad relacionado:** EC-01 — Sincronización inicial; EC-04 — Incorporación de nuevo receptor; restricción R-01 — Uso de herramientas gratuitas
