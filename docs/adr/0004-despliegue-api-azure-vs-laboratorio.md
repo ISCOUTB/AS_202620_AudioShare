@@ -1,7 +1,7 @@
 # 0004 — Desplegar la API en Azure Container Apps (Azure for Students), con el servidor del laboratorio como respaldo sin tarjeta
 
 - **Estado:** aceptado
-- **Fecha:** 2026-09-27
+- **Fecha:** 2026-09-28
 - **Decide:** equipo AudioShare (AS_202620_AudioShare)
 - **Escenario de calidad relacionado:** EC-01 — Sincronización inicial; EC-04 — Incorporación de nuevo receptor; restricción R-01 — Uso de herramientas gratuitas
 
@@ -24,6 +24,16 @@ Dos hechos de la Guía de despliegue y costos del curso aplican directo:
    del mismo proceso.** Cualquier plataforma que no garantice disco
    persistente pierde `data/audioshare.sqlite` en cada reinicio.
 
+R-01 exige herramientas gratuitas; ninguna cuenta de pago es
+obligatoria en el curso. Un integrante del equipo (Vincent Cardona)
+está matriculado en la Universidad Tecnológica de Bolívar y activó
+**Azure for Students** el 2026-09-27: acceso verificado por correo
+institucional, sin tarjeta de crédito, con $100 USD de crédito por 12
+meses. La concesión mensual de Azure Container Apps (180.000 vCPU-s,
+360.000 GiB-s y 2 M de solicitudes) se consultó en la página de
+precios del servicio el 2026-09-27 y se anota como dato a reverificar
+antes de la sustentación, porque estas ofertas cambian sin aviso.
+
 ## Alternativas consideradas
 
 ### A. Servidor del laboratorio (contenedor Docker con volumen persistente)
@@ -34,93 +44,108 @@ con `data/` montado como volumen.
 
 - **A favor:** disco persistente real → SQLite sobrevive a un
   reinicio; sin tarjeta bajo ninguna circunstancia; el equipo controla
-  el entorno completo; sin límite de "sleep" por inactividad, así que
-  EC-04 (receptor nuevo se sincroniza en ≤3 s) no depende de un
-  arranque en frío del proceso.
+  el entorno completo; sin "sleep" por inactividad, así que EC-04
+  (receptor nuevo se sincroniza en ≤3 s) no depende de un arranque en
+  frío del proceso.
 - **En contra:** depende de que el laboratorio confirme (dato marcado
   `POR_CONFIRMAR` en la Guía de despliegue) si el servidor abre
   puertos accesibles desde fuera de la red UTB, cuánto disco hay
   asignado por equipo, y si el proceso persiste fuera del periodo
-  lectivo.
+  lectivo. La URL pública es requisito del curso, y hoy no está
+  confirmado que esta alternativa pueda cumplirlo.
 - **Por qué se mantiene como opción:** es la única alternativa que no
-  depende en absoluto de una cuenta externa ni de una tarjeta, ni
-  siquiera para verificación — satisface sin ambigüedad el requisito
-  "al menos una sin tarjeta" independientemente de que el crédito de
-  Azure exista o no.
+  depende de una cuenta externa ni de una tarjeta, y es el plan de
+  reversión si Azure deja de estar disponible.
 
 ### B. Azure Container Apps (suscripción Azure for Students)
 
 Se despliega la misma imagen (`Dockerfile` sin modificar) como
 Container App dentro de un Container Apps Environment, en el plan de
-Consumo.
+Consumo, con `minReplicas: 0`.
 
 - **A favor:** URL pública HTTPS por defecto (`*.azurecontainerapps.io`),
-  accesible desde fuera de la red UTB; healthcheck configurable como
-  *probe* del propio servicio; **la concesión gratuita de Container
-  Apps (180.000 vCPU-s, 360.000 GiB-s y 2 M de solicitudes por mes) es
-  perpetua y no depende del crédito de $100** — a diferencia de una VM
-  o de App Service, que si se agota el crédito empiezan a facturar;
-  puede escalar a cero réplicas cuando no hay tráfico, así que no
-  desperdicia crédito en tiempo muerto; soporta contenedor Docker
-  propio sin restricciones de plan gratuito (a diferencia de App
-  Service F1, que en la práctica está pensado para código, no
-  contenedores propios).
-- **En contra:** el registro (Azure Container Registry o Docker Hub) y
-  el propio servicio de Container Apps añaden superficie de
-  configuración (grupo de recursos, entorno, registro) frente a
-  Render, que solo pedía un `render.yaml`; sin volumen montado, el
-  almacenamiento local también es efímero por réplica — mismo riesgo
-  de pérdida de `data/audioshare.sqlite` que ya se había documentado
-  con Render; requiere que el resto del equipo pueda acceder a la
-  suscripción de Azure for Students del integrante que la activó (o
-  activar la suya propia) para poder redesplegar sin depender de una
-  sola persona — criterio 7 de la guía.
-- **Por qué se elige:** al no depender del consumo del crédito de
-  estudiante para permanecer gratis, es más sostenible para el resto
-  del semestre que una cuenta con capa gratuita ligada solo a bajo
-  volumen (Render) — y ya no exige buscar una alternativa "sin
-  tarjeta" aparte, porque Azure for Students tampoco la pidió.
+  accesible desde fuera de la red UTB; puede escalar a cero réplicas
+  cuando no hay tráfico; soporta contenedor Docker propio; la
+  concesión gratuita mensual no depende del crédito de $100 (dato
+  a reverificar, ver Contexto).
+- **En contra:** sin volumen montado, el almacenamiento local es
+  efímero por réplica (mismo riesgo de pérdida de
+  `data/audioshare.sqlite` que en cualquier plataforma sin disco
+  persistente); el arranque en frío tras escalar a cero compite con
+  EC-04; requiere que el resto del equipo tenga acceso a la
+  suscripción o active la suya para poder redesplegar sin depender de
+  una sola persona (criterio 7 de la guía).
+- **Por qué se elige:** es la única alternativa que hoy produce una
+  URL pública comprobable desde fuera de la universidad, sin tarjeta.
 
 **Alternativa descartada explícitamente: Render (plan Free).** Se
-consideró en una iteración anterior de este ADR. Se descarta porque,
-teniendo ya acceso verificado a Azure for Students sin tarjeta, Azure
-Container Apps ofrece una capa gratuita perpetua por diseño del
-servicio (no un crédito que se agota) y evita mantener dos ecosistemas
-de despliegue distintos para las alternativas A y B.
+consideró en una iteración anterior. Se descarta porque, con acceso ya
+verificado a Azure for Students sin tarjeta, evita mantener dos
+ecosistemas de despliegue distintos para las alternativas A y B.
+
+## Restricciones verificadas al desplegar (evidencia real)
+
+Estas restricciones aparecieron al ejecutar el despliegue el
+2026-09-28 y cambiaron el procedimiento respecto del plan inicial:
+
+1. **Regiones limitadas.** La política `sys.regionrestriction` de la
+   suscripción solo permite `chilecentral`, `mexicocentral`,
+   `canadacentral`, `belgiumcentral` y `spaincentral`. Desplegar en
+   `eastus` y `eastus2` falló con `RequestDisallowedByAzure`. Se
+   despliega en `canadacentral`.
+2. **ACR Tasks bloqueado.** `az containerapp up --source .` falló con
+   `TasksOperationsNotAllowed`, así que no se puede construir la
+   imagen dentro de Azure.
+3. **GitHub Container Registry no sirvió.** La organización ISCOUTB
+   deshabilita la visibilidad pública de paquetes (el paquete quedó
+   como `internal`) y Azure recibió `403 Forbidden` al bajar la imagen
+   con credenciales de un token de lectura, aunque el mismo token sí
+   obtenía acceso desde una máquina local.
+4. **Solución adoptada.** La imagen se construye en GitHub Actions
+   (`.github/workflows/publish-image.yml`) y se publica en un
+   repositorio público de Docker Hub
+   (`vincexcard1916/audioshare-api`); Azure la descarga sin
+   credenciales. El repositorio de código ya es público y la imagen no
+   contiene secretos: las variables de entorno se inyectan desde el
+   proveedor.
 
 ## Decisión
 
-Se despliega la API en **Azure Container Apps**, bajo la suscripción
-Azure for Students de un integrante del equipo, como entorno accesible
-públicamente para la sustentación. El **servidor del laboratorio**
-sigue siendo la alternativa sin tarjeta y el plan de reversión si la
-suscripción de Azure deja de estar disponible para el equipo. Ambas
-alternativas usan la misma imagen Docker — es lo que hace barata la
-reversión (criterio 6 de la guía).
+Se despliega la API en **Azure Container Apps**, región
+`canadacentral`, bajo la suscripción Azure for Students de un
+integrante del equipo, con la imagen publicada en Docker Hub. El
+**servidor del laboratorio** sigue siendo la alternativa sin tarjeta y
+el plan de reversión. Ambas alternativas usan la misma imagen Docker,
+lo que hace barata la reversión (criterio 6 de la guía).
+
+Verificación del despliegue: el 2026-09-28T04:19:17Z,
+`GET /health` respondió `http=200 tiempo=1.909s` en
+`https://audioshare-api.icypond-27a6987e.canadacentral.azurecontainerapps.io`.
 
 ## Consecuencias
 
-- **Positivas:** URL pública reproducible en minutos; capa gratuita
-  perpetua, no ligada al crédito de $100; el mismo Dockerfile sirve
-  para ambas alternativas, sin código atado al proveedor; el pipeline
-  puede desplegar automáticamente en cada push a `main` vía GitHub
-  Actions con `azure/container-apps-deploy-action`.
+- **Positivas:** URL pública reproducible; mismo `Dockerfile` para ambas
+  alternativas, sin código atado al proveedor; construcción de la
+  imagen versionada como workflow en el repositorio.
 - **Negativas / costos asumidos:** pérdida de datos de
-  `data/audioshare.sqlite` en cada reinicio/escalado a cero de la
-  réplica — mismo riesgo que ya existía con Render, se documenta aquí
-  de nuevo porque no desaparece por cambiar de proveedor. Dependencia
-  de que la cuenta de Azure for Students del integrante siga activa
-  (renovación anual, estado de matrícula en la UTB).
-- **Riesgos y qué los dispararía:** (1) la suscripción de Azure for
-  Students se suspende o el crédito se agota antes de tiempo por un
-  uso indebido de otros recursos de Azure fuera de este proyecto → se
-  migra a la alternativa A, redesplegando la misma imagen sin cambios
-  de código. (2) el equipo necesita persistencia real entre sesiones
-  de demo → montar Azure Files como volumen del Container App, o
-  migrar a una base gestionada — decisión que merece su propio ADR.
-- **Qué habría que revisar si cambia:** si el sistema deja de tratar
-  las salas como efímeras, la pérdida de disco en cada escalado a cero
-  deja de ser un costo aceptable y esta decisión debe revisarse.
+  `data/audioshare.sqlite` en cada reinicio o escalado a cero — mismo
+  riesgo de cualquier plataforma sin disco persistente; dependencia de
+  que la suscripción del integrante siga activa; dependencia de una
+  cuenta personal de Docker Hub para el registro; el paso de despliegue
+  a Azure es manual (`az containerapp update`); la región
+  `canadacentral` está lejos del público objetivo, lo que puede sumar
+  latencia a EC-01 y EC-04 (no medido).
+- **Riesgos y qué los dispararía:** (1) la suscripción se suspende o el
+  crédito se agota → migrar a la alternativa A con la misma imagen.
+  (2) el equipo necesita persistencia entre sesiones de demo → montar
+  Azure Files como volumen o migrar a una base gestionada, decisión que
+  merece su propio ADR. (3) el arranque en frío tras escalar a cero
+  supera el objetivo de EC-04 → subir `minReplicas` a 1 (rompe el tramo
+  gratuito según `docs/costos-mensuales.md`).
+- **Qué habría que revisar si cambia:** si el sistema deja de tratar las
+  salas como efímeras, la pérdida de disco deja de ser un costo
+  aceptable; si la organización habilita paquetes públicos, se puede
+  volver a GitHub Container Registry.
 
 ## Trazabilidad
 
@@ -128,6 +153,6 @@ reversión (criterio 6 de la guía).
 - Elementos C4 afectados: C4 Nivel 2 — Contenedores (`AppServer`,
   `SqliteDb`); ninguno cambia de forma, cambia dónde se ejecutan.
 - Implementación: `Dockerfile`, `docker-compose.yml`,
-  `.github/workflows/deploy-azure.yml`.
-- Pruebas que lo cubren: `GET /health` verificado manualmente contra
-  la URL pública tras cada despliegue (ver `docs/despliegue.md`).
+  `.github/workflows/publish-image.yml`, `docs/despliegue.md`.
+- Pruebas que lo cubren: `GET /health` y `GET /metrics` verificados
+  contra la URL pública (ver `docs/despliegue.md`).

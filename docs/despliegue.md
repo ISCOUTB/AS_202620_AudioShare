@@ -9,8 +9,10 @@ Ver decisión completa en `docs/adr/0004-despliegue-api-azure-vs-laboratorio.md`
 # de Azure for Students (sin tarjeta, verificación por correo @utb.edu.co).
 az login
 
-# Extensión de Container Apps
+# Extensión de Container Apps y proveedores de recursos
 az extension add --name containerapp --upgrade
+az provider register --namespace Microsoft.App --wait
+az provider register --namespace Microsoft.OperationalInsights --wait
 ```
 
 ## Alternativa A — servidor del laboratorio (sin cambios)
@@ -24,36 +26,58 @@ curl -sS -o /dev/null -w 'http=%{http_code}\n' http://localhost:3000/health
 
 ## Alternativa B — Azure Container Apps
 
-`az containerapp up` construye la imagen a partir del `Dockerfile` del
-repositorio (usa un build efímero en la nube, no necesitas un registro
-de contenedores propio) y publica una URL pública HTTPS en un solo
-comando:
+La imagen se construye en GitHub Actions y se publica en Docker Hub
+(repositorio público); Azure solo la descarga. No se usa
+`az containerapp up --source .` porque la suscripción Azure for Students
+tiene bloqueado ACR Tasks (`TasksOperationsNotAllowed`). Tampoco se usó
+GitHub Container Registry: la organización ISCOUTB deshabilita los
+paquetes públicos y Azure recibió 403 al bajar un paquete interno.
+
+**Región:** `canadacentral`. La política `sys.regionrestriction` de la
+suscripción solo permite `chilecentral`, `mexicocentral`, `canadacentral`,
+`belgiumcentral` y `spaincentral` (eastus y eastus2 fallan con
+`RequestDisallowedByAzure`).
+
+### 1. Publicar la imagen
+
+El workflow `.github/workflows/publish-image.yml` construye el
+`Dockerfile` y publica `vincexcard1916/audioshare-api:latest` en cada push
+a `master` (secrets `DOCKERHUB_USERNAME` y `DOCKERHUB_TOKEN` del repositorio).
+
+### 2. Crear el entorno y la Container App (primera vez)
 
 ```bash
-cd AS_202620_AudioShare
+az group create --name audioshare-rg --location canadacentral
 
-az containerapp up \
+az containerapp env create \
+  --name audioshare-env \
+  --resource-group audioshare-rg \
+  --location canadacentral
+
+az containerapp create \
   --name audioshare-api \
   --resource-group audioshare-rg \
-  --location eastus \
   --environment audioshare-env \
-  --source . \
+  --image docker.io/vincexcard1916/audioshare-api:latest \
   --target-port 3000 \
   --ingress external \
+  --min-replicas 0 --max-replicas 3 \
   --env-vars PORT=3000 NODE_ENV=production DATABASE_FILE=data/audioshare.sqlite
+```
 
-# minReplicas en 0: es lo que mantiene el despliegue dentro del tramo
-# gratis (ver docs/costos-mensuales.md, punto de ruptura). Ajustar solo
-# si se decide asumir el costo de tenerlo siempre despierto.
+### 3. Redesplegar (después de cada cambio)
+
+```bash
 az containerapp update \
   --name audioshare-api \
   --resource-group audioshare-rg \
-  --min-replicas 0 \
-  --max-replicas 3
+  --image docker.io/vincexcard1916/audioshare-api:latest
 ```
 
-Verificación tras cada despliegue, con hora (para la evidencia que pide
-la ficha de la semana 8):
+`minReplicas` en 0 mantiene el despliegue dentro del tramo gratis (ver
+`docs/costos-mensuales.md`, punto de ruptura).
+
+### 4. Verificación, con hora
 
 ```bash
 URL=$(az containerapp show \
@@ -63,18 +87,27 @@ URL=$(az containerapp show \
 
 date -u +"%Y-%m-%dT%H:%M:%SZ"
 curl -sS -o /dev/null -w 'http=%{http_code} tiempo=%{time_total}s\n' "https://$URL/health"
+curl -sS "https://$URL/metrics"
 ```
+
+Verificación real del 2026-09-28T04:19:17Z:
+`https://audioshare-api.icypond-27a6987e.canadacentral.azurecontainerapps.io/health`
+→ `http=200 tiempo=1.909s`.
+
+Métrica en el entorno desplegado, 2026-09-28T04:25:06Z (2026-09-27T23:25:06-05:00),
+tras crear una sala: `rooms_created_total: 1`.
 
 ## Automatizar el despliegue desde CI (opcional, para más adelante)
 
-`az containerapp up` también se puede correr desde `.github/workflows/`
+`az containerapp update` también se puede correr desde `.github/workflows/`
 con `azure/login@v2` usando credenciales federadas (OIDC, sin guardar
 ningún secreto de larga duración) o un `AZURE_CREDENTIALS` de un
-service principal. Se deja fuera de esta entrega porque configurarlo
-bien (permisos del service principal dentro de una suscripción de
-estudiante) es una tarea aparte que no debe bloquear la evidencia de
-esta semana; el despliegue manual documentado arriba ya es reproducible
-y verificable.
+service principal. El workflow actual ya publica la imagen; solo
+faltaría el paso de Azure. Se deja fuera de esta entrega porque
+configurarlo bien (permisos del service principal dentro de una
+suscripción de estudiante) es una tarea aparte que no debe bloquear la
+evidencia de esta semana; el despliegue manual documentado arriba ya es
+reproducible y verificable.
 
 ## Procedimiento de reversión
 
@@ -86,7 +119,8 @@ laboratorio —o viceversa— no requiere cambiar código:
    `docker build -t audioshare-api:rollback .`
 2. Desplegar esa misma imagen en la alternativa de respaldo
    (`docker compose up -d --build` en el servidor del laboratorio, o
-   `az containerapp up` con `--source .` apuntando al mismo commit).
+   `az containerapp update --image docker.io/vincexcard1916/audioshare-api:latest`
+   en Azure).
 3. Actualizar la URL publicada en el README y en la entrega de Moodle.
 4. Tiempo estimado: menos de 10 minutos, limitado por el build de la
    imagen (la compilación nativa de `better-sqlite3` es lo más lento).
@@ -96,12 +130,13 @@ Costo de la reversión: se pierde el contenido de
 se haya hecho backup del volumen — riesgo ya aceptado y documentado en
 el ADR-0004.
 
-## Si algo del comando `az containerapp up` falla
+## Errores frecuentes en esta suscripción
 
-- `ResourceGroupNotFound`: créalo primero con
-  `az group create --name audioshare-rg --location eastus`.
-- Error de cuota o de permisos en la suscripción de estudiante: revisa
-  en el portal de Azure que la suscripción "Azure for Students" esté
-  activa (no "Azure for Students Starter", que no incluye Container
-  Apps) y que la región `eastus` tenga cuota disponible; si no, prueba
-  con `eastus2` o `westus2`.
+- `RequestDisallowedByAzure`: región no permitida. Usa una de
+  `chilecentral`, `mexicocentral`, `canadacentral`, `belgiumcentral`
+  o `spaincentral`.
+- `MissingSubscriptionRegistration`: registra el proveedor con
+  `az provider register --namespace <nombre> --wait`.
+- `TasksOperationsNotAllowed`: ACR Tasks está bloqueado en Azure for
+  Students. No uses `--source`; usa `--image`.
+- `403 Forbidden` al bajar de ghcr.io: usa la imagen pública de Docker Hub.

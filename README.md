@@ -144,4 +144,20 @@ móviles manteniendo las responsabilidades principales del backend.
 
 ## CI
 
-`.github/workflows/flutter.yml` ejecuta `flutter pub get`, `flutter analyze`, `flutter test` y `flutter build web`. `.github/workflows/ci.yml` conserva la compilación y las pruebas del backend.
+`.github/workflows/flutter.yml` ejecuta `flutter pub get`, `flutter analyze`, `flutter test` y `flutter build web`. `.github/workflows/ci.yml` conserva la compilación y las pruebas del backend. `.github/workflows/publish-image.yml` construye la imagen Docker de la API y la publica en Docker Hub en cada push a `master`.
+
+## Despliegue
+
+La API corre en Azure Container Apps (región `canadacentral`, suscripción Azure for Students), con la imagen publicada en Docker Hub.
+
+- URL pública: https://audioshare-api.icypond-27a6987e.canadacentral.azurecontainerapps.io
+- Health check: `/health` · Métrica consultable: `/metrics` (aspecto A-01, escenarios EC-01 y EC-04)
+- Verificado el 2026-09-28T04:19:17Z: `http=200 tiempo=1.9s`
+- Logs: una línea JSON por evento en la salida estándar (`room.created`, `room.play`, `server.started`), implementados en `src/shared/logger.ts`
+- Infraestructura versionada: `Dockerfile`, `docker-compose.yml` y `.github/workflows/publish-image.yml`
+- Recrear el entorno desplegado: ver [docs/despliegue.md](docs/despliegue.md)
+- Respaldo sin tarjeta: `docker compose up -d --build` (servidor del laboratorio)
+- Decisión y alternativa descartada: [ADR-0004](docs/adr/0004-despliegue-api-azure-vs-laboratorio.md)
+- Costo mensual y punto de ruptura: [docs/costos-mensuales.md](docs/costos-mensuales.md)
+
+Limitaciones conocidas: la réplica escala a cero sin tráfico, así que la primera petición puede tardar varios segundos, y `data/audioshare.sqlite` se pierde al reiniciar porque el disco es efímero.
