@@ -110,6 +110,59 @@ del equipo y no por la herramienta de Inteligencia Artificial.
 | Semana 6 | Plan de corrección | Organizar las acciones necesarias para resolver las no conformidades detectadas | Se elaboró un plan de corrección con prioridad para transmisión de audio real, reproducción en receptores, validación de sincronización, pausa/reanudación, nuevos receptores y métricas de latencia | Se rechazó intentar corregir todas las no conformidades simultáneamente. Se estableció un orden de corrección basado en dependencias e impacto sobre el funcionamiento del sistema. |
 | Semana 6 | Organización de documentación | Definir la ubicación de los nuevos documentos relacionados con el análisis arquitectónico | Se organizaron los documentos `docs/mapa_contextos.md`, `docs/modulos_datos.md` y `docs/no_conformidades.md` dentro del directorio `docs/` | Se rechazó colocar estos documentos fuera de la estructura de documentación existente, manteniendo la organización del repositorio y la trazabilidad de la arquitectura. |
 
+## Clasificación de propuestas de IA
+
+Las propuestas generadas mediante herramientas de Inteligencia
+Artificial fueron revisadas por los integrantes del equipo antes de
+incorporarse al proyecto.
+
+Para efectos de trazabilidad, las propuestas se clasifican en tres
+categorías:
+
+| Estado | Descripción |
+| --- | --- |
+| **Aceptada** | La propuesta fue revisada por el equipo y se incorporó al proyecto porque era compatible con los requisitos, restricciones y arquitectura definida. |
+| **Corregida** | La propuesta contenía elementos útiles, pero necesitó modificaciones realizadas por el equipo antes de incorporarse. |
+| **Rechazada** | La propuesta no fue incorporada porque no era necesaria, no correspondía al alcance, no respetaba las decisiones arquitectónicas o introducía complejidad innecesaria. |
+
+### Ejemplos de propuestas aceptadas
+
+- Propuestas para estructurar la documentación de arquitectura.
+- Apoyo en la elaboración de escenarios de calidad.
+- Apoyo en la elaboración y revisión de diagramas C4.
+- Apoyo en la identificación de responsabilidades de los módulos.
+- Apoyo en la migración del cliente hacia Flutter.
+
+Estas propuestas fueron revisadas y adaptadas por el equipo antes de
+su incorporación.
+
+### Ejemplos de propuestas corregidas
+
+Las propuestas relacionadas con la implementación y documentación no
+se incorporaron automáticamente. Cuando la respuesta de la IA no
+coincidía exactamente con la estructura actual del proyecto, los
+integrantes del equipo modificaron el contenido antes de incorporarlo.
+
+Durante la migración a Flutter, por ejemplo, las propuestas generadas
+como apoyo fueron adaptadas a la estructura real del proyecto y a las
+responsabilidades definidas para sus componentes.
+
+### Ejemplos de propuestas rechazadas
+
+Se rechazaron propuestas que:
+
+- ampliaban innecesariamente el alcance del corte vertical;
+- representaban funcionalidades que todavía no estaban implementadas;
+- asignaban responsabilidades duplicadas a diferentes módulos;
+- proponían componentes arquitectónicos que no estaban respaldados
+  por código real;
+- agregaban dependencias o infraestructura innecesaria;
+- modificaban el comportamiento esperado únicamente para hacer pasar
+  una prueba.
+
+La decisión final de aceptar, corregir o rechazar una propuesta
+corresponde al equipo y no a la herramienta de Inteligencia Artificial.
+
 ## Propuestas de IA rechazadas
 
 * **Semana 1 — Ideas de proyecto:** se descartaron ideas que no permitían
@@ -195,6 +248,116 @@ del equipo y no por la herramienta de Inteligencia Artificial.
 La decisión final sobre aceptar, modificar o rechazar una propuesta
 corresponde al equipo.
 
+## Auditoría de erosión
+
+La generación asistida por Inteligencia Artificial fue revisada
+considerando los límites de los contextos y las reglas de propiedad de
+datos definidas para la arquitectura de AudioShare.
+
+### Límites de contexto
+
+Las propuestas generadas por IA fueron contrastadas con la separación
+de responsabilidades definida para los módulos `Session`, `Sync` y
+`Audio`.
+
+La revisión buscó detectar propuestas que asignaran a un módulo
+responsabilidades pertenecientes a otro contexto o que mezclaran
+responsabilidades de presentación, sincronización, audio y
+persistencia.
+
+Cuando una propuesta no correspondía con los límites definidos, fue
+corregida o rechazada antes de incorporarse al proyecto.
+
+### Propiedad de datos
+
+También se revisó que cada dato tuviera un responsable definido y que
+los diferentes módulos no asumieran simultáneamente la responsabilidad
+de modificar directamente el mismo dato.
+
+Esta revisión se realizó utilizando como referencia la definición de
+responsabilidades y la tabla módulo → datos del proyecto.
+
+### Detección y corrección
+
+La posible erosión se detectó mediante revisión manual de las
+propuestas generadas por IA y su comparación con la arquitectura,
+los límites de los módulos y la propiedad de los datos previamente
+definidos.
+
+Cuando una propuesta cruzaba un límite de responsabilidad, el equipo
+la modificó para respetar la separación existente o la rechazó cuando
+no era necesaria para el alcance del proyecto.
+
+La decisión de incorporar una propuesta siempre fue tomada por los
+integrantes del equipo.
+
+## Verificación de dependencias y credenciales
+
+Como parte de la revisión del código generado o modificado con apoyo
+de Inteligencia Artificial, se verificó que las dependencias utilizadas
+por el proyecto correspondieran a dependencias existentes y
+justificadas por la implementación.
+
+### Dependencias
+
+Las dependencias incorporadas al proyecto fueron contrastadas con los
+archivos de configuración correspondientes antes de considerarlas
+parte de la implementación.
+
+Para cada dependencia se verificó:
+
+- que el paquete exista;
+- que corresponda con la tecnología utilizada;
+- que esté declarado en el archivo de dependencias correspondiente;
+- que sea necesario para la funcionalidad implementada;
+- que no haya sido incorporado únicamente por una sugerencia de IA
+  sin justificación técnica.
+
+La incorporación final de una dependencia corresponde al equipo.
+
+### Credenciales y secretos
+
+También se revisó el código y los ejemplos del repositorio para evitar
+la incorporación de:
+
+- contraseñas;
+- API keys;
+- tokens;
+- credenciales de servicios;
+- secretos de despliegue;
+- claves privadas.
+
+Las credenciales necesarias para servicios externos o despliegues no
+deben quedar escritas directamente en el código fuente ni en los
+ejemplos versionados.
+
+La revisión de credenciales forma parte de la verificación realizada
+antes de considerar completa la contribución generada o modificada con
+IA.
+
+## Componente generativo dentro del sistema
+
+AudioShare utiliza herramientas de Inteligencia Artificial como apoyo
+durante el proceso de desarrollo, pero actualmente no incorpora un
+modelo generativo como componente funcional del sistema.
+
+La IA utilizada durante el desarrollo no forma parte de la ejecución
+normal de AudioShare.
+
+El equipo decidió no incorporar un componente generativo dentro del
+producto para el alcance actual, debido a que las funcionalidades
+principales del sistema —creación de salas, incorporación de
+receptores, coordinación de reproducción y sincronización— no
+requieren generación de contenido mediante un modelo generativo.
+
+La decisión está documentada en:
+
+[ADR-0006 — No incorporación de un componente generativo](./adr/0006-no-incorporar-componente-generativo.md).
+
+Por esta razón, para el alcance actual no se incorpora un conjunto de
+evaluación de respuestas generativas ni una estimación de costo y
+latencia de inferencia como parte del sistema.
+
 ## Estado
 
 Documento actualizado durante la semana 7.
@@ -217,4 +380,13 @@ la documentación del proyecto deberá actualizarse para reflejar la
 nueva tecnología utilizada en la implementación y verificar que los
 diagramas, descripciones, pruebas y referencias al código sean
 coherentes con el estado actual del sistema.
+
+Para la presente entrega también se documenta la clasificación de las
+propuestas de IA como aceptadas, corregidas o rechazadas, junto con la
+auditoría de límites de contexto, propiedad de datos, dependencias y
+credenciales.
+
+AudioShare no incorpora actualmente un componente generativo de IA
+dentro del producto. Esta decisión se encuentra documentada en el
+ADR-0006.
 
