@@ -26,6 +26,8 @@ El criterio de aceptación será:
 
 **Diferencia máxima entre receptores ≤ 100 ms.**
 
+
+
 La responsabilidad de generar la referencia temporal permanece en el contexto de sincronización (`Sync`), mientras que `Audio` conserva la responsabilidad relacionada con los paquetes de audio.
 
 La persistencia continúa siendo responsabilidad exclusiva del backend mediante SQLite, de acuerdo con las decisiones arquitectónicas anteriores.
@@ -74,3 +76,14 @@ No modifica la responsabilidad de SQLite establecida previamente ni modifica la 
 * Implementación: `src/modules/sync/`.
 * Cliente: `lib/features/sync/`.
 * Escenario de calidad: EC-01.
+
+## Componente generativo
+
+El equipo decidió no incorporar un componente generativo dentro de AudioShare para este corte.
+
+El objetivo del sistema es transmitir y sincronizar audio entre dispositivos conectados a una red Wi-Fi. La generación de contenido mediante un modelo de IA no es necesaria para cumplir este objetivo ni aporta directamente al escenario EC-01.
+
+La Inteligencia Artificial utilizada durante el desarrollo funciona como herramienta de apoyo al equipo y no forma parte del producto ejecutado por los usuarios.
+
+Por esta razón no se requiere un conjunto de evaluación de un modelo generativo ni una estimación de costo por operación o latencia de inferencia.
+
