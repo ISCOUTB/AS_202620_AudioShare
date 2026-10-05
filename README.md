@@ -148,16 +148,95 @@ móviles manteniendo las responsabilidades principales del backend.
 
 ## Despliegue
 
-La API corre en Azure Container Apps (región `canadacentral`, suscripción Azure for Students), con la imagen publicada en Docker Hub.
+La aplicación se encuentra desplegada públicamente mediante Dokploy, utilizando Docker Compose.
 
-- URL pública: https://audioshare-api.icypond-27a6987e.canadacentral.azurecontainerapps.io
-- Health check: `/health` · Métrica consultable: `/metrics` (aspecto A-01, escenarios EC-01 y EC-04)
-- Verificado el 2026-09-28T04:19:17Z: `http=200 tiempo=1.9s`
-- Logs: una línea JSON por evento en la salida estándar (`room.created`, `room.play`, `server.started`), implementados en `src/shared/logger.ts`
-- Infraestructura versionada: `Dockerfile`, `docker-compose.yml` y `.github/workflows/publish-image.yml`
-- Recrear el entorno desplegado: ver [docs/despliegue.md](docs/despliegue.md)
-- Respaldo sin tarjeta: `docker compose up -d --build` (servidor del laboratorio)
-- Decisión y alternativa descartada: [ADR-0004](docs/adr/0004-despliegue-api-azure-vs-laboratorio.md)
-- Costo mensual y punto de ruptura: [docs/costos-mensuales.md](docs/costos-mensuales.md)
+## Aplicación
 
-Limitaciones conocidas: la réplica escala a cero sin tráfico, así que la primera petición puede tardar varios segundos, y `data/audioshare.sqlite` se pierde al reiniciar porque el disco es efímero.
+**URL pública:**
+
+https://audioshare.iscoutb.dev
+
+La URL permite acceder directamente a la aplicación AudioShare desplegada.
+
+## Infraestructura
+
+El despliegue utiliza:
+
+-Docker
+-Docker Compose.
+-Dokploy.
+-Node.js / Express.
+-Flutter Web.
+-SQLite.
+
+Los archivos principales relacionados con el despliegue son:
+
+Dockerfile
+docker-compose.yml
+.env.example
+.github/workflows/
+
+## Docker Compose
+
+El entorno puede recrearse utilizando:
+
+docker compose up -d --build
+
+## Despliegue mediante Dokploy
+
+El despliegue productivo utiliza Dokploy como plataforma de administración de los contenedores.
+
+El proyecto se configura a partir del archivo:
+
+docker-compose.yml
+
+Dokploy utiliza esta configuración para construir y ejecutar los servicios definidos por AudioShare.
+
+## Acceso a la aplicación
+
+La aplicación desplegada puede utilizarse desde:
+
+https://audioshare.iscoutb.dev
+
+El despliegue permite demostrar el funcionamiento del corte vertical A-01 sobre el entorno publicado.
+
+## Limitaciones conocidas
+
+-La captura, codificación, transmisión y reproducción física del audio todavía se encuentran fuera del alcance de la implementación actual.
+-AudioService utiliza actualmente un servicio simulado.
+-La transmisión real de audio entre dispositivos todavía se encuentra pendiente.
+-La persistencia SQLite depende del almacenamiento configurado en el entorno de despliegue.
+-La reconexión automática todavía se encuentra pendiente.
+-Las mediciones definitivas de EC-01 y EC-02 todavía deben validarse en un escenario real con múltiples dispositivos.
+
+## Corte vertical A-01
+
+El corte vertical principal del proyecto corresponde a la sincronización de reproducción de audio.
+
+El flujo contempla:
+
+1. El emisor crea una sala.
+2. Los receptores se unen mediante el código de la sala.
+3. El backend registra los participantes.
+4. El emisor inicia o pausa la reproducción.
+5. El backend genera y distribuye el estado de reproducción.
+6. Los receptores consultan el estado y la posición temporal.
+7. El sistema utiliza una referencia temporal común para mantener la sincronización.
+
+## Aspectos de calidad relacionados
+
+**EC-01:** diferencia de sincronización objetivo ≤ 100 ms.
+
+**EC-02:** variación de latencia objetivo ≤ 200 ms.
+
+**R-01:** utilización de herramientas sin costo obligatorio.
+
+**R-02:** comunicación de los dispositivos dentro de la misma red Wi-Fi.
+
+## Licencia
+
+Proyecto académico desarrollado para la asignatura correspondiente de Ingeniería de Sistemas.
+
+## About
+
+Plataforma para transmitir audio en tiempo real desde un dispositivo a múltiples dispositivos conectados.
