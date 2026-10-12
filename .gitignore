@@ -6,7 +6,7 @@ build/
 .flutter-plugins-dependencies
 .packages
 .data/
-data/
+/data/
 .env
 *.log
 coverage/
