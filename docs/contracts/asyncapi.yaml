@@ -54,6 +54,9 @@ components:
         play. startAt es un timestamp único (reloj del servidor) que todos
         los receptores deben usar como referencia para iniciar la
         reproducción.
+        Cada receptor debe convertir startAt a su reloj local con el offset
+        estimado vía GET /time (ver openapi.yaml, ADR-0007) y, al arrancar,
+        reportar POST /rooms/{roomId}/receivers/{receiverId}/ack.
       payload:
         type: object
         required: [type, startAt]

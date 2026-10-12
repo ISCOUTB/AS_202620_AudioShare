@@ -166,6 +166,98 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /time:
+    get:
+      operationId: getServerTime
+      summary: Reloj del servidor
+      description: >
+        Devuelve el instante actual del reloj del servidor (epoch ms). Los
+        receptores toman varias muestras para estimar su offset de reloj
+        (reloj_servidor − reloj_local) antes de programar el arranque en
+        `startAt` (ADR-0005 y ADR-0007).
+      responses:
+        "200":
+          description: Hora del servidor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerTime"
+
+  /rooms/{roomId}/receivers/{receiverId}/ack:
+    post:
+      operationId: ackReceiverStart
+      summary: El receptor informa cuándo empezó a reproducir
+      description: >
+        `startedAt` es el instante en el reloj LOCAL del receptor y
+        `offsetMs` el offset que estimó. El servidor lo lleva a su propio
+        reloj (`startedAt + offsetMs`) para medir el desfase entre receptores
+        (EC-01).
+      parameters:
+        - $ref: "#/components/parameters/RoomId"
+        - name: receiverId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [startedAt, offsetMs]
+              properties:
+                startedAt:
+                  type: number
+                offsetMs:
+                  type: number
+      responses:
+        "200":
+          description: ACK registrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AckResponse"
+        "400":
+          description: startedAt u offsetMs inválidos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: La sala aún no ha iniciado reproducción
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /rooms/{roomId}/sync:
+    get:
+      operationId: getSyncReport
+      summary: Informe de sincronización de la última reproducción
+      description: >
+        Diferencia entre el primer y el último receptor en arrancar, a partir
+        de los ACK recibidos, y su comparación con el umbral de EC-01.
+      parameters:
+        - $ref: "#/components/parameters/RoomId"
+      responses:
+        "200":
+          description: Informe de sincronización
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyncReport"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: La sala aún no ha iniciado reproducción
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   parameters:
     RoomId:
@@ -331,6 +423,55 @@ components:
           type: integer
         payload:
           type: string
+
+    ServerTime:
+      type: object
+      required: [serverTime]
+      properties:
+        serverTime:
+          type: number
+
+    AckResponse:
+      type: object
+      required: [roomId, startAt, receiverId, startedAtServerClock, deviationMs]
+      properties:
+        roomId:
+          type: string
+        startAt:
+          type: number
+        receiverId:
+          type: string
+        startedAtServerClock:
+          type: number
+        deviationMs:
+          type: number
+
+    SyncReport:
+      type: object
+      required: [roomId, startAt, acks, spreadMs, thresholdMs, withinThreshold]
+      properties:
+        roomId:
+          type: string
+        startAt:
+          type: number
+        acks:
+          type: array
+          items:
+            type: object
+            required: [receiverId, startedAtServerClock, deviationMs]
+            properties:
+              receiverId:
+                type: string
+              startedAtServerClock:
+                type: number
+              deviationMs:
+                type: number
+        spreadMs:
+          type: [number, "null"]
+        thresholdMs:
+          type: number
+        withinThreshold:
+          type: [boolean, "null"]
 
     ErrorResponse:
       type: object

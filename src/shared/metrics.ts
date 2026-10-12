@@ -1,24 +1,24 @@
 /**
- * Métrica mínima consultable, ligada al aspecto A-01 y a los escenarios de
+ * Métricas consultables, ligadas al aspecto A-01 y a los escenarios de
  * calidad EC-01/EC-04 (docs/escenarios_calidad.md).
  *
- * Nota honesta, para no inflar lo que esto mide: el servidor push-only
- * (NDJSON) hoy NO recibe confirmación del receptor, así que no puede
- * calcular por sí solo la diferencia real en ms entre receptores que pide
- * EC-01 (≤100 ms) — eso requiere que el receptor reporte su propio
- * timestamp de arranque, lo cual el README ya declara como pendiente.
- * Mientras tanto, esta métrica expone lo que SÍ es verificable desde el
- * servidor: cuántas salas y reproducciones ocurrieron y con cuántos
- * receptores conectados en el momento del PLAY — un proxy operacional real,
- * no un placeholder inventado.
- *
- * Colócalo en src/shared/metrics.ts e impórtalo desde app.ts.
+ * Qué mide cada grupo (para no inflar lo que significa):
+ *  - rooms/play/last_play_receiver_count: proxy operacional del servidor.
+ *  - last_sync_spread_ms / max_sync_spread_ms: desfase de arranque entre
+ *    receptores (EC-01), calculado con los ACK que los propios receptores
+ *    reportan (POST /rooms/:id/receivers/:rid/ack). Con receptores
+ *    simulados mide el protocolo; con dispositivos reales mediría además la
+ *    reproducción, pero esa medición física sigue pendiente.
  */
 export const metrics = {
   roomsCreated: 0,
   playEvents: 0,
   lastPlayReceiverCount: 0,
   lastPlayAt: null as string | null,
+  // Medición real de EC-01: diferencia entre el primer y el último receptor
+  // en arrancar, calculada a partir de los ACK (POST .../ack).
+  lastSyncSpreadMs: null as number | null,
+  maxSyncSpreadMs: null as number | null,
 };
 
 export function metricsHandler(_req: unknown, res: {
@@ -31,7 +31,11 @@ export function metricsHandler(_req: unknown, res: {
     play_events_total: metrics.playEvents,
     last_play_receiver_count: metrics.lastPlayReceiverCount,
     last_play_at: metrics.lastPlayAt,
-    nota: "Proxy operacional. La medición en ms de EC-01 requiere ack del " +
-      "receptor (pendiente, ver README > Estado actual > Pendiente).",
+    last_sync_spread_ms: metrics.lastSyncSpreadMs,
+    max_sync_spread_ms: metrics.maxSyncSpreadMs,
+    nota: "last_sync_spread_ms es la diferencia de arranque entre receptores " +
+      "calculada con los ACK que ellos reportan (EC-01, umbral 100 ms). " +
+      "Es null mientras no haya al menos dos ACK. Con receptores simulados " +
+      "mide el protocolo, no la reproducción física.",
   });
 }

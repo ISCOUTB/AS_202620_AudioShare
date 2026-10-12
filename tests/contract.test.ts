@@ -166,4 +166,66 @@ describe("Prueba de contrato — OpenAPI", () => {
 
     validate("AudioChunk", res.body);
   });
+
+  it("GET /time cumple ServerTime", async () => {
+    const res = await request(app).get("/time").expect(200);
+    validate("ServerTime", res.body);
+  });
+
+  it("POST .../ack y GET /rooms/:roomId/sync cumplen AckResponse y SyncReport", async () => {
+    const room = await request(app)
+      .post("/rooms")
+      .send({ emitterId: "emitter-contract" })
+      .expect(201);
+    const roomId = room.body.roomId;
+
+    for (const receiverId of ["r1", "r2"]) {
+      await request(app)
+        .post(`/rooms/${roomId}/receivers`)
+        .send({ receiverId })
+        .expect(201);
+    }
+
+    const play = await request(app).post(`/rooms/${roomId}/play`).send({}).expect(200);
+
+    const ack = await request(app)
+      .post(`/rooms/${roomId}/receivers/r1/ack`)
+      .send({ startedAt: play.body.startAt + 5, offsetMs: 0 })
+      .expect(200);
+    validate("AckResponse", ack.body);
+
+    await request(app)
+      .post(`/rooms/${roomId}/receivers/r2/ack`)
+      .send({ startedAt: play.body.startAt + 9, offsetMs: 0 })
+      .expect(200);
+
+    const report = await request(app).get(`/rooms/${roomId}/sync`).expect(200);
+    validate("SyncReport", report.body);
+    expect(report.body.spreadMs).toBe(4);
+    expect(report.body.withinThreshold).toBe(true);
+  });
+
+  it("ACK con datos inválidos o sala sin play responde con ErrorResponse", async () => {
+    const room = await request(app)
+      .post("/rooms")
+      .send({ emitterId: "emitter-contract" })
+      .expect(201);
+    const roomId = room.body.roomId;
+    await request(app)
+      .post(`/rooms/${roomId}/receivers`)
+      .send({ receiverId: "r1" })
+      .expect(201);
+
+    const noPlay = await request(app)
+      .post(`/rooms/${roomId}/receivers/r1/ack`)
+      .send({ startedAt: 1, offsetMs: 0 })
+      .expect(409);
+    validate("ErrorResponse", noPlay.body);
+
+    const invalid = await request(app)
+      .post(`/rooms/${roomId}/receivers/r1/ack`)
+      .send({ startedAt: "x" })
+      .expect(400);
+    validate("ErrorResponse", invalid.body);
+  });
 });

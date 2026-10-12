@@ -7,7 +7,11 @@ import {
   SQLiteRoomRepository,
 } from "./modules/session/index.js";
 import { AudioStreamHub } from "./modules/audio/index.js";
-import { SyncCoordinator } from "./modules/sync/index.js";
+import {
+  SyncCoordinator,
+  SyncMeasurements,
+  toServerClock,
+} from "./modules/sync/index.js";
 import { config } from "./shared/config.js";
 import { log } from "./shared/logger.js";
 import { metrics, metricsHandler } from "./shared/metrics.js";
@@ -49,6 +53,21 @@ export function createApp(
   const audio = new AudioStreamHub();
 
   const streams = new Map<string, Map<string, Client>>();
+  const measurements = new SyncMeasurements();
+  const coordinators = new Map<string, SyncCoordinator>();
+
+  // Un coordinador por sala: antes se creaba uno nuevo en cada petición y
+  // su estado se perdía.
+  const coordinatorFor = (roomId: string): SyncCoordinator => {
+    let coordinator = coordinators.get(roomId);
+
+    if (!coordinator) {
+      coordinator = new SyncCoordinator();
+      coordinators.set(roomId, coordinator);
+    }
+
+    return coordinator;
+  };
 
   app.locals.close = () => sessions.close();
 
@@ -152,6 +171,10 @@ export function createApp(
         return;
       }
 
+      // Envía las cabeceras ya: el receptor sabe que quedó registrado sin
+      // esperar al primer evento.
+      res.flushHeaders();
+
       const client: Client = {
         id: receiverId,
         send: (event: unknown) => {
@@ -186,7 +209,7 @@ export function createApp(
       return;
     }
 
-    const sync = new SyncCoordinator();
+    const sync = coordinatorFor(roomId);
     const event = sync.start();
     const updatedRoom = sessions.startPlayback(roomId, event.startAt);
     const audioChunk = audio.createChunk(req.body?.payload ?? "audio-demo");
@@ -237,7 +260,7 @@ export function createApp(
       return;
     }
 
-    const sync = new SyncCoordinator();
+    const sync = coordinatorFor(roomId);
     const event = sync.pause();
     const updatedRoom = sessions.pausePlayback(roomId, event.positionMs);
 
@@ -291,6 +314,101 @@ export function createApp(
     }
 
     res.status(200).json(chunk);
+  });
+
+  /*
+   * Reloj del servidor. Los receptores toman muestras de este endpoint para
+   * estimar su offset de reloj antes de programar el arranque (ADR-0005).
+   */
+  app.get("/time", (_req: Request, res: Response) => {
+    res.status(200).json({ serverTime: Date.now() });
+  });
+
+  /*
+   * ACK de arranque: el receptor informa cuándo (en su reloj local) empezó
+   * a reproducir y qué offset de reloj estimó. El servidor lo lleva a su
+   * propio reloj para medir el desfase entre receptores (EC-01).
+   */
+  app.post(
+    "/rooms/:roomId/receivers/:receiverId/ack",
+    (req: Request, res: Response) => {
+      const { roomId, receiverId } = req.params;
+      const { startedAt, offsetMs } = req.body ?? {};
+
+      const room = sessions.getRoom(roomId);
+
+      if (!room) {
+        res.status(404).json({ error: "Sala no encontrada" });
+        return;
+      }
+
+      const receiver = room.participants.find(
+        (participant) => participant.id === receiverId,
+      );
+
+      if (!receiver || receiver.role !== "receiver") {
+        res.status(404).json({ error: "Receptor no encontrado" });
+        return;
+      }
+
+      if (!Number.isFinite(startedAt) || !Number.isFinite(offsetMs)) {
+        res.status(400).json({
+          error: "startedAt y offsetMs deben ser números",
+        });
+        return;
+      }
+
+      if (room.startAt === null) {
+        res.status(409).json({ error: "La sala no ha iniciado reproducción" });
+        return;
+      }
+
+      const ack = measurements.record(
+        roomId,
+        room.startAt,
+        receiverId,
+        toServerClock(startedAt, offsetMs),
+      );
+      const report = measurements.report(roomId, room.startAt);
+
+      if (report.spreadMs !== null) {
+        metrics.lastSyncSpreadMs = report.spreadMs;
+        metrics.maxSyncSpreadMs = Math.max(
+          metrics.maxSyncSpreadMs ?? 0,
+          report.spreadMs,
+        );
+      }
+
+      log.info("receiver.ack", {
+        roomId,
+        receiverId,
+        startAt: room.startAt,
+        deviationMs: ack.deviationMs,
+        spreadMs: report.spreadMs,
+      });
+
+      res.status(200).json({ roomId, startAt: room.startAt, ...ack });
+    },
+  );
+
+  /*
+   * Informe de sincronización de la última reproducción de la sala.
+   */
+  app.get("/rooms/:roomId/sync", (req: Request, res: Response) => {
+    const { roomId } = req.params;
+    const room = sessions.getRoom(roomId);
+
+    if (!room) {
+      res.status(404).json({ error: "Sala no encontrada" });
+      return;
+    }
+
+    if (room.startAt === null) {
+      res.status(409).json({ error: "La sala no ha iniciado reproducción" });
+      return;
+    }
+
+    res.status(200).json(measurements.report(roomId, room.startAt));
   });
 
   /*
