@@ -6,7 +6,8 @@
 AudioShare tiene una sola pieza desplegable con estado propio: la API
 (proceso Node.js/Express con persistencia SQLite embebida). El cliente
 Flutter Web se sirve como estático desde el mismo proceso cuando existe
-`build/web`; el cliente Flutter Android se distribuye por separado (APK)
+`build/web` (la imagen actual no lo compila, por lo que hoy se sirve el
+cliente legado `public/`); el cliente Flutter Android se distribuye por separado (APK)
 y no requiere despliegue de servidor.
 
 [cols="1,2,2"]
@@ -14,11 +15,11 @@ y no requiere despliegue de servidor.
 |Pieza |Dónde se ejecuta |Notas
 
 |API (Express + SQLite)
-|Contenedor Docker — Azure Container Apps (Azure for Students) como entorno público principal; servidor del laboratorio como alternativa sin tarjeta
-|Ver ADR-0004. Misma imagen (`Dockerfile`) en ambas alternativas.
+|Contenedor Docker desplegado con Dokploy a partir de `docker-compose.yml` de la rama `master` (redespliegue automático en cada push; HTTPS con certificado Let's Encrypt; https://audioshare.iscoutb.dev); Azure Container Apps y el servidor del laboratorio quedan como alternativas con la misma imagen
+|Ver ADR-0008, que reemplaza al ADR-0004 en cuanto a dónde se ejecuta. Servidor, consumo y costo: pendientes de confirmar.
 
 |Cliente Web (Flutter Web / legado `public/`)
-|Servido como estático por el mismo proceso de la API
+|Servido como estático por el mismo proceso de la API; en el despliegue actual es el cliente legado `public/`
 |No es un contenedor desplegable independiente hoy; ver C4 Nivel 2.
 
 |Cliente Android (Flutter)
@@ -42,12 +43,13 @@ y no requiere despliegue de servidor.
 === Elementos de infraestructura y mapeo
 
 `Dockerfile` construye una única imagen de producción para la API.
-`docker-compose.yml` reproduce el despliegue del servidor del
-laboratorio, con un volumen (`audioshare-data`) para que
+`docker-compose.yml` es el archivo que Dokploy ejecuta en el despliegue
+público (ADR-0008) y reproduce el despliegue en cualquier máquina con
+Docker, con un volumen (`audioshare-data`) para que
 `data/audioshare.sqlite` persista entre reinicios. `docs/despliegue.md`
-documenta el despliegue equivalente en Azure Container Apps (`az
+conserva el procedimiento equivalente en Azure Container Apps (`az
 containerapp up` sobre la misma imagen, con `minReplicas: 0` para
-mantenerse dentro del tramo gratis).
+mantenerse dentro del tramo gratis), alternativa del ADR-0004.
 
 === Costo y capa gratuita
 

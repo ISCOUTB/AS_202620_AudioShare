@@ -166,7 +166,7 @@ El despliegue utiliza:
 -Docker Compose.
 -Dokploy.
 -Node.js / Express.
--Flutter Web.
+-Flutter Web (se compila en el pipeline `flutter.yml`; la imagen desplegada sirve por ahora el cliente legado `public/`).
 -SQLite.
 
 Los archivos principales relacionados con el despliegue son:

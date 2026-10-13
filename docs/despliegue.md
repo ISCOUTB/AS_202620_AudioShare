@@ -1,6 +1,77 @@
-# Despliegue de la API en Azure Container Apps
+# Despliegue de la API
+
+## Estado actual: Dokploy (ADR-0008)
+
+La API corre en Dokploy, que construye y ejecuta el `docker-compose.yml`
+del repositorio, en `https://audioshare.iscoutb.dev`. Decisión en
+`docs/adr/0008-despliegue-con-dokploy.md`.
+
+Reproducir el entorno en cualquier máquina con Docker:
+
+```bash
+docker compose up -d --build
+curl -sS http://localhost:3000/health
+curl -sS http://localhost:3000/time
+```
+
+### Configuración en el panel de Dokploy (capturas del 2026-10-13)
+
+- Origen: GitHub, repositorio `AS_202620_AudioShare`, rama `master`,
+  `./docker-compose.yml`, disparador «On Push», *Autodeploy* activado.
+- Dominio: `audioshare.iscoutb.dev` → servicio `api`, puerto 3000, HTTPS,
+  certificado `letsencrypt`.
+- Respaldos de volumen: ninguno configurado.
+- Monitoreo del servicio: 0 sin datos. Capacidad del servidor: 11,67 GiB
+  de RAM y 76,45 GB de disco (uso global de la máquina a las 06:16 UTC:
+  2,47 % de CPU, 2,37 GiB de memoria, 21,75 GB de disco; no es el consumo
+  de AudioShare).
+
+**Cuidado:** cada push a `master` redespliega y corta las conexiones
+abiertas. No hacer push durante una demostración o sustentación.
+
+### Verificación contra la URL pública, con hora
+
+Ejecutada el 2026-10-13 desde Windows con `Invoke-RestMethod`:
+
+```powershell
+Invoke-RestMethod https://audioshare.iscoutb.dev/health
+# status=ok  system=AudioShare  modules={session, audio, sync}
+Invoke-RestMethod https://audioshare.iscoutb.dev/time
+# serverTime=1791871626688  (2026-10-13T06:07:06Z, reloj del servidor)
+```
+
+`/time` solo existe desde el commit `404947a`, así que el despliegue
+corre una versión posterior.
+
+### Prueba de persistencia (pendiente)
+
+El compose monta el volumen `audioshare-data` en `/app/data`, pero la
+persistencia en producción no se ha verificado. Procedimiento:
+
+```powershell
+$r = Invoke-RestMethod -Method Post https://audioshare.iscoutb.dev/rooms -ContentType 'application/json' -Body '{"emitterId":"emitter-persistencia"}'
+$r.roomId
+# forzar un redeploy en Dokploy (o hacer push a master) y luego:
+Invoke-RestMethod https://audioshare.iscoutb.dev/rooms/<roomId>
+```
+
+Si la sala sigue respondiendo después del redeploy, el volumen persiste.
+Registrar aquí el resultado con fecha.
+
+### Limitaciones conocidas
+
+- La imagen no compila Flutter: la URL pública sirve el cliente legado
+  `public/`, no Flutter Web.
+- `publish-image.yml` publica una imagen en Docker Hub que el despliegue
+  en Dokploy no consume (el compose usa `build: .`).
+- El volumen `audioshare-data` no tiene respaldos configurados.
+- Servidor, consumo propio, costo y responsable: pendientes de confirmar
+  (ver ADR-0008 y `docs/costos-mensuales.md`).
+
+# Despliegue anterior en Azure Container Apps (histórico, ADR-0004)
 
 Ver decisión completa en `docs/adr/0004-despliegue-api-azure-vs-laboratorio.md`.
+Este procedimiento se conserva como alternativa con la misma imagen.
 
 ## Requisitos previos (una sola vez)
 

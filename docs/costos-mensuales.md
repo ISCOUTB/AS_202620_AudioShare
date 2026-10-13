@@ -70,3 +70,19 @@ recalcular contra el límite de banda ancha saliente del servicio.
 - Personas que saben redesplegar: hoy documentado solo en este
   archivo y en el ADR-0004; el equipo debe verificar en la sustentación
   que más de una persona puede ejecutar el procedimiento sin ayuda.
+
+## Alternativa C — Dokploy (despliegue actual, ADR-0008)
+
+**Costo no cuantificado.** Lo que se sabe del panel (capturas del
+2026-10-13): el servidor de Dokploy tiene 11,67 GiB de RAM y 76,45 GB de
+disco, y a las 06:16 UTC la máquina completa usaba 2,47 % de CPU, 2,37 GiB
+de memoria y 21,75 GB de disco. Ese es el uso de todo lo que corre allí;
+el monitoreo del propio servicio de AudioShare no muestra datos, así que
+su consumo no está medido.
+
+Lo que no se ha confirmado: qué recurso físico o institucional aloja ese
+servidor, quién lo administra, quién asume el costo al salir del recurso
+académico y si el servicio sigue activo fuera del periodo lectivo.
+Mientras no se confirme, este documento no afirma que sea gratuito. En la
+documentación previa ya figuraba como `POR_CONFIRMAR` el dato equivalente
+del servidor del laboratorio, pendiente de confirmar con César Castro.
