@@ -63,7 +63,10 @@ ha sido utilizada como apoyo en las siguientes actividades:
 * ChatGPT.
 * Claude (Anthropic), usado en la revisión previa al corte 1 para
   contrastar la documentación del repositorio contra la Guía del curso
-  y el historial de feedback.
+  y el historial de feedback, y en la semana 10 (2026-10-12) para
+  contrastar el repositorio con el feedback de S9 y S10 y apoyar la
+  corrección de reloj, el ACK de arranque y la recuperación de la capa
+  `data/` del cliente Flutter.
 * GitHub Copilot, utilizado durante la semana 7 como herramienta de
   apoyo para la migración del prototipo web de AudioShare hacia una
   aplicación desarrollada con Flutter.
@@ -110,6 +113,8 @@ del equipo y no por la herramienta de Inteligencia Artificial.
 | Semana 6 | Plan de corrección | Organizar las acciones necesarias para resolver las no conformidades detectadas | Se elaboró un plan de corrección con prioridad para transmisión de audio real, reproducción en receptores, validación de sincronización, pausa/reanudación, nuevos receptores y métricas de latencia | Se rechazó intentar corregir todas las no conformidades simultáneamente. Se estableció un orden de corrección basado en dependencias e impacto sobre el funcionamiento del sistema. |
 | Semana 6 | Organización de documentación | Definir la ubicación de los nuevos documentos relacionados con el análisis arquitectónico | Se organizaron los documentos `docs/mapa_contextos.md`, `docs/modulos_datos.md` y `docs/no_conformidades.md` dentro del directorio `docs/` | Se rechazó colocar estos documentos fuera de la estructura de documentación existente, manteniendo la organización del repositorio y la trazabilidad de la arquitectura. |
 | Semana 8 | Implementación y validación de A-01 — Sincronización de reproducción de audio | Diseño de prueba, revisión de código y documentación arquitectónica | Crear una prueba para validar EC-01 mediante `startAt` y comprobar que la diferencia de inicio entre receptores sea ≤ 100 ms. También propuso documentar la decisión mediante un ADR y registrar la trazabilidad entre aspecto, código y prueba. | Aceptada parcialmente. El equipo decidió utilizar `startAt` como referencia temporal común y crear una prueba específica para EC-01. La decisión arquitectónica fue tomada por el equipo. | Se corrigieron propuestas que solamente comprobaban la existencia de `startAt`. La prueba se ajustó para medir la diferencia temporal entre receptores. También se revisó que `Sync`, `Audio` y `Session` mantuvieran sus responsabilidades y que no se cruzaran límites de contexto. | Se agregó evidencia para A-01: ADR, prueba automatizada, medición de EC-01 y revisión de erosión arquitectónica. |
+| Semana 9 | Porción real de A-01 (sincronización inicial) con su cadena: prueba `tests/sync-a01.test.ts`, ADR-0005 y fila A-01 de `docs/aspectos.md`; decisión sobre el componente generativo (ADR-0006); verificación de dependencias y credenciales | Cumplir lo pedido para S9: porción real con cadena completa, extracto de este documento, auditoría de erosión, verificación de dependencias y credenciales, y decisión sobre un componente generativo | Entregado en el estado `6a03a97`: ADR-0005, ADR-0006 (no incorporar un componente generativo) y las secciones de auditoría y verificación de este documento. En ese estado la prueba solo comprobaba constantes y no había medición de receptores; ambas cosas se resolvieron en la semana 10 (`404947a`). La ubicación de cada elemento está en «Entregables de la semana 9». | Sin registro por propuesta; no se reconstruye de memoria. Lo que se comprobó después sobre el trabajo de esta semana está documentado en la semana 10. |
+| Semana 10 (2026-10-12) | Revisión del feedback de S9 y S10 contra el repositorio, diseño e implementación de la corrección de reloj y del ACK de arranque, y reconstrucción de la capa `data/` del cliente Flutter (Claude) | Subsanar los hallazgos de S9 y S10: prueba sintética de EC-01, cadena A-01 incompleta, ADR con nombre fuera de convención y Flutter CI en rojo | Se implementaron `GET /time`, `POST /rooms/:roomId/receivers/:receiverId/ack` y `GET /rooms/:roomId/sync` (commit `404947a`), una prueba con receptores simulados verificada por mutación y el ADR-0007. Se versionó la capa `data/` del cliente (commit `1da287c`). CI, publicación de imagen y Flutter quedaron en verde. | Se rechazó conservar la prueba de constantes de EC-01 porque no ejercitaba el sistema, y se rechazó subir `pubspec.lock` y `analysis_options.yaml` regenerados por el Flutter local. Motivos en «Propuestas de IA rechazadas», semana 10. |
 
 
 ## Clasificación de propuestas de IA
@@ -164,6 +169,7 @@ Se rechazaron propuestas que:
 
 La decisión final de aceptar, corregir o rechazar una propuesta
 corresponde al equipo y no a la herramienta de Inteligencia Artificial.
+
 
 ## Propuestas de IA rechazadas
 
@@ -247,6 +253,23 @@ corresponde al equipo y no a la herramienta de Inteligencia Artificial.
   tecnología. También se rechazó la redacción de Copilot a la hora de documentar.
 
 
+* **Semana 9 — Sin registro por propuesta:** para esta semana se pedía
+  el extracto de este documento con lo aceptado, lo corregido y lo
+  rechazado con su motivo. No se llevó ese registro por propuesta, y el
+  feedback de S9 lo señaló. No se reconstruyen rechazos de memoria. Lo
+  que se pudo comprobar después sobre el trabajo de la semana está en la
+  semana 10.
+* **Semana 10 — Prueba de constantes de EC-01:** se rechazó conservar
+  `tests/sync-a01.test.ts` tal como estaba, una prueba incorporada
+  hacia el cierre de la semana 9 con apoyo de IA (ver la fila de la
+  semana 8). Calculaba 40 ms a partir de 20, 35 y 60 sin importar
+  ningún módulo del sistema, de modo que no podía fallar ante un
+  defecto de sincronización. Se reemplazó por receptores simulados
+  contra el servidor real y se verificó con una mutación: al hacer que
+  `delayUntilStart` ignore el offset, la prueba falla
+  (`expected 2984 to be less than or equal to 100`). Procedimiento en
+  `docs/evidencia-a01-ec01.md`.
+
 La decisión final sobre aceptar, modificar o rechazar una propuesta
 corresponde al equipo.
 
@@ -293,6 +316,18 @@ no era necesaria para el alcance del proyecto.
 La decisión de incorporar una propuesta siempre fue tomada por los
 integrantes del equipo.
 
+### Hallazgos localizados (semana 10)
+
+Revisión contra el código y contra `docs/modulos_datos.md`
+(«API / `app.ts`: no posee datos de dominio»):
+
+| # | Hallazgo | Ubicación | Límite o dato afectado | Estado |
+| --- | --- | --- | --- | --- |
+| 1 | El patrón `data/` del `.gitignore` ignoraba toda carpeta con ese nombre, incluida `lib/features/session/data/`. La capa de datos del cliente nunca se versionó y el Flutter CI falló por imports inexistentes desde el commit «Migrar AudioShare a Flutter» (`453710f`). | `.gitignore`, línea 9 | Capa de datos del cliente (`Room`, `RoomRepository`) del contexto Session | **Corregido** en `1da287c`: el patrón pasó a `/data/` y se agregó la capa, reconstruida a partir de sus usos y del contrato OpenAPI (no son los archivos originales). |
+| 2 | Los handlers de `/play` y `/pause` creaban un `SyncCoordinator` nuevo en cada petición, por lo que el estado del contexto Sync se perdía entre llamadas. | `src/app.ts` (hasta `6a03a97`) | Estado de Sync | **Corregido** en `404947a`: un coordinador por sala. |
+| 3 | `app.ts` mantiene estado de aplicación: los mapas `streams`, `coordinators` y `measurements`, y escribe en `metrics`. Esto contradice «API / `app.ts` no posee datos» y, además, `metrics.lastSyncSpreadMs` duplica fuera de Sync un dato que el ADR-0007 declara propiedad de `SyncMeasurements`. Los dos últimos mapas se añadieron en `404947a`, así que ese commit profundizó el desvío. | `src/app.ts`, `src/shared/metrics.ts` | Dueño único de `startAt`/arranques (Sync); `app.ts` sin datos | **Detectado, no corregido.** Propuesta: mover `coordinators` y `measurements` a una fachada del módulo Sync, mover `streams` al módulo que distribuye eventos, y exponer el desfase mediante una función de Sync que `/metrics` consulte, en lugar de que `app.ts` escriba el valor. |
+| 4 | `start_at` está declarado como dato de Sync, pero lo persiste Session (`SessionApplication.startPlayback` recibe y guarda `startAt`). Ya figura en `docs/auditoria-propiedad-datos.md`. | `src/modules/session/application/session-application.ts` | `start_at` | **Sigue vigente, no corregido.** |
+
 ## Verificación de dependencias y credenciales
 
 Como parte de la revisión del código generado o modificado con apoyo
@@ -316,6 +351,50 @@ Para cada dependencia se verificó:
   sin justificación técnica.
 
 La incorporación final de una dependencia corresponde al equipo.
+
+#### Inventario verificado (2026-10-12)
+
+Método: `npm ls --depth=0` y `package-lock.json` para lo instalado,
+`npm view <paquete> version` contra el registro oficial (npmjs.org) para
+la última versión publicada, y `pubspec.lock` y la salida de
+`flutter pub get` para Dart (pub.dev). Los commits `404947a` y `1da287c`
+no modificaron `package.json` ni `pubspec.yaml`: en la semana 10 no
+se propuso ni se agregó ninguna dependencia nueva. En semanas anteriores
+no se llevó el registro de qué dependencias sugirió una herramienta de
+IA, por lo que este inventario verifica existencia y versión de todas
+las declaradas, sin asignarles origen.
+
+| Paquete (npm) | Declarada | Instalada | Última en el registro | Observación |
+| --- | --- | --- | --- | --- |
+| `better-sqlite3` | ^13.0.3 | 13.0.3 | 13.0.3 | Al día |
+| `express` | ^4.19.2 | 4.22.2 | 5.3.0 | Se mantiene la serie 4; la 5 es un salto mayor no evaluado |
+| `ajv` | ^8.17.1 | 8.20.0 | 8.20.0 | Al día |
+| `js-yaml` | ^4.1.0 | 4.3.2 | 5.4.3 | Serie 5 no evaluada |
+| `supertest` | ^7.0.0 | 7.2.2 | 7.3.1 | Dentro del rango |
+| `vitest` | ^2.0.5 | 2.1.9 | 5.0.4 | Ver vulnerabilidades (solo desarrollo) |
+| `typescript` | ^5.5.3 | 5.9.3 | 7.0.2 | Serie 7 no evaluada |
+| `tsx` | ^4.16.2 | 4.23.12 | 4.23.15 | Dentro del rango |
+| `@types/better-sqlite3` | ^9.6.0 | 9.6.0 | 9.6.0 | Tipos en 9 mientras la librería está en 13; revisar |
+| `@types/express` | ^4.17.21 | 4.17.25 | 5.0.6 | Coherente con express 4 |
+| `@types/js-yaml` | ^4.0.9 | 4.0.9 | 4.0.9 | Al día |
+| `@types/node` | ^20.14.10 | 20.19.43 | 26.6.5 | Se mantiene 20 |
+| `@types/supertest` | ^6.0.2 | 6.0.3 | 7.2.1 | Dentro del rango |
+
+Dart (`pubspec.lock`): `http` ^1.2.2 resuelto en 1.6.0, `cupertino_icons`
+^1.0.8 en 1.0.9 (la 2.0.0 existe y no es compatible con la restricción),
+`flutter_lints` ^4.0.0 en 4.0.0 (la 6.0.0 existe y no es compatible).
+
+Vulnerabilidades: `npm ci` reportó 11 (6 moderate, 2 high, 3 critical).
+Con `npm audit --omit=dev` quedan 4 en dependencias de producción: 1
+critical (`proxy-addr`, transitiva de `express` 4.22.2) y 3 moderate
+(`body-parser`, `express`, `qs`), todas con corrección disponible. El
+código no usa `req.ip` ni `trust proxy`, y no se aplicó ninguna
+corrección todavía. Las otras 7 (`vitest`, `vite`, `tinypool`,
+`source-map-js` y relacionadas) son de desarrollo; el `Dockerfile` instala
+solo producción en la imagen final (`npm ci --omit=dev`). Pendiente: un
+commit aparte que actualice las dependencias de producción dentro de su
+rango y valide con `npm run verify`; la actualización mayor de `vitest`
+es una decisión del equipo.
 
 ### Credenciales y secretos
 
@@ -362,7 +441,17 @@ latencia de inferencia como parte del sistema.
 
 ## Estado
 
-Documento actualizado durante la semana 7.
+Documento actualizado durante la semana 10 (2026-10-12).
+
+En la semana 10 se atendieron hallazgos del feedback de S9 y S10: prueba real
+de EC-01 verificada por mutación, ADR-0007, nombre del ADR-0005 conforme
+a la convención, capa `data/` del cliente Flutter y Flutter CI en verde.
+Quedan pendientes, y no se presentan como resueltos: la aceptación
+formal del ADR-0007 (hoy «propuesto»); el cableado del cliente Flutter a
+`GET /time` y al ACK; la medición con dispositivos físicos; los hallazgos
+3 y 4 de la auditoría de erosión; la actualización de dependencias de
+producción con vulnerabilidades; y el barrido del historial de Git en
+busca de credenciales, que no se ha completado.
 
 Durante la semana 6 se incorporó el análisis del mapa de contextos,
 la relación módulo → datos con definición de dueño único y la
@@ -391,4 +480,3 @@ credenciales.
 AudioShare no incorpora actualmente un componente generativo de IA
 dentro del producto. Esta decisión se encuentra documentada en el
 ADR-0006.
-
