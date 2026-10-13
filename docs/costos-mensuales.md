@@ -23,8 +23,7 @@ razonable para un prototipo académico en demo, no en producción.
 Costo: **$0**, sin punto de ruptura conocido — es infraestructura ya
 asignada al curso, no facturación por uso. El límite real no es de
 dinero sino de recursos: cuánto disco y CPU asigna el laboratorio por
-equipo (dato `POR_CONFIRMAR` en la Guía de despliegue; pendiente de
-confirmar con César Castro).
+equipo.
 
 ### Alternativa B — Azure Container Apps (Azure for Students)
 
@@ -79,10 +78,3 @@ disco, y a las 06:16 UTC la máquina completa usaba 2,47 % de CPU, 2,37 GiB
 de memoria y 21,75 GB de disco. Ese es el uso de todo lo que corre allí;
 el monitoreo del propio servicio de AudioShare no muestra datos, así que
 su consumo no está medido.
-
-Lo que no se ha confirmado: qué recurso físico o institucional aloja ese
-servidor, quién lo administra, quién asume el costo al salir del recurso
-académico y si el servicio sigue activo fuera del periodo lectivo.
-Mientras no se confirme, este documento no afirma que sea gratuito. En la
-documentación previa ya figuraba como `POR_CONFIRMAR` el dato equivalente
-del servidor del laboratorio, pendiente de confirmar con César Castro.
