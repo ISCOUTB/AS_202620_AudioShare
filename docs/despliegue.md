@@ -46,12 +46,11 @@ Invoke-RestMethod https://audioshare.iscoutb.dev/time
 `/time` solo existe desde el commit `404947a`, así que el despliegue
 corre una versión posterior.
 
-### Prueba de persistencia (pendiente)
+### Prueba de persistencia (verificada el 2026-10-18)
 
-El compose monta el volumen `audioshare-data` en `/app/data`, pero la
-persistencia en producción no se ha verificado. `GET /health` informa
-`startedAt`, el instante en que arrancó el servicio, y eso permite saber si
-el proceso se reinició. La sala `959c5411-fbac-45d3-a003-575fbab822bb`, creada
+El compose monta el volumen `audioshare-data` en `/app/data`. `GET /health`
+informa `startedAt`, el instante en que arrancó el servicio, y eso permite
+saber si el proceso se reinició. La sala `959c5411-fbac-45d3-a003-575fbab822bb`, creada
 el 2026-10-13T06:30:44Z, sirve de testigo.
 
 Procedimiento, con un despliegue que cambie la imagen (un cambio en `src/`,
@@ -74,7 +73,20 @@ Invoke-RestMethod https://audioshare.iscoutb.dev/rooms/959c5411-fbac-45d3-a003-5
 - Si `/health` no trae `startedAt`, el despliegue nuevo todavía no está
   activo y la prueba no vale.
 
-Registrar aquí el resultado con fecha.
+**Resultado (2026-10-18):** el volumen persiste.
+
+- Antes del despliegue, `/health` respondía sin `startedAt`.
+- Después de desplegar un cambio en `src/`, `/health` informó
+  `startedAt` = `2026-10-18T03:12:34.060Z`, posterior a la creación de la
+  sala testigo.
+- `GET /rooms/959c5411-fbac-45d3-a003-575fbab822bb` respondió con la sala
+  intacta: `createdAt` `2026-10-13T06:30:44.116Z`, estado `stopped` y el
+  participante `emitter-persistencia`.
+
+Alcance: se probó un despliegue que cambia la imagen (el proceso se reinició
+con la base anterior). No se probó el botón «Fresh Volumes», la eliminación
+de la aplicación en el panel, el reinicio del servidor ni la restauración
+desde un respaldo; el volumen sigue sin respaldos configurados.
 
 ### Limitaciones conocidas
 

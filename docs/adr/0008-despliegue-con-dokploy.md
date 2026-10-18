@@ -80,14 +80,15 @@ laboratorio quedan como alternativas documentadas en
 - **Positivas:** URL pública estable y accesible; el mismo `Dockerfile` y
   `docker-compose.yml` sirven en cualquier máquina con Docker
   (`docker compose up -d --build`).
-- **Persistencia:** el compose declara el volumen `audioshare-data`, por
-  lo que la base SQLite debería sobrevivir a un redeploy. **No está
-  verificado en producción.** Prueba pendiente: crear una sala, forzar un
-  despliegue **que cambie la imagen** (un cambio en `src/`, `public/`,
-  `package*.json` o el `Dockerfile`) y comprobar que `GET /rooms/{id}`
-  sigue respondiendo 200. Un despliegue de 2 s que no cambia la imagen no
-  prueba nada. `GET /health` informa `startedAt`, lo que permite comprobar
-  si el proceso se reinició; el procedimiento está en `docs/despliegue.md`.
+- **Persistencia:** el compose declara el volumen `audioshare-data`, y la
+  base SQLite **sobrevivió a un redespliegue en producción**. Verificado el
+  2026-10-18: tras un despliegue que cambió `src/`, `GET /health` informó
+  `startedAt` = `2026-10-18T03:12:34.060Z` (el proceso se reinició) y la sala
+  `959c5411-fbac-45d3-a003-575fbab822bb`, creada el 2026-10-13T06:30:44Z,
+  siguió respondiendo 200. `GET /health` informa `startedAt`, lo que permite
+  repetir la prueba; el procedimiento y el resultado están en
+  `docs/despliegue.md`. No se probó la eliminación de la aplicación ni el
+  reinicio del servidor.
   El volumen **no tiene respaldos configurados**, y el botón «Fresh
   Volumes» del panel no debe usarse salvo que se quiera empezar con la
   base vacía (por su nombre; no se probó).
@@ -119,10 +120,10 @@ laboratorio quedan como alternativas documentadas en
   - quién administra el DNS de `iscoutb.dev`.
   La documentación previa ya marcaba como `POR_CONFIRMAR` los datos del
   servidor del laboratorio (ver `docs/costos-mensuales.md`).
-- **Riesgos y qué los dispararía:** (1) si el volumen no es persistente,
-  la aplicación se elimina en el panel o se usa «Fresh Volumes», se pierde
-  `data/audioshare.sqlite` y no hay respaldo → verificar la persistencia
-  y configurar un respaldo del volumen; (2) si quien administra Dokploy retira
+- **Riesgos y qué los dispararía:** (1) si la aplicación se elimina
+  en el panel o se usa «Fresh Volumes», se pierde `data/audioshare.sqlite`
+  y no hay respaldo → configurar un respaldo del volumen (la persistencia
+  ante redespliegues ya se verificó el 2026-10-18); (2) si quien administra Dokploy retira
   el recurso, la URL deja de responder → volver a Azure o al servidor del
   laboratorio con la misma imagen.
 - **Qué habría que revisar si cambia:** la latencia hacia el público
