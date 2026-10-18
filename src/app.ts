@@ -54,6 +54,10 @@ export function createApp(
 
   const streams = new Map<string, Map<string, Client>>();
   const measurements = new SyncMeasurements();
+  // Instante en que arrancó este servicio. Se expone en /health para poder
+  // comprobar desde fuera si el proceso se reinició (por ejemplo tras un
+  // redespliegue) y desde cuándo corre.
+  const startedAt = new Date().toISOString();
   const coordinators = new Map<string, SyncCoordinator>();
 
   // Un coordinador por sala: antes se creaba uno nuevo en cada petición y
@@ -447,6 +451,7 @@ export function createApp(
       status: "ok",
       system: "AudioShare",
       modules: ["session", "audio", "sync"],
+      startedAt,
     });
   });
 

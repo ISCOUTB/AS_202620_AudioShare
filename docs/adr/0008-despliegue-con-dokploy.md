@@ -86,7 +86,8 @@ laboratorio quedan como alternativas documentadas en
   despliegue **que cambie la imagen** (un cambio en `src/`, `public/`,
   `package*.json` o el `Dockerfile`) y comprobar que `GET /rooms/{id}`
   sigue respondiendo 200. Un despliegue de 2 s que no cambia la imagen no
-  prueba nada.
+  prueba nada. `GET /health` informa `startedAt`, lo que permite comprobar
+  si el proceso se reinició; el procedimiento está en `docs/despliegue.md`.
   El volumen **no tiene respaldos configurados**, y el botón «Fresh
   Volumes» del panel no debe usarse salvo que se quiera empezar con la
   base vacía (por su nombre; no se probó).

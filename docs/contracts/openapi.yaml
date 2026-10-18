@@ -278,7 +278,7 @@ components:
   schemas:
     HealthStatus:
       type: object
-      required: [status, system, modules]
+      required: [status, system, modules, startedAt]
       properties:
         status:
           type: string
@@ -289,6 +289,11 @@ components:
           type: array
           items:
             type: string
+        startedAt:
+          type: string
+          description: >
+            Instante (ISO 8601) en que arrancó el servicio. Cambia cuando el
+            proceso se reinicia, por ejemplo tras un redespliegue.
 
     Participant:
       type: object

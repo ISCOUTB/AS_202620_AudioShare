@@ -49,17 +49,31 @@ corre una versión posterior.
 ### Prueba de persistencia (pendiente)
 
 El compose monta el volumen `audioshare-data` en `/app/data`, pero la
-persistencia en producción no se ha verificado. Procedimiento:
+persistencia en producción no se ha verificado. `GET /health` informa
+`startedAt`, el instante en que arrancó el servicio, y eso permite saber si
+el proceso se reinició. La sala `959c5411-fbac-45d3-a003-575fbab822bb`, creada
+el 2026-10-13T06:30:44Z, sirve de testigo.
+
+Procedimiento, con un despliegue que cambie la imagen (un cambio en `src/`,
+`public/`, `package*.json` o el `Dockerfile`; uno de solo documentación no
+sirve para esta prueba):
 
 ```powershell
-$r = Invoke-RestMethod -Method Post https://audioshare.iscoutb.dev/rooms -ContentType 'application/json' -Body '{"emitterId":"emitter-persistencia"}'
-$r.roomId
-# desplegar un cambio que modifique la imagen (src/, public/, package*.json
-# o Dockerfile); un push de solo documentación no sirve para esta prueba:
-Invoke-RestMethod https://audioshare.iscoutb.dev/rooms/<roomId>
+Invoke-RestMethod https://audioshare.iscoutb.dev/health
+# antes del despliegue: puede no traer startedAt si aún corre una versión anterior
+# desplegar y esperar a que el despliegue termine en el panel de Dokploy
+Invoke-RestMethod https://audioshare.iscoutb.dev/health
+# debe traer startedAt posterior a 2026-10-13T06:30:44Z
+Invoke-RestMethod https://audioshare.iscoutb.dev/rooms/959c5411-fbac-45d3-a003-575fbab822bb
 ```
 
-Si la sala sigue respondiendo después de ese despliegue, el volumen persiste.
+- Si `startedAt` es posterior a la creación de la sala y la sala responde,
+  el contenedor nuevo conservó la base: el volumen persiste.
+- Si la sala responde 404, el contenedor nuevo empezó con una base vacía:
+  el volumen no persiste.
+- Si `/health` no trae `startedAt`, el despliegue nuevo todavía no está
+  activo y la prueba no vale.
+
 Registrar aquí el resultado con fecha.
 
 ### Limitaciones conocidas

@@ -8,9 +8,11 @@ import { createApp } from "../src/app.js";
 describe("esqueleto ejecutable", () => {
   let app: ReturnType<typeof createApp>;
   let directory: string;
+  let beforeStart: number;
 
   beforeEach(() => {
     directory = mkdtempSync(join(tmpdir(), "audioshare-health-"));
+    beforeStart = Date.now();
     app = createApp({ databaseFile: join(directory, "audioshare.sqlite") });
   });
 
@@ -41,5 +43,16 @@ describe("esqueleto ejecutable", () => {
     expect(response.body.modules).toEqual(
       expect.arrayContaining(["session", "audio", "sync"]),
     );
+  });
+
+  it("informa cuándo arrancó el servicio en /health", async () => {
+    const response = await request(app).get("/health");
+    const startedAt = Date.parse(response.body.startedAt);
+
+    // Un instante válido, posterior a la creación de la app y no futuro: sirve
+    // para comprobar desde fuera si el proceso se reinició.
+    expect(Number.isNaN(startedAt)).toBe(false);
+    expect(startedAt).toBeGreaterThanOrEqual(beforeStart);
+    expect(startedAt).toBeLessThanOrEqual(Date.now());
   });
 });
