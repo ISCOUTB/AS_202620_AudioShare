@@ -1,6 +1,6 @@
 # 0008 — Desplegar con Dokploy a partir de `docker-compose.yml` (reemplaza el despliegue en Azure del ADR-0004)
 
-- **Estado:** propuesto (pasa a aceptado cuando el equipo lo confirme)
+- **Estado:** aceptado
 - **Fecha:** 2026-10-13
 - **Decide:** equipo AudioShare (AS_202620_AudioShare)
 - **Reemplaza a:** [ADR-0004](./0004-despliegue-api-azure-vs-laboratorio.md), en lo relativo a dónde se ejecuta la API. El ADR-0004 no se reescribe: solo cambia su estado.
