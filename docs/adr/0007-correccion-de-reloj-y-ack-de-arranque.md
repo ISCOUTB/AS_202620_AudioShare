@@ -83,11 +83,16 @@ instante en el reloj del servidor, arranca el audio y envía el ACK
 (`SessionViewModel`, `ApiSyncRepository`). Lo escrito en «Negativas / costos
 asumidos» sobre el cliente corresponde al estado al aceptar este ADR.
 
-Límite que se mantiene: hoy el receptor se entera del `startAt` solo al
-actualizar la sala (`refresh`), porque el cliente aún no consume el stream
-NDJSON. Si se entera después de `startAt`, arranca de inmediato y el ACK refleja
-ese retraso. Una medición de EC-01 con celulares exige primero que el cliente
-reciba `sync.start` por el stream o consulte la sala de forma periódica.
+El receptor también abre el stream NDJSON de su sala y atiende `sync.start`
+en cuanto llega (`SyncEvent`, `ApiSyncRepository.events`); reabre el stream si se
+corta y se detiene si el servidor responde 404. `refresh` queda como respaldo
+y no duplica el ACK, porque cada `startAt` se atiende una sola vez.
+
+Límites que se mantienen: el servidor no envía latidos (FM-10), así que una
+conexión muerta se detecta solo cuando el sistema operativo la cierra; un
+receptor que entra con la sala ya iniciada no recibe `sync.start` y arranca
+solo al actualizar; y en Flutter web el cliente HTTP puede no entregar los
+eventos de forma incremental (el objetivo son los celulares).
 
 ## Trazabilidad
 
@@ -98,7 +103,9 @@ reciba `sync.start` por el stream o consulte la sala de forma periódica.
   `/rooms/{id}/receivers/{rid}/ack`, `/rooms/{id}/sync`),
   `src/shared/metrics.ts`, `lib/features/sync/domain/sync_service.dart`,
   `lib/features/sync/data/sync_repository.dart`,
+  `lib/features/sync/data/sync_event.dart`, `lib/core/network/api_client.dart`,
   `lib/features/session/presentation/viewmodels/session_view_model.dart`.
 - Contratos: `docs/contracts/openapi.yaml`, `docs/contracts/asyncapi.yaml`.
 - Pruebas: `tests/sync-a01.test.ts`, `tests/support/simulated-receiver.ts`,
-  `tests/contract.test.ts`, `test/sync_service_test.dart`, `test/receiver_sync_test.dart`.
+  `tests/contract.test.ts`, `test/sync_service_test.dart`, `test/receiver_sync_test.dart`,
+  `test/sync_event_test.dart`.

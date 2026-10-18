@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:audioshare/features/audio/domain/audio_service.dart';
 import 'package:audioshare/features/session/data/models/room.dart';
 import 'package:audioshare/features/session/data/repositories/room_repository.dart';
 import 'package:audioshare/features/session/presentation/viewmodels/session_view_model.dart';
+import 'package:audioshare/features/sync/data/sync_event.dart';
 import 'package:audioshare/features/sync/data/sync_repository.dart';
 
 class _Rooms implements RoomRepository {
@@ -40,6 +43,10 @@ class _Sync implements SyncRepository {
   final int Function() localClock;
   final bool failTime;
   final acks = <Map<String, num>>[];
+  final controller = StreamController<SyncEvent>.broadcast();
+
+  @override
+  Stream<SyncEvent> events(String roomId, String receiverId) => controller.stream;
 
   @override
   Future<int> serverTime() async {
@@ -60,8 +67,11 @@ class _Sync implements SyncRepository {
 
 class _CountingAudio extends MockAudioService {
   int starts = 0;
+  int pauses = 0;
   @override
   Future<void> start() async => starts++;
+  @override
+  Future<void> pause() async => pauses++;
 }
 
 void main() {
@@ -81,6 +91,7 @@ void main() {
         local += d.inMilliseconds;
       },
     );
+    addTearDown(viewModel.dispose);
 
     await viewModel.joinRoom('room-1', 'rx');
     expect(viewModel.clockOffsetMs, -3000);
@@ -115,6 +126,7 @@ void main() {
       clock: () => local,
       wait: (d) async => waits.add(d),
     );
+    addTearDown(viewModel.dispose);
 
     await viewModel.joinRoom('room-1', 'rx');
     await viewModel.refresh();
@@ -127,6 +139,7 @@ void main() {
     final rooms = _Rooms(playing: true, startAt: 10500);
     final sync = _Sync(() => 0, failTime: true);
     final viewModel = SessionViewModel(repository: rooms, syncRepository: sync, clock: () => 0, wait: (_) async {});
+    addTearDown(viewModel.dispose);
 
     await viewModel.joinRoom('room-1', 'rx');
     expect(viewModel.error, isNull);
@@ -141,9 +154,56 @@ void main() {
   test('sin SyncRepository el comportamiento no cambia', () async {
     final rooms = _Rooms(playing: true, startAt: 10500);
     final viewModel = SessionViewModel(repository: rooms);
+    addTearDown(viewModel.dispose);
     await viewModel.joinRoom('room-1', 'rx');
     await viewModel.refresh();
     expect(viewModel.error, isNull);
     expect(viewModel.clockOffsetMs, isNull);
+  });
+  test('el receptor arranca al recibir sync.start por el stream, sin refrescar la sala', () async {
+    var local = 13000;
+    final waits = <Duration>[];
+    final rooms = _Rooms(playing: false, startAt: null);
+    final sync = _Sync(() => local);
+    final audio = _CountingAudio();
+    final viewModel = SessionViewModel(
+      repository: rooms,
+      audio: audio,
+      syncRepository: sync,
+      clock: () => local,
+      wait: (d) async {
+        waits.add(d);
+        local += d.inMilliseconds;
+      },
+    );
+    addTearDown(viewModel.dispose);
+
+    await viewModel.joinRoom('room-1', 'rx');
+
+    rooms
+      ..playing = true
+      ..startAt = 10500;
+    sync.controller.add(const SyncStartEvent(10500));
+    await pumpEventQueue();
+
+    expect(waits, [const Duration(milliseconds: 500)]);
+    expect(audio.starts, 1);
+    expect(sync.acks, hasLength(1));
+    expect(sync.acks.single['startedAt'], 13500);
+    expect(viewModel.room?.startAt, 10500);
+
+    // El mismo startAt repetido (o una actualización posterior) no duplica el ACK.
+    sync.controller.add(const SyncStartEvent(10500));
+    await pumpEventQueue();
+    await viewModel.refresh();
+    expect(sync.acks, hasLength(1));
+    expect(audio.starts, 1);
+
+    // sync.pause detiene el audio y actualiza la sala.
+    rooms.playing = false;
+    sync.controller.add(const SyncPauseEvent(0));
+    await pumpEventQueue();
+    expect(audio.pauses, 1);
+    expect(viewModel.room?.playing, isFalse);
   });
 }

@@ -47,6 +47,26 @@ class ApiClient {
     return Uri.parse('http://10.0.2.2:3000');
   }
 
+  /// Abre una respuesta NDJSON y emite cada línea no vacía a medida que llega.
+  /// Cancelar la suscripción cierra la conexión. Un estado distinto de 2xx
+  /// lanza [ApiException].
+  Stream<String> openLines(String path) async* {
+    final uri = _baseUri.resolve(path);
+    final response = await _client.send(http.Request('GET', uri));
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final text = await response.stream.bytesToString();
+      var message = 'Error de comunicación';
+      try {
+        message = (jsonDecode(text) as Map)['error'] as String? ?? message;
+      } catch (_) {}
+      throw ApiException(message, statusCode: response.statusCode);
+    }
+    yield* response.stream
+        .transform(utf8.decoder)
+        .transform(const LineSplitter())
+        .where((line) => line.trim().isNotEmpty);
+  }
+
   Future<Map<String, dynamic>> request(
     String method,
     String path, {

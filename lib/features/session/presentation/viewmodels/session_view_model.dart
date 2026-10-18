@@ -1,8 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
+
+import '../../../../core/network/api_client.dart';
 
 import '../../data/models/room.dart';
 import '../../data/repositories/room_repository.dart';
 import '../../../audio/domain/audio_service.dart';
+import '../../../sync/data/sync_event.dart';
 import '../../../sync/data/sync_repository.dart';
 import '../../../sync/domain/sync_service.dart';
 
@@ -14,6 +19,7 @@ class SessionViewModel extends ChangeNotifier {
     this.syncRepository,
     int Function()? clock,
     Future<void> Function(Duration)? wait,
+    this.reconnectDelay = const Duration(seconds: 2),
   })  : audio = audio ?? MockAudioService(),
         sync = sync ?? SyncService(),
         _clock = clock ?? (() => DateTime.now().millisecondsSinceEpoch),
@@ -27,6 +33,9 @@ class SessionViewModel extends ChangeNotifier {
   final SyncRepository? syncRepository;
   final int Function() _clock;
   final Future<void> Function(Duration) _wait;
+
+  /// Espera antes de reabrir el stream si se corta.
+  final Duration reconnectDelay;
 
   Room? room;
   String? error;
@@ -42,6 +51,11 @@ class SessionViewModel extends ChangeNotifier {
   String? calibrationWarning;
 
   int? _ackedStartAt;
+  bool _disposed = false;
+  bool _streamRejected = false;
+  StreamSubscription<SyncEvent>? _subscription;
+  Completer<void>? _streamEnded;
+  Future<void> _eventQueue = Future<void>.value();
 
   Future<void> createRoom(String emitterId) async {
     await _run(() async {
@@ -59,6 +73,7 @@ class SessionViewModel extends ChangeNotifier {
       room = await repository.getRoom(roomId);
       _updateSync();
       await _calibrateClock();
+      if (syncRepository != null) unawaited(_listen(roomId, receiverId));
     });
   }
 
@@ -103,18 +118,28 @@ class SessionViewModel extends ChangeNotifier {
     }
   }
 
-  /// Si este dispositivo es receptor y la sala tiene un `startAt` que aún no
-  /// atendió, espera hasta ese instante (en el reloj del servidor), arranca el
-  /// audio y envía el ACK (ADR-0007). Cada `startAt` se atiende una sola vez.
+  /// Respaldo al stream: si al actualizar la sala hay un `startAt` que aún no
+  /// se atendió, lo atiende igual (por ejemplo, si el stream estaba caído).
   Future<void> _startIfScheduled() async {
+    final current = room;
+    final me = identity;
+    if (current == null || me == null) return;
+    final isReceiver = current.participants.any((p) => p.id == me && p.role == ParticipantRole.receiver);
+    final startAt = current.startAt;
+    if (!isReceiver || !current.playing || startAt == null) return;
+    await _scheduleStart(startAt);
+  }
+
+  /// Espera hasta [startAt] (reloj del servidor), arranca el audio y envía el
+  /// ACK (ADR-0007). Cada `startAt` se atiende una sola vez, venga del stream
+  /// o de una actualización de la sala.
+  Future<void> _scheduleStart(int startAt) async {
     final current = room;
     final repo = syncRepository;
     final offset = clockOffsetMs;
     final me = identity;
     if (current == null || repo == null || offset == null || me == null) return;
-    final isReceiver = current.participants.any((p) => p.id == me && p.role == ParticipantRole.receiver);
-    final startAt = current.startAt;
-    if (!isReceiver || !current.playing || startAt == null || startAt == _ackedStartAt) return;
+    if (startAt == _ackedStartAt) return;
 
     _ackedStartAt = startAt;
     try {
@@ -127,6 +152,72 @@ class SessionViewModel extends ChangeNotifier {
       _ackedStartAt = null;
       rethrow;
     }
+  }
+
+  /// Mantiene abierto el stream NDJSON del receptor y lo reabre si se corta.
+  /// Se detiene al liberar el view model o si el servidor responde 404.
+  Future<void> _listen(String roomId, String receiverId) async {
+    final repo = syncRepository!;
+    while (!_disposed && !_streamRejected) {
+      final ended = Completer<void>();
+      _streamEnded = ended;
+      void finish() {
+        if (!ended.isCompleted) ended.complete();
+      }
+
+      _subscription = repo.events(roomId, receiverId).listen(
+        (event) => _eventQueue = _eventQueue.then((_) => _onEvent(event)),
+        onError: (Object exception) {
+          if (exception is ApiException && exception.statusCode == 404) {
+            _streamRejected = true;
+          }
+          finish();
+        },
+        onDone: finish,
+        cancelOnError: true,
+      );
+      await ended.future;
+      if (_disposed || _streamRejected) break;
+      await Future<void>.delayed(reconnectDelay);
+    }
+  }
+
+  Future<void> _onEvent(SyncEvent event) async {
+    if (_disposed) return;
+    try {
+      if (event is SyncStartEvent) {
+        await _scheduleStart(event.startAt);
+        await _reloadRoom();
+      } else if (event is SyncPauseEvent) {
+        await audio.pause();
+        await _reloadRoom();
+      }
+    } catch (exception) {
+      error = exception.toString();
+      notifyListeners();
+    }
+  }
+
+  Future<void> _reloadRoom() async {
+    final current = room;
+    if (current == null) return;
+    room = await repository.getRoom(current.id);
+    _updateSync();
+    notifyListeners();
+  }
+
+  @override
+  void notifyListeners() {
+    if (!_disposed) super.notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    _subscription?.cancel();
+    final ended = _streamEnded;
+    if (ended != null && !ended.isCompleted) ended.complete();
+    super.dispose();
   }
 
   void _updateSync() {
