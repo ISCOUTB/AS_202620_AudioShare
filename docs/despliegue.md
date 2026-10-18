@@ -26,8 +26,11 @@ curl -sS http://localhost:3000/time
   2,47 % de CPU, 2,37 GiB de memoria, 21,75 GB de disco; no es el consumo
   de AudioShare).
 
-**Cuidado:** cada push a `master` redespliega y corta las conexiones
-abiertas. No hacer push durante una demostración o sustentación.
+**Cuidado:** cada push a `master` genera un despliegue. Los que cambian
+`src/`, `public/`, `package*.json` o el `Dockerfile` reconstruyen la
+imagen; los de solo documentación no deberían (duraron unos 2 s), pero no
+está verificado qué despliegues recrean el contenedor. Por prudencia, no
+hacer push durante una demostración o sustentación.
 
 ### Verificación contra la URL pública, con hora
 
@@ -51,11 +54,12 @@ persistencia en producción no se ha verificado. Procedimiento:
 ```powershell
 $r = Invoke-RestMethod -Method Post https://audioshare.iscoutb.dev/rooms -ContentType 'application/json' -Body '{"emitterId":"emitter-persistencia"}'
 $r.roomId
-# forzar un redeploy en Dokploy (o hacer push a master) y luego:
+# desplegar un cambio que modifique la imagen (src/, public/, package*.json
+# o Dockerfile); un push de solo documentación no sirve para esta prueba:
 Invoke-RestMethod https://audioshare.iscoutb.dev/rooms/<roomId>
 ```
 
-Si la sala sigue respondiendo después del redeploy, el volumen persiste.
+Si la sala sigue respondiendo después de ese despliegue, el volumen persiste.
 Registrar aquí el resultado con fecha.
 
 ### Limitaciones conocidas

@@ -24,7 +24,8 @@ receptores, por lo que no podía medir el desfase real.
 
 ### A. Mantener `startAt` sin corrección (estado anterior)
 - **Por qué no:** reintroduce la alternativa que el ADR-0005 ya descartó;
-  con relojes desfasados el arranque difiere en segundos (medido: 2509 ms).
+  con relojes desfasados el arranque difiere en segundos (desfase real
+  medido: ≈ 3000 ms; ver `docs/evidencia-a01-ec01.md`).
 
 ### B. Sincronizar relojes del dispositivo (NTP del sistema operativo)
 - **A favor:** corrige el problema en origen.
@@ -59,7 +60,8 @@ receptores, por lo que no podía medir el desfase real.
 
 - **Positivas:** EC-01 pasa a tener una medición del protocolo reproducible
   (prueba con receptores simulados de relojes +3 s, −2,5 s y +120 ms:
-  desfase de arranque ≈ 4,5 ms con corrección, ≈ 2509 ms sin ella); la prueba
+  desfase real de arranque ≈ 2–7 ms con corrección, ≈ 3000 ms sin ella,
+  medido con un reloj de referencia único); la prueba
   falla si se rompe la corrección (ver `docs/evidencia-a01-ec01.md`).
 - **Negativas / costos asumidos:** el ACK lo informa el propio receptor y el
   servidor confía en él (aceptable para medición académica, no para control

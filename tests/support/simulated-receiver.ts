@@ -22,11 +22,22 @@ export interface SimulatedReceiverOptions {
   calibrationSamples?: number;
 }
 
+/**
+ * Instante en que el receptor empezó a "reproducir", medido con dos relojes:
+ *  - `local`: el reloj desfasado del dispositivo simulado;
+ *  - `trueClock`: el reloj real del proceso (único para todos los receptores),
+ *    que sirve de verdad de referencia para medir el desfase real.
+ */
+export interface StartInstants {
+  local: number;
+  trueClock: number;
+}
+
 export class SimulatedReceiver {
   private offsetMs = 0;
   private readonly correctClock: boolean;
   private readonly abort = new AbortController();
-  private started: Promise<number> | undefined;
+  private started: Promise<StartInstants> | undefined;
 
   constructor(private readonly options: SimulatedReceiverOptions) {
     this.correctClock = options.correctClock ?? true;
@@ -77,7 +88,7 @@ export class SimulatedReceiver {
       { signal: this.abort.signal },
     );
 
-    this.started = new Promise<number>((resolve, reject) => {
+    this.started = new Promise<StartInstants>((resolve, reject) => {
       this.consume(response, resolve).catch((error: unknown) => {
         if (!this.abort.signal.aborted) {
           reject(error);
@@ -86,8 +97,8 @@ export class SimulatedReceiver {
     });
   }
 
-  /** Resuelve con el instante LOCAL en que el receptor "empezó a reproducir". */
-  startedAtLocal(): Promise<number> {
+  /** Resuelve con los instantes (local y real) en que el receptor "empezó a reproducir". */
+  startInstants(): Promise<StartInstants> {
     if (!this.started) {
       throw new Error("El receptor no se ha unido a la sala");
     }
@@ -101,7 +112,7 @@ export class SimulatedReceiver {
 
   private async consume(
     response: Response,
-    onStarted: (startedAtLocal: number) => void,
+    onStarted: (instants: StartInstants) => void,
   ): Promise<void> {
     const reader = response.body?.getReader();
 
@@ -137,7 +148,7 @@ export class SimulatedReceiver {
 
   private handle(
     event: { type: string; startAt?: number },
-    onStarted: (startedAtLocal: number) => void,
+    onStarted: (instants: StartInstants) => void,
   ): void {
     if (event.type !== "sync.start" || event.startAt === undefined) {
       return;
@@ -148,9 +159,13 @@ export class SimulatedReceiver {
       : Math.max(0, event.startAt - this.localNow());
 
     setTimeout(() => {
+      // Ambos relojes se leen en el mismo instante.
+      const trueClock = Date.now();
       const startedAt = this.localNow();
 
-      void this.sendAck(startedAt).then(() => onStarted(startedAt));
+      void this.sendAck(startedAt).then(() =>
+        onStarted({ local: startedAt, trueClock }),
+      );
     }, wait);
   }
 

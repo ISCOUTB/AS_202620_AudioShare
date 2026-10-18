@@ -105,7 +105,15 @@ describe("A-01 / EC-01 — receptores simulados contra el servidor real", () => 
       body: JSON.stringify({ payload: "audio-demo" }),
     });
 
-    await Promise.all(receivers.map((receiver) => receiver.startedAtLocal()));
+    const instants = await Promise.all(
+      receivers.map((receiver) => receiver.startInstants()),
+    );
+
+    // Verdad de referencia: diferencia entre el primer y el último arranque
+    // medida con el reloj real único del proceso, no con los relojes
+    // desfasados de los dispositivos simulados.
+    const realTimes = instants.map((instant) => instant.trueClock);
+    const trueSpreadMs = Math.max(...realTimes) - Math.min(...realTimes);
 
     const report = (await (
       await fetch(`${baseUrl}/rooms/${room.roomId}/sync`)
@@ -119,19 +127,34 @@ describe("A-01 / EC-01 — receptores simulados contra el servidor real", () => 
       last_sync_spread_ms: number | null;
     };
 
-    return { report, metrics };
+    console.info(
+      JSON.stringify({
+        escenario: correctClock ? "con corrección" : "sin corrección",
+        spreadReportadoPorServidorMs: report.spreadMs,
+        spreadRealMs: trueSpreadMs,
+      }),
+    );
+
+    return { report, metrics, trueSpreadMs };
   }
 
   it(
     "con corrección de reloj, la diferencia de arranque entre receptores es ≤ 100 ms",
     async () => {
-      const { report, metrics } = await runScenario(true);
+      const { report, metrics, trueSpreadMs } = await runScenario(true);
 
       expect(report.acks).toHaveLength(3);
       expect(report.spreadMs).not.toBeNull();
       expect(report.spreadMs as number).toBeLessThanOrEqual(EC01_THRESHOLD_MS);
       expect(report.withinThreshold).toBe(true);
       expect(metrics.last_sync_spread_ms).toBe(report.spreadMs);
+
+      // El desfase REAL (reloj único) también cumple el umbral, y coincide
+      // con lo que el servidor reporta: la estimación de reloj es fiable.
+      expect(trueSpreadMs).toBeLessThanOrEqual(EC01_THRESHOLD_MS);
+      expect(
+        Math.abs(trueSpreadMs - (report.spreadMs as number)),
+      ).toBeLessThanOrEqual(25);
     },
     10_000,
   );
@@ -139,11 +162,14 @@ describe("A-01 / EC-01 — receptores simulados contra el servidor real", () => 
   it(
     "sin corrección de reloj (defecto descartado en ADR-0005) el umbral se supera",
     async () => {
-      const { report } = await runScenario(false);
+      const { report, trueSpreadMs } = await runScenario(false);
 
-      // Relojes de +3 s, −2,5 s y +120 ms: el desfase es de segundos.
+      // Relojes de +3 s, −2,5 s y +120 ms: el desfase REAL es de segundos.
+      // Esta es la medida válida del defecto; el valor que reporta el
+      // servidor aquí mezcla relojes locales (los receptores no informan su
+      // offset) y no debe compararse con el del escenario corregido.
+      expect(trueSpreadMs).toBeGreaterThan(EC01_THRESHOLD_MS);
       expect(report.spreadMs as number).toBeGreaterThan(EC01_THRESHOLD_MS);
-      expect(report.withinThreshold).toBe(false);
     },
     10_000,
   );

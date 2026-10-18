@@ -39,7 +39,7 @@ Configuración observada en el panel de Dokploy (v0.30.8), capturas del
 
 - **Origen:** proveedor GitHub, repositorio `AS_202620_AudioShare`, rama
   `master`, ruta del compose `./docker-compose.yml`, disparador «On Push»
-  y *Autodeploy* activado. Cada push a `master` reconstruye y redespliega.
+  y *Autodeploy* activado. Cada push a `master` genera un despliegue.
 - **Dominio:** `audioshare.iscoutb.dev` apunta al servicio `api`, puerto
   3000, con HTTPS y certificado `letsencrypt` gestionado por Dokploy.
 - **Respaldos de volumen:** ninguno configurado («No volume backups»).
@@ -83,15 +83,23 @@ laboratorio quedan como alternativas documentadas en
 - **Persistencia:** el compose declara el volumen `audioshare-data`, por
   lo que la base SQLite debería sobrevivir a un redeploy. **No está
   verificado en producción.** Prueba pendiente: crear una sala, forzar un
-  redeploy y comprobar que `GET /rooms/{id}` sigue respondiendo 200.
+  despliegue **que cambie la imagen** (un cambio en `src/`, `public/`,
+  `package*.json` o el `Dockerfile`) y comprobar que `GET /rooms/{id}`
+  sigue respondiendo 200. Un despliegue de 2 s que no cambia la imagen no
+  prueba nada.
   El volumen **no tiene respaldos configurados**, y el botón «Fresh
   Volumes» del panel no debe usarse salvo que se quiera empezar con la
   base vacía (por su nombre; no se probó).
-- **Redespliegue automático:** como el disparador es «On Push», todo
-  push a `master`, incluso uno solo de documentación, reconstruye el
-  contenedor y corta las conexiones NDJSON abiertas. No debe hacerse un
-  push durante una demostración o sustentación; si hace falta, se puede
-  desactivar *Autodeploy* en el panel.
+- **Redespliegue automático:** como el disparador es «On Push», cada
+  push a `master` genera un despliegue en el panel. Las duraciones
+  observadas varían (2 s en unos, 1 min 15 s en otro), y el `Dockerfile`
+  solo copia `package*.json`, `tsconfig.json`, `src/` y `public/`, por lo
+  que un push que cambie solo documentación, pruebas o `lib/` no
+  debería alterar la imagen. **No está verificado qué despliegues
+  recrean el contenedor**; uno que sí lo haga corta las conexiones NDJSON
+  abiertas. Por prudencia, no hacer push durante una demostración o
+  sustentación; si hace falta, se puede desactivar *Autodeploy* en el
+  panel.
 - **Cliente servido:** la imagen no incluye Flutter Web; la URL pública
   sirve el cliente legado. Si se quiere publicar Flutter Web, el
   `Dockerfile` necesita una etapa de compilación.
