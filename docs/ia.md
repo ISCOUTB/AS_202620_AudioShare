@@ -67,9 +67,10 @@ ha sido utilizada como apoyo en las siguientes actividades:
   contrastar el repositorio con el feedback de S9 y S10 y apoyar la
   corrección de reloj, el ACK de arranque y la recuperación de la capa
   `data/` del cliente Flutter.
-  Después del cierre de S10 se usó de nuevo para contrastar el feedback
-  vigente con el repositorio y proponer correcciones documentales (C4 nivel 2,
-  trazabilidad del ADR-0009, este registro).
+  En la semana 11 (2026-10-18) se usó de nuevo para contrastar el feedback
+  vigente y los entregables de la semana (modos de fallo, idempotencia y
+  ADR-0009) con el repositorio, y para redactar correcciones documentales
+  (C4 nivel 2, trazabilidad del ADR-0009, este registro).
 * GitHub Copilot, utilizado durante la semana 7 como herramienta de
   apoyo para la migración del prototipo web de AudioShare hacia una
   aplicación desarrollada con Flutter.
@@ -118,7 +119,7 @@ del equipo y no por la herramienta de Inteligencia Artificial.
 | Semana 8 | Implementación y validación de A-01 — Sincronización de reproducción de audio | Diseño de prueba, revisión de código y documentación arquitectónica | Crear una prueba para validar EC-01 mediante `startAt` y comprobar que la diferencia de inicio entre receptores sea ≤ 100 ms. También propuso documentar la decisión mediante un ADR y registrar la trazabilidad entre aspecto, código y prueba. | Aceptada parcialmente. El equipo decidió utilizar `startAt` como referencia temporal común y crear una prueba específica para EC-01. La decisión arquitectónica fue tomada por el equipo. | Se corrigieron propuestas que solamente comprobaban la existencia de `startAt`. La prueba se ajustó para medir la diferencia temporal entre receptores. También se revisó que `Sync`, `Audio` y `Session` mantuvieran sus responsabilidades y que no se cruzaran límites de contexto. | Se agregó evidencia para A-01: ADR, prueba automatizada, medición de EC-01 y revisión de erosión arquitectónica. |
 | Semana 9 | Porción real de A-01 (sincronización inicial) con su cadena: prueba `tests/sync-a01.test.ts`, ADR-0005 y fila A-01 de `docs/aspectos.md`; decisión sobre el componente generativo (ADR-0006); verificación de dependencias y credenciales | Cumplir lo pedido para S9: porción real con cadena completa, extracto de este documento, auditoría de erosión, verificación de dependencias y credenciales, y decisión sobre un componente generativo | Entregado en el estado `6a03a97`: ADR-0005, ADR-0006 (no incorporar un componente generativo) y las secciones de auditoría y verificación de este documento. En ese estado la prueba solo comprobaba constantes y no había medición de receptores; ambas cosas se resolvieron en la semana 10 (`404947a`). La ubicación de cada elemento está en «Entregables de la semana 9». | Sin registro por propuesta; no se reconstruye de memoria. Lo que se comprobó después sobre el trabajo de esta semana está documentado en la semana 10. |
 | Semana 10 (2026-10-12) | Revisión del feedback de S9 y S10 contra el repositorio, diseño e implementación de la corrección de reloj y del ACK de arranque, y reconstrucción de la capa `data/` del cliente Flutter (Claude) | Subsanar los hallazgos de S9 y S10: prueba sintética de EC-01, cadena A-01 incompleta, ADR con nombre fuera de convención y Flutter CI en rojo | Se implementaron `GET /time`, `POST /rooms/:roomId/receivers/:receiverId/ack` y `GET /rooms/:roomId/sync` (commit `404947a`), una prueba con receptores simulados verificada por mutación y el ADR-0007. Se versionó la capa `data/` del cliente (commit `1da287c`). CI, publicación de imagen y Flutter quedaron en verde. | Se rechazó conservar la prueba de constantes de EC-01 porque no ejercitaba el sistema, y se rechazó subir `pubspec.lock` y `analysis_options.yaml` regenerados por el Flutter local. Motivos en «Propuestas de IA rechazadas», semana 10. |
-| Posterior al cierre de S10 | Contraste del feedback vigente (consolidación del 13 de octubre) con el repositorio y borrador de correcciones documentales (Claude) | Subsanar la deriva D1 (C4 nivel 2 sin Flutter), dejar alcanzable el ADR-0009 desde arc42 §9, `docs/aspectos.md` y los escenarios EC-01, EC-02 y EC-04, y registrar el uso de IA | Se actualizó `docs/c4/C4 Nivel 2 - Contenedores.mmd` con Flutter y el cliente web legado como alternativas, protocolo y formato en cada flecha, y los flujos NDJSON, `/time` y ACK de Flutter marcados como pendientes; se comprobó en `public/app.js` que el cliente web legado tampoco consume NDJSON, por lo que se corrigió la afirmación anterior del diagrama. Se enlazaron los ADR 0001 a 0009 en arc42 §9 y ADR-0009 en la fila A-01 y en los escenarios. No se ejecutaron pruebas ni se regeneró el PNG del C4. | **Por completar por el equipo:** este registro se redactó con apoyo de la IA y no incluye propuestas rechazadas. Aquí se anota qué propuesta se descartó y por qué; no se reconstruye de memoria. |
+| Semana 11 (2026-10-18) | Revisión de los entregables de la semana (`docs/modos-de-fallo.md`, `docs/idempotencia-y-saga.md`, ADR-0009) y del feedback vigente de S10 contra el repositorio, y borrador de correcciones documentales (Claude) | Comprobar si lo pedido para la semana (tabla de modos de fallo con mitigación, diseño de idempotencia o saga, ADR de extraer o no un módulo) estaba en el repositorio, y subsanar la deriva D1 del feedback de S10 (C4 nivel 2 sin Flutter) | Se confirmó que los tres entregables existen y que el ADR-0009 no estaba enlazado desde arc42 §9, `docs/aspectos.md` ni los escenarios, y que `docs/ia.md` no tenía entrada de la semana. Se actualizó `docs/c4/C4 Nivel 2 - Contenedores.mmd` con Flutter y el cliente web legado como alternativas, protocolo y formato en cada flecha, y NDJSON, `/time` y ACK de Flutter marcados como pendientes; se comprobó en `public/app.js` que el cliente web legado tampoco consume NDJSON, y se corrigió la afirmación anterior del diagrama. Se enlazaron los ADR 0001 a 0009 en arc42 §9 y el ADR-0009 en la fila A-01 y en EC-01, EC-02 y EC-04. No se ejecutaron pruebas ni se regeneró el PNG del C4. | **Por completar por el equipo:** este registro se redactó con apoyo de la IA y no incluye propuestas rechazadas. Aquí se anota qué propuesta se descartó y por qué; no se reconstruye de memoria. Si los entregables de la semana se redactaron con apoyo de alguna herramienta de IA, el equipo debe añadir su propia fila con la herramienta y lo rechazado. |
 
 
 ## Clasificación de propuestas de IA
@@ -445,12 +446,13 @@ latencia de inferencia como parte del sistema.
 
 ## Estado
 
-Documento actualizado después del cierre de S10.
+Documento actualizado durante la semana 11 (2026-10-18).
 
 En la semana 10 (2026-10-12) se atendieron hallazgos del feedback de S9 y S10: prueba real
 de EC-01 verificada por mutación, ADR-0007 (hoy aceptado), nombre del ADR-0005 conforme
 a la convención, capa `data/` del cliente Flutter y Flutter CI en verde.
-Con posterioridad al cierre se actualizó el C4 nivel 2 (D1) y se enlazaron los ADR en
+En la semana 11 se incorporaron los modos de fallo, el diseño de idempotencia y saga y el
+ADR-0009 (no extraer módulos), se actualizó el C4 nivel 2 (D1) y se enlazaron los ADR en
 arc42 §9, `docs/aspectos.md` y los escenarios.
 Quedan pendientes, y no se presentan como resueltos: el cableado del cliente Flutter a
 `GET /time`, al ACK y al stream NDJSON; la medición con dispositivos físicos; la
