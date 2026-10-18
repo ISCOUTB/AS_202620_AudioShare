@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 
+import '../../../sync/data/sync_repository.dart';
 import '../../data/repositories/room_repository.dart';
 import '../viewmodels/session_view_model.dart';
 import 'room_page.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({required this.repository, super.key});
+  const HomePage({required this.repository, this.syncRepository, super.key});
   final RoomRepository repository;
+  final SyncRepository? syncRepository;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -29,7 +31,7 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _open({required bool create}) async {
     setState(() { loading = true; error = null; });
-    final viewModel = SessionViewModel(repository: widget.repository);
+    final viewModel = SessionViewModel(repository: widget.repository, syncRepository: widget.syncRepository);
     if (create) {
       await viewModel.createRoom(emitterController.text.trim());
     } else {

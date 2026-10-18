@@ -47,7 +47,7 @@ class _RoomPageState extends State<RoomPage> {
       const SizedBox(height: 10),
       ...room.participants.map((participant) => _ParticipantTile(participant: participant, onVolume: participant.role == ParticipantRole.receiver ? (value) => model.setReceiverVolume(participant.id, value) : null)),
       const SizedBox(height: 22),
-      _SyncCard(snapshot: model.synchronization, simulated: model.audio.isSimulated),
+      _SyncCard(snapshot: model.synchronization, simulated: model.audio.isSimulated, offsetMs: model.clockOffsetMs, warning: model.calibrationWarning),
     ])));
   }
 }
@@ -86,9 +86,11 @@ class _ParticipantTile extends StatelessWidget {
 }
 
 class _SyncCard extends StatelessWidget {
-  const _SyncCard({required this.snapshot, required this.simulated});
+  const _SyncCard({required this.snapshot, required this.simulated, this.offsetMs, this.warning});
   final dynamic snapshot;
   final bool simulated;
+  final double? offsetMs;
+  final String? warning;
   @override
-  Widget build(BuildContext context) => Card(child: Padding(padding: const EdgeInsets.all(18), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('SINCRONIZACIÓN', style: Theme.of(context).textTheme.labelLarge?.copyWith(letterSpacing: 1)), const SizedBox(height: 12), Text('Reproducción: ${snapshot.playing ? 'activa' : 'en pausa'}'), Text('startAt: ${snapshot.startAt ?? 'pendiente'}'), Text('Posición: ${snapshot.positionMs} ms'), const SizedBox(height: 8), Text(simulated ? 'Audio: simulado, listo para sustituir por captura y reproducción real.' : 'Audio: activo')])));
+  Widget build(BuildContext context) => Card(child: Padding(padding: const EdgeInsets.all(18), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('SINCRONIZACIÓN', style: Theme.of(context).textTheme.labelLarge?.copyWith(letterSpacing: 1)), const SizedBox(height: 12), Text('Reproducción: ${snapshot.playing ? 'activa' : 'en pausa'}'), Text('startAt: ${snapshot.startAt ?? 'pendiente'}'), Text('Posición: ${snapshot.positionMs} ms'), if (offsetMs != null) Text('Offset de reloj: ${offsetMs!.toStringAsFixed(1)} ms'), if (warning != null) Text(warning!, style: TextStyle(color: Theme.of(context).colorScheme.error)), const SizedBox(height: 8), Text(simulated ? 'Audio: simulado, listo para sustituir por captura y reproducción real.' : 'Audio: activo')])));
 }

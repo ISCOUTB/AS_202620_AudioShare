@@ -36,6 +36,23 @@ class SyncService {
     return estimateOffsetMs(best);
   }
 
+  /// Toma [samples] muestras de `GET /time` y devuelve el offset de la de
+  /// menor tiempo de ida y vuelta. Si una petición falla, la excepción sube.
+  Future<double> calibrate({
+    required Future<int> Function() fetchServerTime,
+    required int Function() now,
+    int samples = 5,
+  }) async {
+    final taken = <ClockSample>[];
+    for (var i = 0; i < samples; i++) {
+      final t0 = now();
+      final serverTime = await fetchServerTime();
+      final t1 = now();
+      taken.add(ClockSample(t0: t0, serverTime: serverTime, t1: t1));
+    }
+    return estimateBestOffsetMs(taken);
+  }
+
   /// Milisegundos a esperar (en el reloj local) para arrancar exactamente en
   /// [startAt] del servidor. Nunca negativo: si ya pasó, arranca de inmediato.
   int delayUntilStartMs({

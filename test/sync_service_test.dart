@@ -26,4 +26,29 @@ void main() {
   test('sin muestras lanza ArgumentError', () {
     expect(() => sync.estimateBestOffsetMs([]), throwsArgumentError);
   });
+
+  test('calibrate toma muestras de /time y usa la de menor ida y vuelta', () async {
+    // Mismas dos muestras que arriba: ruidosa (RTT 400) y limpia (RTT 10).
+    final clock = [0, 400, 1000, 1010];
+    final servers = [5000, 5995];
+    var c = 0;
+    var s = 0;
+    final offset = await sync.calibrate(
+      fetchServerTime: () async => servers[s++],
+      now: () => clock[c++],
+      samples: 2,
+    );
+    expect(offset, 4990);
+    expect(s, 2);
+  });
+
+  test('calibrate propaga el error si /time falla', () {
+    expect(
+      sync.calibrate(
+        fetchServerTime: () async => throw Exception('sin red'),
+        now: () => 0,
+      ),
+      throwsException,
+    );
+  });
 }

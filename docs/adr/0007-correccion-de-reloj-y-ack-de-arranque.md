@@ -75,6 +75,20 @@ receptores, por lo que no podía medir el desfase real.
   muestra (< 10 ms), habrá que añadir compensación de latencia de salida del
   dispositivo y re-sincronización periódica.
 
+## Actualización (2026-10-18): cableado del cliente Flutter
+
+El cliente Flutter ya llama a `GET /time` al unirse como receptor (5 muestras,
+muestra de menor RTT) y, al detectar un `startAt` nuevo, espera hasta ese
+instante en el reloj del servidor, arranca el audio y envía el ACK
+(`SessionViewModel`, `ApiSyncRepository`). Lo escrito en «Negativas / costos
+asumidos» sobre el cliente corresponde al estado al aceptar este ADR.
+
+Límite que se mantiene: hoy el receptor se entera del `startAt` solo al
+actualizar la sala (`refresh`), porque el cliente aún no consume el stream
+NDJSON. Si se entera después de `startAt`, arranca de inmediato y el ACK refleja
+ese retraso. Una medición de EC-01 con celulares exige primero que el cliente
+reciba `sync.start` por el stream o consulte la sala de forma periódica.
+
 ## Trazabilidad
 
 - Aspecto: A-01 — Sincronización de reproducción de audio (EC-01).
@@ -82,7 +96,9 @@ receptores, por lo que no podía medir el desfase real.
   cliente; módulo `Sync` del backend).
 - Implementación: `src/modules/sync/index.ts`, `src/app.ts` (`/time`,
   `/rooms/{id}/receivers/{rid}/ack`, `/rooms/{id}/sync`),
-  `src/shared/metrics.ts`, `lib/features/sync/domain/sync_service.dart`.
+  `src/shared/metrics.ts`, `lib/features/sync/domain/sync_service.dart`,
+  `lib/features/sync/data/sync_repository.dart`,
+  `lib/features/session/presentation/viewmodels/session_view_model.dart`.
 - Contratos: `docs/contracts/openapi.yaml`, `docs/contracts/asyncapi.yaml`.
 - Pruebas: `tests/sync-a01.test.ts`, `tests/support/simulated-receiver.ts`,
-  `tests/contract.test.ts`, `test/sync_service_test.dart`.
+  `tests/contract.test.ts`, `test/sync_service_test.dart`, `test/receiver_sync_test.dart`.
