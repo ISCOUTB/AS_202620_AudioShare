@@ -1,6 +1,6 @@
 # 0009 — No extraer módulos como servicios independientes: mantener el monolito modular
 
-- **Estado:** propuesto (pasa a aceptado cuando el equipo lo confirme)
+- **Estado:** aceptado
 - **Fecha:** 2026-10-18
 - **Decide:** equipo AudioShare (AS_202620_AudioShare)
 - **Escenarios de calidad relacionados:** [EC-01 — Sincronización inicial](../escenarios_calidad.md#ec-01--sincronización-inicial), EC-02, EC-04; restricción R-01
