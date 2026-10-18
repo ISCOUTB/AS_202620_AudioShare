@@ -19,6 +19,8 @@ import { metrics, metricsHandler } from "./shared/metrics.js";
 interface Client {
   id: string;
   send: (event: unknown) => void;
+  /** Termina la respuesta de esta conexión (FM-01: reemplazo por reconexión). */
+  close: () => void;
 }
 
 export function createApp(
@@ -59,6 +61,20 @@ export function createApp(
   // redespliegue) y desde cuándo corre.
   const startedAt = new Date().toISOString();
   const coordinators = new Map<string, SyncCoordinator>();
+
+  // Las conexiones de una sala se crean bajo demanda. Antes solo se creaban en
+  // POST /rooms, así que una sala restaurada de SQLite tras un reinicio no
+  // tenía entrada y su stream terminaba de inmediato (FM-02).
+  const streamsFor = (roomId: string): Map<string, Client> => {
+    let roomStreams = streams.get(roomId);
+
+    if (!roomStreams) {
+      roomStreams = new Map<string, Client>();
+      streams.set(roomId, roomStreams);
+    }
+
+    return roomStreams;
+  };
 
   // Un coordinador por sala: antes se creaba uno nuevo en cada petición y
   // su estado se perdía.
@@ -168,12 +184,7 @@ export function createApp(
       res.setHeader("Cache-Control", "no-cache");
       res.setHeader("Connection", "keep-alive");
 
-      const roomStreams = streams.get(roomId);
-
-      if (!roomStreams) {
-        res.end();
-        return;
-      }
+      const roomStreams = streamsFor(roomId);
 
       // Envía las cabeceras ya: el receptor sabe que quedó registrado sin
       // esperar al primer evento.
@@ -184,12 +195,24 @@ export function createApp(
         send: (event: unknown) => {
           res.write(`${JSON.stringify(event)}\n`);
         },
+        close: () => {
+          res.end();
+        },
       };
 
-      roomStreams.set(receiverId, client);
+      // Una conexión viva por receptor: la nueva reemplaza a la anterior y la
+      // cierra (FM-01).
+      const previous = roomStreams.get(receiverId);
 
+      roomStreams.set(receiverId, client);
+      previous?.close();
+
+      // El cierre solo borra el registro propio. Antes borraba el del
+      // receptor aunque ya perteneciera a una conexión más nueva (FM-01).
       req.on("close", () => {
-        roomStreams.delete(receiverId);
+        if (roomStreams.get(receiverId) === client) {
+          roomStreams.delete(receiverId);
+        }
       });
     },
   );
