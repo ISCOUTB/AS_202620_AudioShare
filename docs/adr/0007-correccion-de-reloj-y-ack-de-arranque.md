@@ -1,6 +1,6 @@
 # 0007 — Corrección de reloj del receptor y ACK de arranque para medir EC-01
 
-- **Estado:** propuesto (pasa a aceptado cuando el equipo lo confirme)
+- **Estado:** aceptado
 - **Fecha:** 2026-10-12
 - **Decide:** equipo AudioShare (AS_202620_AudioShare)
 - **Escenario de calidad relacionado:** [EC-01 — Sincronización inicial](../escenarios_calidad.md#ec-01--sincronización-inicial)
