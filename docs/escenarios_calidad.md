@@ -51,13 +51,13 @@ primer prototipo.
 
 **Aspecto relacionado:** [A-01 — Sincronización de reproducción de audio](./aspectos.md#a-01--sincronización-de-reproducción-de-audio)
 
-**ADR relacionado:** [ADR-0001 — Selección del estilo arquitectónico](./adr/0001-usar-monolito-modular.md)
+**ADR relacionado:** [ADR-0001 — Selección del estilo arquitectónico](./adr/0001-usar-monolito-modular.md), [ADR-0005 — Validación de la sincronización inicial](./adr/0005-validacion-sincronizacion-inicial.md), [ADR-0007 — Corrección de reloj y ACK de arranque](./adr/0007-correccion-de-reloj-y-ack-de-arranque.md), [ADR-0009 — No extraer módulos como servicios](./adr/0009-no-extraer-modulos-como-servicios.md)
 
 ---
 
 ## EC-02 — Variación moderada de latencia
 
-**ADR relacionado:** [ADR-0003 — Transición del cliente web a aplicación móvil Flutter](./adr/0003-transicion-a-flutter.md)
+**ADR relacionado:** [ADR-0003 — Transición del cliente web a aplicación móvil Flutter](./adr/0003-transicion-a-flutter.md), [ADR-0009 — No extraer módulos como servicios](./adr/0009-no-extraer-modulos-como-servicios.md)
 
 ### Fuente
 
@@ -147,7 +147,7 @@ emisor se reflejen de manera sincronizada en los receptores.
 
 ## EC-04 — Incorporación de nuevo receptor
 
-**ADR relacionado:** [ADR-0003 — Transición del cliente web a aplicación móvil Flutter](./adr/0003-transicion-a-flutter.md)
+**ADR relacionado:** [ADR-0003 — Transición del cliente web a aplicación móvil Flutter](./adr/0003-transicion-a-flutter.md), [ADR-0009 — No extraer módulos como servicios](./adr/0009-no-extraer-modulos-como-servicios.md)
 
 ### Fuente
 

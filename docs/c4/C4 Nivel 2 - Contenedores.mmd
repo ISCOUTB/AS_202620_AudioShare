@@ -1,11 +1,16 @@
 %% C4 Nivel 2 — Contenedores · AudioShare
 %% Diagrama de tipo: C4 Model, Nivel 2 (Contenedores)
-%% Fecha: 2026-09-04
-%% Corresponde a la implementación real en src/ al commit del corte 1.
-%% Reemplaza la versión anterior, que dibujaba un Frontend SPA, un servicio
-%% de Discovery (mDNS), un servidor de Signaling (WebSocket) y un Media
-%% Engine (WebRTC/mediasoup) que nunca se implementaron. El sistema real es
-%% un monolito modular Node.js/Express con persistencia en SQLite.
+%% Actualizado tras el cierre de S10 para incluir el cliente Flutter.
+%% Estado real al hash calificado de S10 (1da287c):
+%%  - Hay dos clientes alternativos: Flutter (preferido por el bootstrap,
+%%    src/server.ts con serveFlutterWeb: true) y el web legado de public/
+%%    (fallback de src/app.ts si no existe build/web/index.html).
+%%  - Ambos usan solo REST/JSON. Ninguno consume todavía el stream NDJSON,
+%%    ni GET /time, ni el ACK de arranque: hoy el stream solo lo consumen
+%%    los receptores simulados de tests/support/simulated-receiver.ts.
+%%  - El servidor es un monolito modular de un solo proceso con SQLite.
+%%  - ADR-0007 (corrección de reloj y ACK) está aceptado, pero su parte de
+%%    cliente (Flutter) sigue pendiente de integrar.
 
 graph TB
     %% Usuarios del Nivel 1
@@ -20,14 +25,19 @@ graph TB
     %% Límite del Sistema AudioShare (Contenedores reales)
     subgraph System_Boundary ["<b>Sistema AudioShare (Límite del Sistema)</b>"]
 
-        %% Contenedor 1: Cliente Web (servido como estático por el mismo servidor)
-        subgraph WebClient
-            WC_desc["Ejecuta en el navegador. Consume la API REST y el stream NDJSON. Servido como archivos estáticos (public/) por el propio servidor Express — no es un proceso independiente."]
+        %% Contenedor 1a: Cliente Flutter (preferido)
+        subgraph FlutterClient ["<center><b>&laquo;container: Flutter&raquo;</b><br/>📱<br/><b>Cliente Flutter (Material 3)</b></center>"]
+            FC_desc["App Flutter (ViewModel → RoomRepository → ApiClient). Consume la API REST/JSON con consultas y operaciones PLAY/PAUSE. Su compilación web (build/web) la sirve el mismo Express. Audio simulado (MockAudioService). Pendiente de integrar: stream NDJSON, GET /time y ACK de arranque."]
+        end
+
+        %% Contenedor 1b: Cliente web legado (fallback)
+        subgraph WebClient ["<center><b>&laquo;container: navegador&raquo;</b><br/>🌐<br/><b>Cliente web legado (public/)</b></center>"]
+            WC_desc["Fallback: se sirve desde public/ cuando no existe build/web/index.html. Consume solo la API REST/JSON; no consume el stream NDJSON. No es un proceso independiente."]
         end
 
         %% Contenedor 2: Servidor AudioShare (monolito modular)
         subgraph AppServer
-            AS_desc["Expone la API REST y el stream de eventos NDJSON. Internamente organizado en los módulos Session, Sync y Audio (ver ADR-0001 y C4 Nivel 3)."]
+            AS_desc["Un solo proceso Node.js/Express. Expone la API REST, GET /time, el ACK de arranque y el stream de eventos NDJSON (que hoy consumen solo los receptores simulados de las pruebas). Organizado en los módulos Session, Sync y Audio (ver ADR-0001, ADR-0009 y C4 Nivel 3). Desplegado con Dokploy (ADR-0008)."]
         end
 
         %% Contenedor 3: Base de datos
@@ -38,19 +48,23 @@ graph TB
     end
 
     %% Relaciones entre Usuarios y Contenedores
-    Emisor_Node -->|"1. Abre el dashboard y controla la sala<br/><i>[HTTPS]</i>"| WebClient
-    Receptor_Node -->|"2. Abre el dashboard y se une a la sala<br/><i>[HTTPS]</i>"| WebClient
+    Emisor_Node -->|"1. Abre la app y controla la sala<br/><i>[HTTPS]</i>"| FlutterClient
+    Receptor_Node -->|"2. Abre la app y se une a la sala<br/><i>[HTTPS]</i>"| FlutterClient
+    Emisor_Node -.->|"1b. Alternativa legada<br/><i>[HTTPS]</i>"| WebClient
+    Receptor_Node -.->|"2b. Alternativa legada<br/><i>[HTTPS]</i>"| WebClient
 
-    %% Relaciones Internas entre Contenedores
-    WebClient -->|"3. Crea sala, agrega receptores, consulta estado, PLAY/PAUSE<br/><i>[JSON / HTTPS REST]</i>"| AppServer
-    WebClient -->|"4. Recibe eventos sync.start, sync.pause y audio.chunk<br/><i>[NDJSON / HTTP streaming]</i>"| AppServer
-    AppServer -->|"5. Lee y escribe salas, participantes y estado de reproducción<br/><i>[SQL / better-sqlite3]</i>"| SqliteDb
+    %% Relaciones internas entre contenedores
+    FlutterClient -->|"3. Crea sala, une receptores, consulta estado, PLAY/PAUSE<br/><i>[JSON / HTTPS REST]</i>"| AppServer
+    WebClient -->|"4. Crea sala, une receptores, consulta estado, PLAY/PAUSE<br/><i>[JSON / HTTPS REST]</i>"| AppServer
+    FlutterClient -.->|"5. PENDIENTE: eventos sync.start, sync.pause y audio.chunk; GET /time y ACK<br/><i>[NDJSON / HTTP streaming; JSON / HTTPS REST]</i>"| AppServer
+    AppServer -->|"6. Lee y escribe salas, participantes y estado de reproducción<br/><i>[SQL / better-sqlite3]</i>"| SqliteDb
 
     %% Leyenda explícita
     subgraph Leyenda ["Leyenda del Diagrama (C4 Nivel 2)"]
         L_Person["👤 Persona / Actor"]
         L_Container["📦 Contenedor Desplegable (App / Servicio / Datos)"]
-        L_Rel["───► Flujo con Propósito y Tecnología"]
+        L_Rel["───► Flujo implementado (propósito y protocolo/formato)"]
+        L_Pend["╌╌► Alternativa o flujo pendiente de integrar"]
     end
 
     %% Estilos CSS
@@ -61,7 +75,7 @@ graph TB
     classDef legendStyle fill:#f9f9f9,stroke:#ccc,color:#333;
 
     class Emisor_Node,Receptor_Node,L_Person personStyle;
-    class WebClient,AppServer,L_Container containerStyle;
+    class FlutterClient,WebClient,AppServer,L_Container containerStyle;
     class SqliteDb dbStyle;
     class System_Boundary boundaryStyle;
     class Leyenda legendStyle;

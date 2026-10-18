@@ -2,7 +2,16 @@
 
 Las decisiones arquitectónicas se mantienen como ADR independientes.
 
-* link:../../adr/0001-usar-monolito-modular.md[ADR-0001 — Monolito modular del backend]
+* link:../../adr/0001-usar-monolito-modular.md[ADR-0001 — Selección del estilo arquitectónico: monolito modular]
+* link:../../adr/0002-estrategia-integracion.md[ADR-0002 — Estrategia de integración: contrato y acoplamiento temporal]
 * link:../../adr/0003-transicion-a-flutter.md[ADR-0003 — Transición del cliente web a aplicación móvil Flutter]
+* link:../../adr/0004-despliegue-api-azure-vs-laboratorio.md[ADR-0004 — Despliegue en Azure Container Apps (reemplazado por ADR-0008)]
+* link:../../adr/0005-validacion-sincronizacion-inicial.md[ADR-0005 — Validación de la sincronización inicial]
+* link:../../adr/0006-no-incorporar-componente-generativo.md[ADR-0006 — No incorporación de un componente generativo]
+* link:../../adr/0007-correccion-de-reloj-y-ack-de-arranque.md[ADR-0007 — Corrección de reloj del receptor y ACK de arranque]
+* link:../../adr/0008-despliegue-con-dokploy.md[ADR-0008 — Despliegue con Dokploy (reemplaza a ADR-0004)]
+* link:../../adr/0009-no-extraer-modulos-como-servicios.md[ADR-0009 — No extraer módulos como servicios: mantener el monolito modular]
 
 El monolito modular se conserva en el backend. La estructura por funcionalidades de Flutter es una organización del cliente, no un cambio del estilo arquitectónico del servidor.
+
+La decisión de no extraer módulos (ADR-0009) se apoya en el análisis de link:../../modos-de-fallo.md[modos de fallo] y en el link:../../idempotencia-y-saga.md[diseño de idempotencia y análisis de saga].
