@@ -67,6 +67,12 @@ components:
           startAt:
             type: number
             description: Timestamp Unix en ms en el que debe iniciar la reproducción
+          positionMs:
+            type: number
+            description: >
+              Posición de la pista (ms) que debe sonar en startAt. 0 al
+              iniciar; la posición de pausa al reanudar. Opcional: si falta,
+              el receptor asume 0.
 
     SyncPause:
       name: sync.pause

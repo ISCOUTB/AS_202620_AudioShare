@@ -1,14 +1,29 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/network/api_client.dart';
+import '../../../audio/domain/audio_service.dart';
 import '../../../sync/data/sync_repository.dart';
 import '../../data/repositories/room_repository.dart';
 import '../viewmodels/session_view_model.dart';
 import 'room_page.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({required this.repository, this.syncRepository, super.key});
+  const HomePage({
+    required this.repository,
+    this.syncRepository,
+    this.api,
+    this.audioFactory,
+    super.key,
+  });
   final RoomRepository repository;
   final SyncRepository? syncRepository;
+
+  /// Si se indica, se muestra el campo "Servidor" y se descarga la pista de
+  /// `GET /track` al unirse como receptor.
+  final ApiClient? api;
+
+  /// Crea el [AudioService] de cada sala; por defecto, el simulado.
+  final AudioService Function()? audioFactory;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -18,6 +33,7 @@ class _HomePageState extends State<HomePage> {
   final emitterController = TextEditingController(text: 'emitter-mobile');
   final roomController = TextEditingController();
   final receiverController = TextEditingController(text: 'receiver-mobile');
+  late final serverController = TextEditingController(text: widget.api?.baseUri.toString() ?? '');
   String? error;
   bool loading = false;
 
@@ -26,12 +42,27 @@ class _HomePageState extends State<HomePage> {
     emitterController.dispose();
     roomController.dispose();
     receiverController.dispose();
+    serverController.dispose();
     super.dispose();
   }
 
   Future<void> _open({required bool create}) async {
+    final api = widget.api;
+    if (api != null) {
+      final server = Uri.tryParse(serverController.text.trim());
+      if (server == null || !(server.scheme == 'http' || server.scheme == 'https') || server.host.isEmpty) {
+        setState(() => error = 'Servidor inválido. Usa el formato http://192.168.1.10:3000');
+        return;
+      }
+      api.baseUri = server;
+    }
     setState(() { loading = true; error = null; });
-    final viewModel = SessionViewModel(repository: widget.repository, syncRepository: widget.syncRepository);
+    final viewModel = SessionViewModel(
+      repository: widget.repository,
+      syncRepository: widget.syncRepository,
+      audio: widget.audioFactory?.call(),
+      trackUri: api?.resolve('/track'),
+    );
     if (create) {
       await viewModel.createRoom(emitterController.text.trim());
     } else {
@@ -62,6 +93,15 @@ class _HomePageState extends State<HomePage> {
                   const SizedBox(height: 14),
                   const Text('Crea una sala como emisor o únete como receptor. El estado de reproducción se coordina mediante el backend AudioShare.'),
                   const SizedBox(height: 32),
+                  if (widget.api != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: TextField(
+                        controller: serverController,
+                        keyboardType: TextInputType.url,
+                        decoration: const InputDecoration(labelText: 'Servidor', helperText: 'IP del equipo que ejecuta el backend, p. ej. http://192.168.1.10:3000'),
+                      ),
+                    ),
                   if (error != null) _ErrorBanner(error!),
                   LayoutBuilder(builder: (context, constraints) {
                     final narrow = constraints.maxWidth < 600;
@@ -103,5 +143,5 @@ class _ErrorBanner extends StatelessWidget {
 class _StatusNote extends StatelessWidget {
   const _StatusNote();
   @override
-  Widget build(BuildContext context) => const Card(child: Padding(padding: EdgeInsets.all(18), child: Row(children: [Icon(Icons.info_outline), SizedBox(width: 12), Expanded(child: Text('El transporte de audio físico está preparado como abstracción, pero continúa simulado en este corte A-01.'))])));
+  Widget build(BuildContext context) => const Card(child: Padding(padding: EdgeInsets.all(18), child: Row(children: [Icon(Icons.info_outline), SizedBox(width: 12), Expanded(child: Text('El emisor controla la reproducción; cada receptor descarga la pista del servidor y la inicia en el instante común startAt.'))])));
 }

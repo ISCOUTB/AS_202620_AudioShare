@@ -13,7 +13,10 @@ sealed class SyncEvent {
       if (json is! Map) return null;
       switch (json['type']) {
         case 'sync.start':
-          return SyncStartEvent((json['startAt'] as num).toInt());
+          return SyncStartEvent(
+            (json['startAt'] as num).toInt(),
+            positionMs: (json['positionMs'] as num?)?.toInt() ?? 0,
+          );
         case 'sync.pause':
           return SyncPauseEvent((json['positionMs'] as num).toInt());
         case 'audio.chunk':
@@ -29,8 +32,11 @@ sealed class SyncEvent {
 
 /// `startAt` está en el reloj del servidor (epoch ms).
 final class SyncStartEvent extends SyncEvent {
-  const SyncStartEvent(this.startAt);
+  const SyncStartEvent(this.startAt, {this.positionMs = 0});
   final int startAt;
+
+  /// Posición de la pista (ms) que debe sonar en [startAt]; 0 si es el inicio.
+  final int positionMs;
 }
 
 final class SyncPauseEvent extends SyncEvent {
@@ -38,7 +44,7 @@ final class SyncPauseEvent extends SyncEvent {
   final int positionMs;
 }
 
-/// El payload de audio aún no se usa en el cliente (audio simulado).
+/// El payload no se usa: el audio real se descarga de `GET /track`.
 final class AudioChunkEvent extends SyncEvent {
   const AudioChunkEvent(this.sequence);
   final int sequence;

@@ -1,5 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Necesario en release: sin esto el APK no puede hablar con el backend. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
+        android:usesCleartextTraffic="true"
         android:label="audioshare"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">

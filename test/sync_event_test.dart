@@ -8,6 +8,13 @@ void main() {
     expect((event as SyncStartEvent).startAt, 1760000000500);
   });
 
+  test('sync.start trae positionMs al reanudar y 0 si falta', () {
+    final resumed = SyncEvent.parse('{"type":"sync.start","startAt":10,"positionMs":3000}');
+    expect((resumed as SyncStartEvent).positionMs, 3000);
+    final fresh = SyncEvent.parse('{"type":"sync.start","startAt":10}');
+    expect((fresh as SyncStartEvent).positionMs, 0);
+  });
+
   test('interpreta sync.pause y audio.chunk', () {
     final pause = SyncEvent.parse('{"type":"sync.pause","positionMs":0}');
     expect(pause, isA<SyncPauseEvent>());

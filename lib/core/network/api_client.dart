@@ -15,10 +15,16 @@ class ApiException implements Exception {
 class ApiClient {
   ApiClient({http.Client? client, Uri? baseUri})
       : _client = client ?? http.Client(),
-        _baseUri = baseUri ?? _defaultBaseUri();
+        baseUri = baseUri ?? _defaultBaseUri();
 
   final http.Client _client;
-  final Uri _baseUri;
+
+  /// Dirección del backend. Se puede cambiar en tiempo de ejecución (campo
+  /// "Servidor" de la pantalla inicial) para usar la IP del equipo en la LAN.
+  Uri baseUri;
+
+  /// URL absoluta de [path] en el backend (p. ej. `/track`).
+  Uri resolve(String path) => baseUri.resolve(path);
 
   static Uri _defaultBaseUri() {
     const configuredApiUrl = String.fromEnvironment('AUDIOSHARE_API_URL');
@@ -51,7 +57,7 @@ class ApiClient {
   /// Cancelar la suscripción cierra la conexión. Un estado distinto de 2xx
   /// lanza [ApiException].
   Stream<String> openLines(String path) async* {
-    final uri = _baseUri.resolve(path);
+    final uri = baseUri.resolve(path);
     final response = await _client.send(http.Request('GET', uri));
     if (response.statusCode < 200 || response.statusCode >= 300) {
       final text = await response.stream.bytesToString();
@@ -72,7 +78,7 @@ class ApiClient {
     String path, {
     Map<String, dynamic>? body,
   }) async {
-    final uri = _baseUri.resolve(path);
+    final uri = baseUri.resolve(path);
     final response = await _client.send(
       http.Request(method, uri)
         ..headers['Content-Type'] = 'application/json'

@@ -26,13 +26,13 @@ export class SessionApplication {
     });
   }
 
-  startPlayback(roomId: string, startAt: number): Room {
+  startPlayback(roomId: string, startAt: number, positionMs = 0): Room {
     const room = this.requireRoomWithEmitter(roomId);
 
     return this.rooms.updatePlaybackState(
       room.id,
       "playing",
-      { playing: true, positionMs: 0 },
+      { playing: true, positionMs },
       startAt,
     );
   }

@@ -17,6 +17,7 @@ class SessionViewModel extends ChangeNotifier {
     AudioService? audio,
     SyncService? sync,
     this.syncRepository,
+    this.trackUri,
     int Function()? clock,
     Future<void> Function(Duration)? wait,
     this.reconnectDelay = const Duration(seconds: 2),
@@ -31,6 +32,10 @@ class SessionViewModel extends ChangeNotifier {
 
   /// Si es null, el receptor no calibra su reloj ni envía ACK (comportamiento previo).
   final SyncRepository? syncRepository;
+
+  /// Pista de audio que el receptor descarga al unirse (`GET /track`). Si es
+  /// null no se carga audio (comportamiento previo).
+  final Uri? trackUri;
   final int Function() _clock;
   final Future<void> Function(Duration) _wait;
 
@@ -49,6 +54,9 @@ class SessionViewModel extends ChangeNotifier {
 
   /// Aviso no fatal cuando la calibración falla: el receptor sigue en la sala.
   String? calibrationWarning;
+
+  /// Aviso no fatal si la pista no se pudo descargar.
+  String? audioWarning;
 
   int? _ackedStartAt;
   bool _disposed = false;
@@ -73,6 +81,7 @@ class SessionViewModel extends ChangeNotifier {
       room = await repository.getRoom(roomId);
       _updateSync();
       await _calibrateClock();
+      await _loadTrack();
       if (syncRepository != null) unawaited(_listen(roomId, receiverId));
     });
   }
@@ -106,6 +115,18 @@ class SessionViewModel extends ChangeNotifier {
 
   Future<void> setReceiverVolume(String receiverId, double volume) => audio.setVolume(receiverId, volume);
 
+  /// Descarga la pista antes de que llegue el primer `sync.start`.
+  Future<void> _loadTrack() async {
+    final uri = trackUri;
+    if (uri == null) return;
+    try {
+      await audio.load(uri.toString());
+      audioWarning = null;
+    } catch (_) {
+      audioWarning = 'No se pudo descargar la pista de audio: este receptor no sonará.';
+    }
+  }
+
   Future<void> _calibrateClock() async {
     final repo = syncRepository;
     if (repo == null) return;
@@ -133,7 +154,7 @@ class SessionViewModel extends ChangeNotifier {
   /// Espera hasta [startAt] (reloj del servidor), arranca el audio y envía el
   /// ACK (ADR-0007). Cada `startAt` se atiende una sola vez, venga del stream
   /// o de una actualización de la sala.
-  Future<void> _scheduleStart(int startAt) async {
+  Future<void> _scheduleStart(int startAt, {int? positionMs}) async {
     final current = room;
     final repo = syncRepository;
     final offset = clockOffsetMs;
@@ -143,6 +164,8 @@ class SessionViewModel extends ChangeNotifier {
 
     _ackedStartAt = startAt;
     try {
+      // Colocar la pista antes de calcular la espera: el seek tarda unos ms.
+      await audio.seek(positionMs ?? current.positionMs);
       final delay = sync.delayUntilStartMs(startAt: startAt, localNow: _clock(), offsetMs: offset);
       if (delay > 0) await _wait(Duration(milliseconds: delay));
       final startedAt = _clock();
@@ -186,10 +209,11 @@ class SessionViewModel extends ChangeNotifier {
     if (_disposed) return;
     try {
       if (event is SyncStartEvent) {
-        await _scheduleStart(event.startAt);
+        await _scheduleStart(event.startAt, positionMs: event.positionMs);
         await _reloadRoom();
       } else if (event is SyncPauseEvent) {
         await audio.pause();
+        await audio.seek(event.positionMs);
         await _reloadRoom();
       }
     } catch (exception) {
@@ -215,6 +239,7 @@ class SessionViewModel extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     _subscription?.cancel();
+    unawaited(audio.dispose());
     final ended = _streamEnded;
     if (ended != null && !ended.isCompleted) ended.complete();
     super.dispose();

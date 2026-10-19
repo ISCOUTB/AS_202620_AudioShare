@@ -10,6 +10,7 @@ import { AudioStreamHub } from "./modules/audio/index.js";
 import {
   SyncCoordinator,
   SyncMeasurements,
+  positionAt,
   toServerClock,
 } from "./modules/sync/index.js";
 import { config } from "./shared/config.js";
@@ -236,9 +237,20 @@ export function createApp(
       return;
     }
 
+    // Reanudar continúa desde la posición guardada al pausar; un PLAY con la
+    // sala ya sonando conserva la posición actual en vez de reiniciar.
+    const resumeFrom =
+      room.playbackState.playing && room.startAt !== null
+        ? positionAt(room.playbackState.positionMs, room.startAt, Date.now())
+        : room.playbackState.positionMs;
+
     const sync = coordinatorFor(roomId);
-    const event = sync.start();
-    const updatedRoom = sessions.startPlayback(roomId, event.startAt);
+    const event = sync.start(resumeFrom);
+    const updatedRoom = sessions.startPlayback(
+      roomId,
+      event.startAt,
+      event.positionMs,
+    );
     const audioChunk = audio.createChunk(req.body?.payload ?? "audio-demo");
 
     const roomStreams = streams.get(roomId);
@@ -287,8 +299,15 @@ export function createApp(
       return;
     }
 
+    // Posición real alcanzada: la guardada al arrancar más lo transcurrido
+    // desde startAt. Se calcula desde SQLite, así que sobrevive a reinicios.
+    const pausedAt =
+      room.playbackState.playing && room.startAt !== null
+        ? positionAt(room.playbackState.positionMs, room.startAt, Date.now())
+        : room.playbackState.positionMs;
+
     const sync = coordinatorFor(roomId);
-    const event = sync.pause();
+    const event = sync.pause(pausedAt);
     const updatedRoom = sessions.pausePlayback(roomId, event.positionMs);
 
     const roomStreams = streams.get(roomId);
@@ -341,6 +360,24 @@ export function createApp(
     }
 
     res.status(200).json(chunk);
+  });
+
+  /*
+   * Pista de audio de la demostración. Todos los receptores la descargan
+   * antes de empezar y la reproducen localmente a partir de `startAt`.
+   * Express atiende peticiones Range, que just_audio usa para saltar (seek).
+   */
+  app.get("/track", (_req: Request, res: Response) => {
+    const file = resolve(legacyWebDirectory, "audio/demo.mp3");
+
+    if (!existsSync(file)) {
+      res.status(404).json({ error: "Pista no disponible" });
+      return;
+    }
+
+    res.setHeader("Cache-Control", "public, max-age=3600");
+    res.type("audio/mpeg");
+    res.sendFile(file);
   });
 
   /*

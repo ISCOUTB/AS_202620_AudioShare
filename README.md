@@ -132,9 +132,11 @@ La ruta recomendada en Codespaces es abrir el puerto `3000`, porque mantiene la 
 
 **Implementado:** cliente Flutter Material 3, creación y unión de salas, consulta de estado, participantes, play/pause, repositorio HTTP, ViewModel, persistencia SQLite en backend y pruebas automatizadas.
 
-**Simulado:** `AudioService` usa `MockAudioService`; el backend genera `audio.chunk` demostrativos y el stream NDJSON está disponible para integración.
+**Audio real (pista compartida):** el backend sirve `public/audio/demo.mp3` en `GET /track`. Cada receptor la descarga al unirse (`just_audio`), calibra su reloj con `GET /time`, coloca la pista en la posición indicada por `sync.start` y la arranca en `startAt`. Pausar guarda la posición real y reanudar continúa desde ahí. En Android hay que indicar la IP del backend en el campo "Servidor" de la pantalla inicial.
 
-**Pendiente:** captura, codificación, transmisión y reproducción física; uso del payload de `audio.chunk` en el cliente Flutter (hoy consume el stream NDJSON, calibra el reloj con `GET /time` y envía el ACK, con reconexión básica tras 2 s, probado solo con repositorios simulados); mediciones que demuestren EC-01 (100 ms) y EC-02 (200 ms); control de acceso.
+**Simulado:** el emisor no reproduce audio (solo controla); `audio.chunk` sigue siendo demostrativo y el cliente lo ignora.
+
+**Pendiente:** captura del micrófono / transmisión en vivo; mediciones con dispositivos físicos que demuestren EC-01 (100 ms) y EC-02 (200 ms); control de acceso; compilar Flutter Web dentro del `Dockerfile`.
 
 ## Evolución del proyecto
 

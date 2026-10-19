@@ -68,6 +68,11 @@ class _Sync implements SyncRepository {
 class _CountingAudio extends MockAudioService {
   int starts = 0;
   int pauses = 0;
+  final calls = <String>[];
+  @override
+  Future<void> load(String url) async => calls.add('load:$url');
+  @override
+  Future<void> seek(int positionMs) async => calls.add('seek:$positionMs');
   @override
   Future<void> start() async => starts++;
   @override
@@ -206,4 +211,55 @@ void main() {
     expect(audio.pauses, 1);
     expect(viewModel.room?.playing, isFalse);
   });
+
+  test('el receptor descarga la pista al unirse y reanuda desde la posición del evento', () async {
+    var local = 13000;
+    final rooms = _Rooms(playing: false, startAt: null);
+    final sync = _Sync(() => local);
+    final audio = _CountingAudio();
+    final viewModel = SessionViewModel(
+      repository: rooms,
+      audio: audio,
+      syncRepository: sync,
+      trackUri: Uri.parse('http://servidor:3000/track'),
+      clock: () => local,
+      wait: (d) async => local += d.inMilliseconds,
+    );
+    addTearDown(viewModel.dispose);
+
+    await viewModel.joinRoom('room-1', 'rx');
+    expect(audio.calls.first, 'load:http://servidor:3000/track');
+    expect(viewModel.audioWarning, isNull);
+
+    rooms
+      ..playing = true
+      ..startAt = 10500;
+    sync.controller.add(const SyncStartEvent(10500, positionMs: 3000));
+    await pumpEventQueue();
+
+    // La pista se coloca en 3000 ms antes de arrancar.
+    expect(audio.calls, contains('seek:3000'));
+    expect(audio.starts, 1);
+  });
+
+  test('si la pista no se puede descargar, el receptor sigue en la sala con un aviso', () async {
+    final audio = _FailingLoadAudio();
+    final viewModel = SessionViewModel(
+      repository: _Rooms(playing: false, startAt: null),
+      audio: audio,
+      syncRepository: _Sync(() => 13000),
+      trackUri: Uri.parse('http://servidor:3000/track'),
+      clock: () => 13000,
+    );
+    addTearDown(viewModel.dispose);
+
+    await viewModel.joinRoom('room-1', 'rx');
+    expect(viewModel.error, isNull);
+    expect(viewModel.audioWarning, isNotNull);
+  });
+}
+
+class _FailingLoadAudio extends MockAudioService {
+  @override
+  Future<void> load(String url) async => throw Exception('sin red');
 }

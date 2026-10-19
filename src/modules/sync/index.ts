@@ -22,6 +22,8 @@ export const EC01_THRESHOLD_MS = 100;
 export interface SyncStartEvent {
   type: "sync.start";
   startAt: number;
+  /** Posición de la pista (ms) que debe sonar en `startAt`; 0 si es el inicio. */
+  positionMs: number;
 }
 
 export interface SyncPauseEvent {
@@ -82,21 +84,41 @@ export function toServerClock(localTime: number, offsetMs: number): number {
   return localTime + offsetMs;
 }
 
+/**
+ * Posición de la pista (ms) en el instante `now`, para una reproducción que
+ * arrancó en `startAt` desde `basePositionMs`. Antes de `startAt` (la cuenta
+ * atrás de START_LEAD_MS) la posición sigue siendo la base.
+ */
+export function positionAt(
+  basePositionMs: number,
+  startAt: number,
+  now: number,
+): number {
+  return basePositionMs + Math.max(0, now - startAt);
+}
+
 export class SyncCoordinator {
   private positionMs = 0;
   private playing = false;
 
-  start(): SyncStartEvent {
+  start(positionMs = 0): SyncStartEvent {
     this.playing = true;
+    this.positionMs = positionMs;
 
     return {
       type: "sync.start",
       startAt: Date.now() + START_LEAD_MS,
+      positionMs,
     };
   }
 
-  pause(): SyncPauseEvent {
+  /** `positionMs`: posición real alcanzada al pausar (ver `positionAt`). */
+  pause(positionMs?: number): SyncPauseEvent {
     this.playing = false;
+
+    if (positionMs !== undefined) {
+      this.positionMs = positionMs;
+    }
 
     return {
       type: "sync.pause",

@@ -166,6 +166,22 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /track:
+    get:
+      summary: Pista de audio de la demostración (MP3)
+      description: >
+        Los receptores descargan la pista antes de empezar y la reproducen
+        localmente en startAt. Admite peticiones Range.
+      responses:
+        "200":
+          description: Archivo de audio
+          content:
+            audio/mpeg:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Pista no disponible
   /time:
     get:
       operationId: getServerTime
@@ -384,6 +400,9 @@ components:
           const: sync.start
         startAt:
           type: number
+        positionMs:
+          type: number
+          description: Posición de la pista (ms) que debe sonar en startAt.
         roomId:
           type: string
         status:

@@ -167,6 +167,17 @@ describe("Prueba de contrato — OpenAPI", () => {
     validate("AudioChunk", res.body);
   });
 
+  it("GET /track entrega la pista de audio (MP3) con soporte Range", async () => {
+    const res = await request(app).get("/track").expect(200);
+    expect(res.headers["content-type"]).toContain("audio/mpeg");
+
+    const range = await request(app)
+      .get("/track")
+      .set("Range", "bytes=0-99")
+      .expect(206);
+    expect(range.headers["content-range"]).toMatch(/^bytes 0-99\//);
+  });
+
   it("GET /time cumple ServerTime", async () => {
     const res = await request(app).get("/time").expect(200);
     validate("ServerTime", res.body);
