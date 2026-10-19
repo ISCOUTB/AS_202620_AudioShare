@@ -11,3 +11,9 @@ build/
 *.log
 coverage/
 .DS_Store
+
+.idea/
+.vscode/
+*.iml
+hs_err_pid*.log
+corridas-ec01.txt
