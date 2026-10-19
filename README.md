@@ -132,7 +132,7 @@ La ruta recomendada en Codespaces es abrir el puerto `3000`, porque mantiene la 
 
 **Implementado:** cliente Flutter Material 3, creación y unión de salas, consulta de estado, participantes, play/pause, repositorio HTTP, ViewModel, persistencia SQLite en backend y pruebas automatizadas.
 
-**Audio real (pista compartida):** el backend sirve `public/audio/demo.mp3` en `GET /track`. Cada receptor la descarga al unirse (`just_audio`), calibra su reloj con `GET /time`, coloca la pista en la posición indicada por `sync.start` y la arranca en `startAt`. Pausar guarda la posición real y reanudar continúa desde ahí. En Android hay que indicar la IP del backend en el campo "Servidor" de la pantalla inicial.
+**Audio real (pista compartida):** el backend sirve `public/audio/demo.mp3` en `GET /track`. Cada receptor la descarga al unirse (`just_audio`), calibra su reloj con `GET /time`, coloca la pista en la posición indicada por `sync.start` y la arranca en `startAt`. Pausar guarda la posición real y reanudar continúa desde ahí. La app se conecta por defecto a `https://audioshare.iscoutb.dev`, así que basta con el código de sala; para usar otro backend (p. ej. en la LAN) se cambia en "Opciones avanzadas" o al compilar con `--dart-define=AUDIOSHARE_API_URL=http://IP:3000`.
 
 **Simulado:** el emisor no reproduce audio (solo controla); `audio.chunk` sigue siendo demostrativo y el cliente lo ignora.
 

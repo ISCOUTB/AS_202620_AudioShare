@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
+
 class ApiException implements Exception {
   const ApiException(this.message, {this.statusCode});
 
@@ -25,6 +27,10 @@ class ApiClient {
 
   /// URL absoluta de [path] en el backend (p. ej. `/track`).
   Uri resolve(String path) => baseUri.resolve(path);
+
+  /// Servidor al que se conecta la app (Windows, Android...) si no se indica
+  /// otro: así basta con el código de sala. En Web se usa el propio origen.
+  static const publicServer = 'https://audioshare.iscoutb.dev';
 
   static Uri _defaultBaseUri() {
     const configuredApiUrl = String.fromEnvironment('AUDIOSHARE_API_URL');
@@ -50,7 +56,11 @@ class ApiClient {
         fragment: '',
       );
     }
-    return Uri.parse('http://10.0.2.2:3000');
+      return Uri.parse(
+        defaultTargetPlatform == TargetPlatform.android
+          ? 'http://10.0.2.2:3000'
+          : 'http://localhost:3000',
+    );
   }
 
   /// Abre una respuesta NDJSON y emite cada línea no vacía a medida que llega.

@@ -96,10 +96,19 @@ class _HomePageState extends State<HomePage> {
                   if (widget.api != null)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 16),
-                      child: TextField(
-                        controller: serverController,
-                        keyboardType: TextInputType.url,
-                        decoration: const InputDecoration(labelText: 'Servidor', helperText: 'IP del equipo que ejecuta el backend, p. ej. http://192.168.1.10:3000'),
+                      child: ExpansionTile(
+                        tilePadding: EdgeInsets.zero,
+                        shape: const Border(),
+                        collapsedShape: const Border(),
+                        title: const Text('Opciones avanzadas'),
+                        subtitle: const Text('Servidor de AudioShare'),
+                        children: [
+                          TextField(
+                            controller: serverController,
+                            keyboardType: TextInputType.url,
+                            decoration: const InputDecoration(labelText: 'Servidor', helperText: 'Solo si usas un backend propio, p. ej. http://192.168.1.10:3000'),
+                          ),
+                        ],
                       ),
                     ),
                   if (error != null) _ErrorBanner(error!),
