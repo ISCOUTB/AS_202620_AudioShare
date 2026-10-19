@@ -124,6 +124,9 @@ La ruta recomendada en Codespaces es abrir el puerto `3000`, porque mantiene la 
 - [Diagramas C4](docs/c4/)
 - [Trazabilidad](docs/aspectos.md)
 - [Escenarios de calidad](docs/escenarios_calidad.md)
+- [Modos de fallo y mitigaciones](docs/modos-de-fallo.md)
+- [Idempotencia y análisis de saga](docs/idempotencia-y-saga.md)
+- [ADR-0009 — No extraer módulos como servicios](docs/adr/0009-no-extraer-modulos-como-servicios.md)
 
 ## Estado actual
 
