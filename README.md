@@ -131,7 +131,7 @@ La ruta recomendada en Codespaces es abrir el puerto `3000`, porque mantiene la 
 
 **Simulado:** `AudioService` usa `MockAudioService`; el backend genera `audio.chunk` demostrativos y el stream NDJSON está disponible para integración.
 
-**Pendiente:** captura, codificación, transmisión y reproducción física; consumo Flutter del stream NDJSON; reconexión automática; mediciones que demuestren EC-01 (100 ms) y EC-02 (200 ms); control de acceso.
+**Pendiente:** captura, codificación, transmisión y reproducción física; uso del payload de `audio.chunk` en el cliente Flutter (hoy consume el stream NDJSON, calibra el reloj con `GET /time` y envía el ACK, con reconexión básica tras 2 s, probado solo con repositorios simulados); mediciones que demuestren EC-01 (100 ms) y EC-02 (200 ms); control de acceso.
 
 ## Evolución del proyecto
 

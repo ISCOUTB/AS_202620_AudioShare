@@ -66,8 +66,13 @@ receptores, por lo que no podía medir el desfase real.
 - **Negativas / costos asumidos:** el ACK lo informa el propio receptor y el
   servidor confía en él (aceptable para medición académica, no para control
   de acceso); la medición con receptores simulados no incluye la latencia de
-  la salida de audio del dispositivo; el cliente Flutter aún no llama a
-  `/time` ni envía el ACK (la lógica de cálculo ya existe y está probada).
+  la salida de audio del dispositivo; el cliente Flutter aún no llamaba a
+  `/time` ni enviaba el ACK (la lógica de cálculo ya existía y estaba probada).
+  *Actualización 2026-10-18:* el cliente Flutter ya llama a `/time`, abre el
+  stream NDJSON y envía el ACK (`SessionViewModel`, `ApiSyncRepository`; prueba
+  `test/receiver_sync_test.dart`). Verificado por lectura de código y con
+  `flutter test` (18 pruebas en verde, con repositorios simulados); no se
+  ejecutó contra el servidor desplegado.
 - **Riesgos y qué los dispararía:** redes Wi-Fi con latencia asimétrica
   degradan la estimación del offset → subir el número de muestras o medir de
   nuevo durante la sesión (EC-02).

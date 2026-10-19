@@ -1,16 +1,23 @@
 %% C4 Nivel 2 — Contenedores · AudioShare
 %% Diagrama de tipo: C4 Model, Nivel 2 (Contenedores)
-%% Actualizado tras el cierre de S10 para incluir el cliente Flutter.
-%% Estado real al hash calificado de S10 (1da287c):
+%% Actualizado tras el cierre de S10 para incluir el cliente Flutter y,
+%% en S11, para reflejar que el cliente Flutter ya consume /time, el ACK y
+%% el stream NDJSON (comprobado por lectura de lib/ y con flutter test, 18 pruebas en verde; sin ejecutar la app contra el servidor).
+%% Estado real:
 %%  - Hay dos clientes alternativos: Flutter (preferido por el bootstrap,
 %%    src/server.ts con serveFlutterWeb: true) y el web legado de public/
 %%    (fallback de src/app.ts si no existe build/web/index.html).
-%%  - Ambos usan solo REST/JSON. Ninguno consume todavía el stream NDJSON,
-%%    ni GET /time, ni el ACK de arranque: hoy el stream solo lo consumen
-%%    los receptores simulados de tests/support/simulated-receiver.ts.
+%%  - El cliente Flutter usa REST/JSON y además GET /time (calibración de
+%%    reloj), el stream NDJSON (sync.start, sync.pause, audio.chunk) y el
+%%    ACK de arranque (SessionViewModel + ApiSyncRepository). El cliente web
+%%    legado usa solo REST/JSON y no consume el stream NDJSON.
+%%  - Los receptores simulados de tests/support/simulated-receiver.ts
+%%    siguen siendo el único consumidor medido de EC-01.
 %%  - El servidor es un monolito modular de un solo proceso con SQLite.
-%%  - ADR-0007 (corrección de reloj y ACK) está aceptado, pero su parte de
-%%    cliente (Flutter) sigue pendiente de integrar.
+%%  - ADR-0007 (corrección de reloj y ACK) está aceptado y su parte de
+%%    cliente (Flutter) está cableada. Pendiente: ejecutarla contra el
+%%    servidor desplegado y medir con dispositivos físicos. El payload de
+%%    audio.chunk aún no se usa en el cliente (audio simulado).
 
 graph TB
     %% Usuarios del Nivel 1
@@ -27,7 +34,7 @@ graph TB
 
         %% Contenedor 1a: Cliente Flutter (preferido)
         subgraph FlutterClient ["<center><b>&laquo;container: Flutter&raquo;</b><br/>📱<br/><b>Cliente Flutter (Material 3)</b></center>"]
-            FC_desc["App Flutter (ViewModel → RoomRepository → ApiClient). Consume la API REST/JSON con consultas y operaciones PLAY/PAUSE. Su compilación web (build/web) la sirve el mismo Express. Audio simulado (MockAudioService). Pendiente de integrar: stream NDJSON, GET /time y ACK de arranque."]
+            FC_desc["App Flutter (ViewModel → RoomRepository → ApiClient). Consume la API REST/JSON con consultas y operaciones PLAY/PAUSE. Su compilación web (build/web) la sirve el mismo Express. Audio simulado (MockAudioService). Además consume el stream NDJSON, calibra el reloj con GET /time y envía el ACK de arranque; el payload de audio.chunk aún no se usa."]
         end
 
         %% Contenedor 1b: Cliente web legado (fallback)
@@ -37,7 +44,7 @@ graph TB
 
         %% Contenedor 2: Servidor AudioShare (monolito modular)
         subgraph AppServer
-            AS_desc["Un solo proceso Node.js/Express. Expone la API REST, GET /time, el ACK de arranque y el stream de eventos NDJSON (que hoy consumen solo los receptores simulados de las pruebas). Organizado en los módulos Session, Sync y Audio (ver ADR-0001, ADR-0009 y C4 Nivel 3). Desplegado con Dokploy (ADR-0008)."]
+            AS_desc["Un solo proceso Node.js/Express. Expone la API REST, GET /time, el ACK de arranque y el stream de eventos NDJSON (lo consumen el cliente Flutter y los receptores simulados de las pruebas). Organizado en los módulos Session, Sync y Audio (ver ADR-0001, ADR-0009 y C4 Nivel 3). Desplegado con Dokploy (ADR-0008)."]
         end
 
         %% Contenedor 3: Base de datos
@@ -56,7 +63,7 @@ graph TB
     %% Relaciones internas entre contenedores
     FlutterClient -->|"3. Crea sala, une receptores, consulta estado, PLAY/PAUSE<br/><i>[JSON / HTTPS REST]</i>"| AppServer
     WebClient -->|"4. Crea sala, une receptores, consulta estado, PLAY/PAUSE<br/><i>[JSON / HTTPS REST]</i>"| AppServer
-    FlutterClient -.->|"5. PENDIENTE: eventos sync.start, sync.pause y audio.chunk; GET /time y ACK<br/><i>[NDJSON / HTTP streaming; JSON / HTTPS REST]</i>"| AppServer
+    FlutterClient -->|"5. Recibe sync.start, sync.pause y audio.chunk; calibra reloj con GET /time; envía ACK de arranque<br/><i>[NDJSON / HTTP streaming; JSON / HTTPS REST]</i>"| AppServer
     AppServer -->|"6. Lee y escribe salas, participantes y estado de reproducción<br/><i>[SQL / better-sqlite3]</i>"| SqliteDb
 
     %% Leyenda explícita
