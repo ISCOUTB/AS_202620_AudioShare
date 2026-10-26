@@ -3,106 +3,68 @@
 - **Estado:** Propuesto para revisión del equipo.
 - **Fecha:** 25 de octubre de 2026.
 - **Contexto:** Taller académico de mensajería, idempotencia y reintentos.
-- **Relación:** ADR-0001, selección del monolito modular.
+- **Relación:** [ADR-0001 — Monolito modular](./0001-usar-monolito-modular.md).
 
-## 1. Contexto
+## 1. Contexto y operación seleccionada
 
-AudioShare permite crear salas y registrar dispositivos receptores. El proyecto cuenta con módulos que separan las responsabilidades de las sesiones, el audio y la sincronización.
+AudioShare permite crear salas y registrar receptores. Una operación futura candidata para procesamiento desacoplado es solicitar la sincronización de un receptor que se incorpora a una sala durante una reproducción activa. Se define el mensaje experimental receiver.sync.requested.
 
-Un escenario candidato para mensajería asíncrona es la incorporación de un receptor mientras existe una reproducción activa. En una implementación futura, se podría publicar un mensaje `receiver.sync.requested` para solicitar el procesamiento de su sincronización.
+La sincronización que afecta a la reproducción actual necesita respuestas oportunas; no se debe interponer una cola en el camino crítico de play/pause sin mediciones que justifiquen la latencia adicional. Por ello, el experimento se mantiene aislado y no reemplaza el flujo de producción.
 
-Actualmente, el sistema no utiliza una cola durable de mensajes. Incorporar un broker real añadiría infraestructura y responsabilidades operativas que deben justificarse según el alcance del proyecto.
+## 2. Alternativas consideradas
 
-## 2. Alternativas
+### A. Procesamiento síncrono en la API
 
-### Alternativa A: procesamiento síncrono
+**Ventajas:** implementación sencilla, respuesta inmediata con el resultado y menos componentes operativos.
 
-La operación HTTP espera a que finalice el procesamiento.
+**Desventajas:** el cliente espera al procesamiento; un fallo temporal puede afectar la respuesta HTTP; reintentos del cliente pueden repetir efectos si no existe idempotencia.
 
-**Ventajas:**
-- Implementación sencilla.
-- Menor complejidad operativa.
-- El resultado se puede devolver directamente al cliente.
+### B. Broker de mensajes durable
 
-**Desventajas:**
-- La solicitud espera a que termine el procesamiento.
-- Un fallo temporal puede afectar la respuesta.
-- Los reintentos del cliente pueden repetir operaciones si no existe idempotencia.
+**Ventajas:** desacopla temporalmente productor y consumidor; según su configuración puede persistir mensajes, confirmar su aceptación y recuperar trabajo después de una interrupción; permite escalar consumidores por separado.
 
-### Alternativa B: broker de mensajes
+**Desventajas:** añade infraestructura, configuración, monitoreo y procedimientos operativos. No garantiza por sí solo procesamiento exactamente una vez; siguen siendo necesarias la idempotencia y la política de mensajes fallidos.
 
-Se utiliza un sistema como RabbitMQ, Kafka o un servicio administrado.
+### C. Simulador local en memoria — elegido para el taller
 
-**Ventajas:**
-- Permite desacoplar temporalmente productor y consumidor.
-- Puede ofrecer persistencia y mecanismos de confirmación según su configuración.
-- Permite escalar el procesamiento de forma independiente.
+**Ventajas:** sin servicios externos; pruebas deterministas de contrato, duplicados, fallos recuperables, backoff y dead letters; no altera el sistema productivo.
 
-**Desventajas:**
-- Añade configuración e infraestructura.
-- Requiere monitoreo y manejo de fallos.
-- No elimina la necesidad de deduplicación e idempotencia.
-
-### Alternativa C: simulador local
-
-Se utiliza una cola en memoria para probar el contrato, los reintentos, los duplicados y los mensajes fallidos.
-
-**Ventajas:**
-- No requiere infraestructura externa.
-- Permite realizar pruebas automatizadas.
-- Mantiene aislado el experimento del backend de producción.
-
-**Desventajas:**
-- Los mensajes no son durables.
-- No representa todos los comportamientos de un broker.
-- La cola se pierde al reiniciar el proceso.
+**Desventajas:** los mensajes pendientes y el registro de deduplicación se pierden al reiniciar; no representa durabilidad, concurrencia distribuida ni entrega entre máquinas.
 
 ## 3. Decisión
 
-Se propone utilizar un simulador local para realizar el taller, sin conectarlo al flujo de producción de AudioShare.
-
-La decisión permite evaluar las propiedades solicitadas sin modificar la arquitectura actual ni introducir un servicio adicional.
+Usar un simulador local aislado para demostrar las propiedades solicitadas y **no incorporarlo al backend productivo en esta entrega**. Se conserva el flujo síncrono actual hasta que una necesidad de negocio y mediciones justifiquen operar una cola durable.
 
 ## 4. Contrato y compatibilidad
 
-El mensaje `receiver.sync.requested`, versión 1, contiene un identificador de mensaje, una fecha, un identificador de correlación y los datos de la sala y del receptor.
+El mensaje V1 contiene schemaVersion, messageId, type (receiver.sync.requested), occurredAt, correlationId y payload.roomId, payload.receiverId y payload.targetPositionMs.
 
-Se permiten cambios aditivos que mantengan la semántica de los campos existentes. Los cambios incompatibles requieren una nueva versión del contrato.
+Se aceptan campos adicionales que no cambien la semántica de V1. Los campos obligatorios mantienen nombre y tipo; cambios incompatibles requieren una nueva versión y se rechazan si el consumidor no la soporta.
 
-El consumidor rechaza las versiones desconocidas.
+## 5. Garantía de entrega y consecuencias
 
-## 5. Garantía de entrega
+El simulador reintenta el handler hasta tres intentos mientras el proceso permanece activo. La semántica es **entrega/procesamiento con posibles repeticiones**, no «exactamente una vez». Como la cola es en memoria, no se garantiza que un mensaje sobreviva al reinicio ni que se recupere un mensaje pendiente después de una caída.
 
-El prototipo permite reintentar el procesamiento mientras el proceso permanece activo.
+El handler debe ser idempotente: un efecto podría haberse aplicado antes de que el consumidor falle y solicite un nuevo intento. Para producción, la deduplicación tendría que persistir junto con el efecto de negocio o utilizar una clave idempotente duradera.
 
-No garantiza la persistencia de mensajes ante reinicios y no ofrece entrega exactamente una vez.
+## 6. Idempotencia y duplicados
 
-## 6. Idempotencia
+La cola guarda en memoria los messageId confirmados correctamente. Si el mismo mensaje vuelve a publicarse, se registra message.duplicate y no se vuelve a invocar el handler. Esta garantía se limita a la vida del proceso.
 
-El simulador utiliza `messageId` para detectar mensajes que ya se procesaron correctamente.
+## 7. Reintentos, backoff y dead letter
 
-La deduplicación se mantiene en memoria, por lo que no persiste entre reinicios.
+El máximo predeterminado es de tres intentos. Entre intentos se aplica backoff exponencial:
 
-## 7. Política de reintentos
+delayMs = baseBackoffMs * 2^(attempt - 1)
 
-Se permiten tres intentos por defecto.
-
-El tiempo de espera aumenta exponencialmente según la fórmula:
-
-`baseBackoffMs * 2^(intento - 1)`
-
-Si el procesamiento falla en todos los intentos, el mensaje se guarda en `deadLetters`, junto con el número de intentos y el motivo del último fallo.
+Con base de 10 ms, las esperas son 10 ms y 20 ms. Tras agotar los intentos, el mensaje se conserva en deadLetters con el número de intentos y el motivo final. En producción, la cola de fallidos y su procedimiento de reproceso tendrían que ser durables y operables.
 
 ## 8. Observabilidad
 
-Los eventos registrados incluyen `messageId`, `correlationId`, tipo de evento, número de intento, demora y tiempo transcurrido cuando corresponda.
+Cada registro incluye messageId y correlationId; según el evento incluye intento, demora, tiempo transcurrido y detalle del error. Los eventos message.produced, message.consumed, message.retry, message.acknowledged, message.duplicate y message.dead_letter permiten reconstruir el recorrido del mensaje.
 
-Esto permite seguir el recorrido de un mensaje dentro del simulador.
+## 9. Verificación y límites
 
-## 9. Consecuencias y límites
+Las pruebas automatizadas cubren duplicación, fallo recuperable, backoff exponencial, agotamiento de intentos, compatibilidad y trazabilidad. Deben ejecutarse con npm test -- tests/messaging-prototype.test.ts y npm run verify; esta ADR no afirma resultados de ejecución que no se hayan observado.
 
-El prototipo demuestra propiedades de la lógica de mensajería mediante pruebas automatizadas.
-
-No demuestra persistencia ante reinicios, entrega entre máquinas, procesamiento concurrente ni sincronización física del audio.
-
-Antes de incorporar mensajería a producción, el equipo tendría que evaluar la persistencia, la recuperación de mensajes fallidos, la deduplicación duradera, la integración con la API y las pruebas de carga.
+El prototipo no demuestra persistencia ante reinicios, procesamiento concurrente, entrega entre máquinas ni sincronización física del audio. Para producción se requerirían pruebas de recuperación, idempotencia durable, métricas operativas y una evaluación del impacto de latencia.
