@@ -4,7 +4,7 @@ info:
   version: 0.1.0
   description: >
     Canal push por el que el servidor distribuye eventos de sincronización y
-    audio a un receptor conectado. Hoy se transporta como NDJSON sobre HTTP
+    datos de demostración a un receptor conectado. Hoy se transporta como NDJSON sobre HTTP
     (una línea JSON por evento); el contrato de mensajes es el mismo si se
     migra a WebSocket, que es el transporte previsto para el cliente móvil
     (ver ADR 0002).
@@ -93,9 +93,9 @@ components:
       name: audio.chunk
       title: Paquete de audio
       summary: >
-        Paquete de datos de audio distribuido a los receptores conectados.
-        sequence es monótono creciente por sala y permite detectar paquetes
-        perdidos o fuera de orden en el cliente.
+        Evento demostrativo distribuido a receptores conectados. No transporta
+        el contenido MP3 ni participa en la reproducción; la pista completa se
+        transfiere por HTTP con audio/mpeg (ver openapi.yaml).
       payload:
         type: object
         required: [type, sequence, payload]
@@ -108,7 +108,4 @@ components:
           payload:
             type: string
             description: >
-              Datos del paquete de audio. En el corte actual es un string de
-              demostración (ver NC-01 en docs/no_conformidades.md); el
-              contrato no cambia cuando se reemplace por audio real
-              codificado en base64.
+              Texto demostrativo. No son bytes, PCM ni audio codificado.

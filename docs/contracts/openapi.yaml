@@ -137,7 +137,7 @@ paths:
   /rooms/{roomId}/audio:
     post:
       operationId: sendAudioChunk
-      summary: Distribuye un paquete de audio a los receptores conectados
+      summary: Distribuye el evento de demostración audio.chunk (no audio binario)
       parameters:
         - $ref: "#/components/parameters/RoomId"
       requestBody:
@@ -150,6 +150,7 @@ paths:
               properties:
                 payload:
                   type: string
+                  description: Texto demostrativo; la pista MP3 se transfiere por /rooms/{roomId}/track.
       responses:
         "200":
           description: Paquete distribuido
@@ -182,6 +183,87 @@ paths:
                 format: binary
         "404":
           description: Pista no disponible
+
+  /rooms/{roomId}/track:
+    post:
+      operationId: uploadRoomTrack
+      summary: Sube la pista MP3 de una sala
+      description: >
+        El emisor sube una pista MP3 completa antes de iniciar la reproducción.
+        El archivo se conserva en el almacenamiento persistente del servidor;
+        tamaño máximo 50 MiB.
+      parameters:
+        - $ref: "#/components/parameters/RoomId"
+      requestBody:
+        required: true
+        content:
+          audio/mpeg:
+            schema:
+              type: string
+              format: binary
+      responses:
+        "201":
+          description: Pista guardada
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [roomId, bytes]
+                properties:
+                  roomId:
+                    type: string
+                  bytes:
+                    type: integer
+        "400":
+          description: Archivo MP3 vacío o no válido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          description: Error al persistir la pista
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    get:
+      operationId: getRoomTrack
+      summary: Descarga la pista MP3 de una sala
+      description: >
+        Devuelve los mismos bytes subidos por el emisor. Admite Range para que
+        just_audio pueda buscar la posición sincronizada.
+      parameters:
+        - $ref: "#/components/parameters/RoomId"
+        - name: Range
+          in: header
+          required: false
+          schema:
+            type: string
+          description: Rango de bytes solicitado por el reproductor.
+      responses:
+        "200":
+          description: Archivo MP3 completo
+          content:
+            audio/mpeg:
+              schema:
+                type: string
+                format: binary
+        "206":
+          description: Rango del archivo MP3
+          content:
+            audio/mpeg:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Sala o pista no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /time:
     get:
       operationId: getServerTime

@@ -90,8 +90,10 @@ desde un respaldo; el volumen sigue sin respaldos configurados.
 
 ### Limitaciones conocidas
 
-- La imagen no compila Flutter: la URL pública sirve el cliente legado
-  `public/`, no Flutter Web.
+- `Dockerfile` ahora incluye una etapa Flutter Web; el cambio requiere un
+  redespliegue para que la URL pública deje de servir el cliente legado.
+- Las pistas `data/tracks/` usan el mismo volumen `audioshare-data` que
+  SQLite y no tienen respaldo independiente.
 - `publish-image.yml` publica una imagen en Docker Hub que el despliegue
   en Dokploy no consume (el compose usa `build: .`).
 - El volumen `audioshare-data` no tiene respaldos configurados.

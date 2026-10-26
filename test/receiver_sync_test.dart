@@ -125,9 +125,12 @@ void main() {
     final waits = <Duration>[];
     final rooms = _Rooms(playing: true, startAt: 10500);
     final sync = _Sync(() => local);
+    final audio = _CountingAudio();
     final viewModel = SessionViewModel(
       repository: rooms,
+      audio: audio,
       syncRepository: sync,
+      trackUri: Uri.parse('http://servidor:3000/track'),
       clock: () => local,
       wait: (d) async => waits.add(d),
     );
@@ -137,6 +140,9 @@ void main() {
     await viewModel.refresh();
 
     expect(waits, isEmpty);
+    expect(audio.calls, contains('load:http://servidor:3000/rooms/room-1/track'));
+    expect(audio.calls, contains('seek:6500'));
+    expect(audio.starts, 1);
     expect(sync.acks, hasLength(1));
   });
 
@@ -228,7 +234,7 @@ void main() {
     addTearDown(viewModel.dispose);
 
     await viewModel.joinRoom('room-1', 'rx');
-    expect(audio.calls.first, 'load:http://servidor:3000/track');
+    expect(audio.calls.first, 'load:http://servidor:3000/rooms/room-1/track');
     expect(viewModel.audioWarning, isNull);
 
     rooms

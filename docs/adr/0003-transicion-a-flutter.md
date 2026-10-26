@@ -130,10 +130,8 @@ del corte A-01 en `docs/aspectos.md`.
 
 ### Pendiente
 
-- Reemplazar `MockAudioService` por captura y transmisión de audio real
-  (NC-01, NC-07 en `docs/no_conformidades.md`).
-- Consumir el stream NDJSON de eventos de sincronización desde Flutter
-  (hoy solo lo expone el backend).
+- Capturar el micrófono y transmitir audio en vivo; el flujo actual distribuye
+  una pista MP3 completa por sala (ADR-0010).
 - Reconexión automática del cliente ante caída de red.
 - Medición experimental en dispositivos reales de EC-01/EC-02
   (actualmente son objetivos arquitectónicos, no resultados medidos;
@@ -146,7 +144,8 @@ del corte A-01 en `docs/aspectos.md`.
   dispositivo.
 - Elementos C4 afectados: [C4 Nivel 3 — Componentes](../c4/Componentes%20-%20Nivel%203.mmd),
   que documenta los componentes Flutter (`Home`, `SessionViewModel`,
-  `RoomRepository`, `ApiClient`, `SyncService`, `AudioService`).
+  `RoomRepository`, `AudioTrackRepository`, `ApiClient`, `SyncService`,
+  `JustAudioService`).
 - Implementación: `lib/app/`, `lib/core/network/`,
   `lib/features/session/`, `lib/features/audio/`, `lib/features/sync/`.
 - Pruebas que lo cubren: `test/models_test.dart`,

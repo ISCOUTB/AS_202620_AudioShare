@@ -1,12 +1,7 @@
-# Dockerfile de producción — backend AudioShare (Express + better-sqlite3)
+# Dockerfile de producción — AudioShare (Flutter Web + Express + SQLite)
 #
-# Construye SOLO el backend Node.js. El cliente Flutter se sirve como
-# estático si existe build/web (ver src/app.ts: serveFlutterWeb); si no
-# existe, cae al cliente legado en public/. Este Dockerfile no compila
-# Flutter — eso se hace en el pipeline (flutter.yml) y, si se quiere sumar
-# aquí, se añadiría una etapa extra con la imagen de Flutter. De momento
-# despliega el backend con el cliente legado en public/, que es lo que
-# necesitas para tener una URL pública funcionando esta semana.
+# Compila el backend Node.js y Flutter Web en etapas independientes. Express
+# sirve build/web si está presente y conserva public/ como fallback.
 
 # ---- Etapa 1: dependencias + build ----
 FROM node:22-alpine AS build
@@ -22,7 +17,18 @@ COPY tsconfig.json ./
 COPY src ./src
 RUN npm run build
 
-# ---- Etapa 2: imagen final, solo lo necesario para ejecutar ----
+# ---- Etapa 2: aplicación Flutter Web ----
+FROM ghcr.io/cirruslabs/flutter:3.35.7 AS flutter-build
+WORKDIR /app
+
+COPY pubspec.yaml pubspec.lock ./
+RUN flutter pub get
+
+COPY lib ./lib
+COPY web ./web
+RUN flutter build web --release
+
+# ---- Etapa 3: imagen final, solo lo necesario para ejecutar ----
 FROM node:22-alpine AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
@@ -34,12 +40,12 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev && apk del python3 make g++
 
 COPY --from=build /app/dist ./dist
+COPY --from=flutter-build /app/build/web ./build/web
 COPY public ./public
 
-# Carpeta de datos: aquí vive data/audioshare.sqlite. Se monta como volumen
-# para que la base de datos sobreviva a un redeploy (ver docker-compose.yml
-# y el ADR-0004: en plataformas sin volumen persistente, este dato se pierde
-# en cada redeploy — es un riesgo documentado, no un olvido).
+# Carpeta de datos: aquí viven data/audioshare.sqlite y data/tracks/. Se monta
+# como volumen para que salas y pistas sobrevivan a un redeploy (ver
+# docker-compose.yml y ADR-0008).
 RUN mkdir -p /app/data && chown -R audioshare:audioshare /app
 VOLUME ["/app/data"]
 

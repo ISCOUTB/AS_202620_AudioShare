@@ -77,39 +77,36 @@ usuarios que ya se encuentran conectados.
 
 === Transmisión de audio
 
-El usuario emisor inicia la reproducción de audio mientras existen uno o
-varios dispositivos receptores conectados.
+El emisor selecciona un MP3 al crear la sala. El cliente Flutter lo envía
+como `audio/mpeg` a `POST /rooms/{roomId}/track`; el módulo Audio lo guarda
+en `data/tracks/{roomId}.mp3`. Cada receptor descarga esa pista con
+`GET /rooms/{roomId}/track` y soporte `Range`, y la prepara con `just_audio`
+antes del evento de inicio.
 
-* El dispositivo emisor captura el audio que será compartido.
-* El módulo de Audio recibe el flujo de audio.
-* El módulo de Audio distribuye el flujo hacia los dispositivos receptores.
-* Cada receptor recibe y reproduce el audio.
-* El sistema intenta mantener sincronizada la reproducción entre los
-  receptores.
+Cuando el emisor inicia o reanuda, Sync publica `sync.start` por NDJSON con
+un único `startAt`. El receptor busca la posición de la pista y arranca en
+ese instante. `audio.chunk` se conserva como evento textual demostrativo; no
+transporta los bytes de audio.
 
 La interacción principal es:
 
 [source,text]
 ----
-Usuario Emisor
-      |
-      | Flujo de audio
-      v
-    Audio
-      |
-      +------------------> Receptor 1
-      |
-      +------------------> Receptor 2
-      |
-      +------------------> Receptor n
+Emisor Flutter -- MP3 / HTTP --> AudioTrackStore
+                                      |
+                         GET + Range / HTTP
+                                      v
+                             just_audio (receptor)
+                                      ^
+                         sync.start / NDJSON
+                                      |
+                                    Sync
 ----
 
-El módulo de Audio es el elemento principal de este escenario. La
-transmisión debe priorizar una baja latencia y mantener la sincronización
-entre los receptores.
-
-La comunicación utilizada para la transmisión de audio será definida
-posteriormente después de evaluar alternativas como WebRTC y WebSockets.
+La pista completa se transfiere por HTTP y se reproduce localmente; el canal
+NDJSON conserva el control temporal. La captura de micrófono y el streaming
+en vivo no forman parte de esta implementación. La decisión y las
+alternativas están en ADR-0010.
 
 === Pausa y reanudación de la reproducción
 

@@ -14,8 +14,9 @@ Conservar el corte vertical A-01: crear sala, registrar receptores, iniciar o pa
 - Unirse a una sala como receptor mediante su código.
 - Mostrar participantes y receptores conectados.
 - Ejecutar play/pause desde el emisor.
+- Seleccionar y subir un MP3 por sala; los receptores descargan esa misma pista.
 - Mostrar `startAt`, posición y estado de sincronización.
-- Encapsular volumen individual y audio tras servicios reemplazables.
+- Reproducir la pista en receptores con `just_audio`, incluyendo búsqueda por posición.
 
 ## Arquitectura
 
@@ -127,16 +128,17 @@ La ruta recomendada en Codespaces es abrir el puerto `3000`, porque mantiene la 
 - [Modos de fallo y mitigaciones](docs/modos-de-fallo.md)
 - [Idempotencia y análisis de saga](docs/idempotencia-y-saga.md)
 - [ADR-0009 — No extraer módulos como servicios](docs/adr/0009-no-extraer-modulos-como-servicios.md)
+- [ADR-0010 — Distribuir una pista MP3 por sala mediante HTTP](docs/adr/0010-transporte-de-pista-por-http.md)
 
 ## Estado actual
 
 **Implementado:** cliente Flutter Material 3, creación y unión de salas, consulta de estado, participantes, play/pause, repositorio HTTP, ViewModel, persistencia SQLite en backend y pruebas automatizadas.
 
-**Audio real (pista compartida):** el backend sirve `public/audio/demo.mp3` en `GET /track`. Cada receptor la descarga al unirse (`just_audio`), calibra su reloj con `GET /time`, coloca la pista en la posición indicada por `sync.start` y la arranca en `startAt`. Pausar guarda la posición real y reanudar continúa desde ahí. La app se conecta por defecto a `https://audioshare.iscoutb.dev`, así que basta con el código de sala; para usar otro backend (p. ej. en la LAN) se cambia en "Opciones avanzadas" o al compilar con `--dart-define=AUDIOSHARE_API_URL=http://IP:3000`.
+**Audio reproducible implementado:** al crear sala, el emisor selecciona un MP3 de hasta 50 MiB. Flutter lo sube como `audio/mpeg` a `POST /rooms/:roomId/track`; Audio lo guarda en `data/tracks/` dentro del volumen persistente. Cada receptor descarga la misma pista con `GET /rooms/:roomId/track` (incluye soporte Range) y `just_audio` la busca y reproduce localmente. El receptor calibra su reloj, usa `startAt`, pausa/reanuda desde la posición guardada y, si se une durante la reproducción, calcula la posición transcurrida. El test A-01 comprueba identidad byte a byte en upload/download; las pruebas Flutter verifican la petición binaria y el flujo del receptor.
 
-**Simulado:** el emisor no reproduce audio (solo controla); `audio.chunk` sigue siendo demostrativo y el cliente lo ignora.
+**Límites verificados:** `audio.chunk` sigue siendo un evento JSON con payload de texto demostrativo; no transporta ni controla el MP3. El audio viaja por el endpoint binario HTTP separado. Esta entrega comparte una pista completa, no captura ni transmite micrófono en vivo. La reproducción en el dispositivo usa `just_audio`, pero la salida física y el desfase entre dispositivos aún requieren validación con equipos reales; EC-01/EC-02 no se consideran demostrados físicamente.
 
-**Pendiente:** captura del micrófono / transmisión en vivo; mediciones con dispositivos físicos que demuestren EC-01 (100 ms) y EC-02 (200 ms); control de acceso; compilar Flutter Web dentro del `Dockerfile`.
+La aplicación se conecta por defecto a `https://audioshare.iscoutb.dev`; para otro backend (por ejemplo, LAN) se cambia en "Opciones avanzadas" o al compilar con `--dart-define=AUDIOSHARE_API_URL=http://IP:3000`.
 
 ## Evolución del proyecto
 
@@ -149,11 +151,11 @@ móviles manteniendo las responsabilidades principales del backend.
 
 ## CI
 
-`.github/workflows/flutter.yml` ejecuta `flutter pub get`, `flutter analyze`, `flutter test` y `flutter build web`. `.github/workflows/ci.yml` conserva la compilación y las pruebas del backend. `.github/workflows/publish-image.yml` construye la imagen Docker de la API y la publica en Docker Hub en cada push a `master`.
+`.github/workflows/flutter.yml` ejecuta `flutter pub get`, `flutter analyze`, `flutter test` y `flutter build web`. `.github/workflows/ci.yml` conserva la compilación y las pruebas del backend. `.github/workflows/publish-image.yml` construye la imagen Docker con backend y Flutter Web y la publica en Docker Hub en cada push a `master`.
 
 ## Despliegue
 
-La aplicación se encuentra desplegada públicamente mediante Dokploy, utilizando Docker Compose.
+El despliegue usa Dokploy y Docker Compose. El Dockerfile de esta rama ya compila Flutter Web y Express lo sirve desde el mismo origen; la URL pública observada históricamente servía el cliente legado y requiere un redespliegue para incorporar este cambio. El volumen persistente contiene SQLite y las pistas MP3 por sala.
 
 ## Aplicación
 
@@ -171,7 +173,7 @@ El despliegue utiliza:
 -Docker Compose.
 -Dokploy.
 -Node.js / Express.
--Flutter Web (se compila en el pipeline `flutter.yml`; la imagen desplegada sirve por ahora el cliente legado `public/`).
+-Flutter Web (compilado en una etapa del `Dockerfile` y servido por Express).
 -SQLite.
 
 Los archivos principales relacionados con el despliegue son:
@@ -207,11 +209,10 @@ El despliegue permite demostrar el funcionamiento del corte vertical A-01 sobre 
 
 ## Limitaciones conocidas
 
--La captura, codificación, transmisión y reproducción física del audio todavía se encuentran fuera del alcance de la implementación actual.
--AudioService utiliza actualmente un servicio simulado.
--La transmisión real de audio entre dispositivos todavía se encuentra pendiente.
+-La captura de micrófono y transmisión en vivo todavía están pendientes; el alcance implementado es distribuir una pista MP3 completa por sala.
+-La salida física, la sincronización EC-01/EC-02 y la latencia deben verificarse con dispositivos reales; los tests de ViewModel no sustituyen esa medición.
 -La persistencia SQLite depende del almacenamiento configurado en el entorno de despliegue.
--La reconexión automática todavía se encuentra pendiente.
+-El stream NDJSON se reconecta automáticamente; la restauración de sesión y descarga tras una desconexión todavía requiere validación.
 -Las mediciones definitivas de EC-01 y EC-02 todavía deben validarse en un escenario real con múltiples dispositivos.
 
 ## Corte vertical A-01

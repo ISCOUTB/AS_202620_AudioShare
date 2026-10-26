@@ -4,11 +4,11 @@
 === Infraestructura, nivel 1
 
 AudioShare tiene una sola pieza desplegable con estado propio: la API
-(proceso Node.js/Express con persistencia SQLite embebida). El cliente
-Flutter Web se sirve como estático desde el mismo proceso cuando existe
-`build/web` (la imagen actual no lo compila, por lo que hoy se sirve el
-cliente legado `public/`); el cliente Flutter Android se distribuye por separado (APK)
-y no requiere despliegue de servidor.
+(proceso Node.js/Express con persistencia SQLite embebida y archivos MP3).
+El `Dockerfile` del repositorio compila Flutter Web y Express lo sirve desde
+el mismo proceso cuando existe `build/web`; la imagen ya desplegada en
+Dokploy debe reconstruirse para incorporar este cambio. El cliente Flutter
+Android se distribuye por separado (APK).
 
 [cols="1,2,2"]
 |===
@@ -19,7 +19,7 @@ y no requiere despliegue de servidor.
 |Ver ADR-0008, que reemplaza al ADR-0004 en cuanto a dónde se ejecuta. Servidor, consumo y costo: pendientes de confirmar.
 
 |Cliente Web (Flutter Web / legado `public/`)
-|Servido como estático por el mismo proceso de la API; en el despliegue actual es el cliente legado `public/`
+|Servido como estático por el mismo proceso de la API; tras reconstruir la imagen, `build/web` tiene precedencia y `public/` queda como fallback
 |No es un contenedor desplegable independiente hoy; ver C4 Nivel 2.
 
 |Cliente Android (Flutter)
@@ -46,7 +46,7 @@ y no requiere despliegue de servidor.
 `docker-compose.yml` es el archivo que Dokploy ejecuta en el despliegue
 público (ADR-0008) y reproduce el despliegue en cualquier máquina con
 Docker, con un volumen (`audioshare-data`) para que
-`data/audioshare.sqlite` persista entre reinicios. `docs/despliegue.md`
+`data/audioshare.sqlite` y `data/tracks/` persistan entre reinicios. `docs/despliegue.md`
 conserva el procedimiento equivalente en Azure Container Apps (`az
 containerapp up` sobre la misma imagen, con `minReplicas: 0` para
 mantenerse dentro del tramo gratis), alternativa del ADR-0004.

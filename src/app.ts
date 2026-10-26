@@ -6,7 +6,7 @@ import {
   SessionApplication,
   SQLiteRoomRepository,
 } from "./modules/session/index.js";
-import { AudioStreamHub } from "./modules/audio/index.js";
+import { AudioStreamHub, AudioTrackStore } from "./modules/audio/index.js";
 import {
   SyncCoordinator,
   SyncMeasurements,
@@ -50,10 +50,10 @@ export function createApp(
 
   app.use(express.json());
 
-  const sessions = new SessionApplication(
-    new SQLiteRoomRepository(options.databaseFile ?? config.databaseFile),
-  );
+  const databaseFile = options.databaseFile ?? config.databaseFile;
+  const sessions = new SessionApplication(new SQLiteRoomRepository(databaseFile));
   const audio = new AudioStreamHub();
+  const tracks = new AudioTrackStore(resolve(dirname(databaseFile), "tracks"));
 
   const streams = new Map<string, Map<string, Client>>();
   const measurements = new SyncMeasurements();
@@ -360,6 +360,55 @@ export function createApp(
     }
 
     res.status(200).json(chunk);
+  });
+
+  app.post(
+    "/rooms/:roomId/track",
+    express.raw({ type: "audio/mpeg", limit: "50mb" }),
+    async (req: Request, res: Response) => {
+      const { roomId } = req.params;
+      if (!sessions.getRoom(roomId)) {
+        res.status(404).json({ error: "Sala no encontrada" });
+        return;
+      }
+
+      if (!Buffer.isBuffer(req.body) || req.body.length < 2) {
+        res.status(400).json({ error: "Se requiere un archivo MP3" });
+        return;
+      }
+
+      const hasId3Header = req.body.subarray(0, 3).toString("ascii") === "ID3";
+      const hasMpegFrameSync =
+        req.body[0] === 0xff && (req.body[1] & 0xe0) === 0xe0;
+      if (!hasId3Header && !hasMpegFrameSync) {
+        res.status(400).json({ error: "El contenido no parece ser un MP3" });
+        return;
+      }
+
+      try {
+        await tracks.save(roomId, req.body);
+        res.status(201).json({ roomId, bytes: req.body.length });
+      } catch {
+        res.status(500).json({ error: "No se pudo guardar la pista de audio" });
+      }
+    },
+  );
+
+  app.get("/rooms/:roomId/track", (req: Request, res: Response) => {
+    const { roomId } = req.params;
+    if (!sessions.getRoom(roomId)) {
+      res.status(404).json({ error: "Sala no encontrada" });
+      return;
+    }
+
+    const track = tracks.pathFor(roomId);
+    if (!existsSync(track)) {
+      res.status(404).json({ error: "La sala aún no tiene una pista de audio" });
+      return;
+    }
+
+    res.setHeader("Cache-Control", "no-store");
+    res.type("audio/mpeg").sendFile(track);
   });
 
   /*

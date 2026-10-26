@@ -7,17 +7,16 @@
 %%  - Hay dos clientes alternativos: Flutter (preferido por el bootstrap,
 %%    src/server.ts con serveFlutterWeb: true) y el web legado de public/
 %%    (fallback de src/app.ts si no existe build/web/index.html).
-%%  - El cliente Flutter usa REST/JSON y además GET /time (calibración de
-%%    reloj), el stream NDJSON (sync.start, sync.pause, audio.chunk) y el
-%%    ACK de arranque (SessionViewModel + ApiSyncRepository). El cliente web
-%%    legado usa solo REST/JSON y no consume el stream NDJSON.
+%%  - El cliente Flutter usa REST/JSON, sube un MP3 por sala y lo descarga
+%%    con Range para just_audio; además consume GET /time, el stream NDJSON y
+%%    el ACK. audio.chunk sigue siendo texto demostrativo, no audio. El cliente
+%%    web legado no consume el stream ni carga/reproduce pistas.
 %%  - Los receptores simulados de tests/support/simulated-receiver.ts
 %%    siguen siendo el único consumidor medido de EC-01.
 %%  - El servidor es un monolito modular de un solo proceso con SQLite.
-%%  - ADR-0007 (corrección de reloj y ACK) está aceptado y su parte de
-%%    cliente (Flutter) está cableada. Pendiente: ejecutarla contra el
-%%    servidor desplegado y medir con dispositivos físicos. El payload de
-%%    audio.chunk aún no se usa en el cliente (audio simulado).
+%%  - ADR-0007 (corrección de reloj y ACK) está cableado en Flutter. La pista
+%%    MP3 se conserva en data/tracks/ dentro del volumen Docker junto a SQLite.
+%%    La validación física del sonido y de la sincronización sigue pendiente.
 
 graph TB
     %% Usuarios del Nivel 1
@@ -34,7 +33,7 @@ graph TB
 
         %% Contenedor 1a: Cliente Flutter (preferido)
         subgraph FlutterClient ["<center><b>&laquo;container: Flutter&raquo;</b><br/>📱<br/><b>Cliente Flutter (Material 3)</b></center>"]
-            FC_desc["App Flutter (ViewModel → RoomRepository → ApiClient). Consume la API REST/JSON con consultas y operaciones PLAY/PAUSE. Su compilación web (build/web) la sirve el mismo Express. Audio simulado (MockAudioService). Además consume el stream NDJSON, calibra el reloj con GET /time y envía el ACK de arranque; el payload de audio.chunk aún no se usa."]
+            FC_desc["App Flutter (ViewModel → RoomRepository → ApiClient). Selecciona/sube MP3 por sala, lo descarga con Range y lo reproduce con just_audio. Consume PLAY/PAUSE, stream NDJSON, GET /time y ACK. audio.chunk sigue siendo texto demostrativo."]
         end
 
         %% Contenedor 1b: Cliente web legado (fallback)
@@ -44,12 +43,12 @@ graph TB
 
         %% Contenedor 2: Servidor AudioShare (monolito modular)
         subgraph AppServer
-            AS_desc["Un solo proceso Node.js/Express. Expone la API REST, GET /time, el ACK de arranque y el stream de eventos NDJSON (lo consumen el cliente Flutter y los receptores simulados de las pruebas). Organizado en los módulos Session, Sync y Audio (ver ADR-0001, ADR-0009 y C4 Nivel 3). Desplegado con Dokploy (ADR-0008)."]
+            AS_desc["Un solo proceso Node.js/Express. Expone API REST, upload/download audio/mpeg por sala con Range, GET /time, ACK y stream NDJSON. Session, Sync y Audio siguen en el monolito modular. Desplegado con Dokploy (ADR-0008)."]
         end
 
         %% Contenedor 3: Base de datos
-        subgraph SqliteDb ["<center><b>&laquo;container: SQLite (archivo)&raquo;</b><br/>🗄️<br/><b>Base de datos de salas</b></center>"]
-            DB_desc["Persiste salas, participantes y estado de reproducción en data/audioshare.sqlite mediante better-sqlite3."]
+        subgraph DataVolume ["<center><b>&laquo;container: volumen Docker&raquo;</b><br/>🗄️<br/><b>Almacenamiento persistente</b></center>"]
+            DB_desc["data/: SQLite (salas, participantes y estado) en audioshare.sqlite; archivos MP3 por sala en tracks/{roomId}.mp3."]
         end
 
     end
@@ -64,6 +63,7 @@ graph TB
     FlutterClient -->|"3. Crea sala, une receptores, consulta estado, PLAY/PAUSE<br/><i>[JSON / HTTPS REST]</i>"| AppServer
     WebClient -->|"4. Crea sala, une receptores, consulta estado, PLAY/PAUSE<br/><i>[JSON / HTTPS REST]</i>"| AppServer
     FlutterClient -->|"5. Recibe sync.start, sync.pause y audio.chunk; calibra reloj con GET /time; envía ACK de arranque<br/><i>[NDJSON / HTTP streaming; JSON / HTTPS REST]</i>"| AppServer
+    FlutterClient -->|"Sube MP3 y descarga la pista de sala para reproducción con just_audio<br/><i>[audio/mpeg / HTTPS REST; Range]</i>"| AppServer
     AppServer -->|"6. Lee y escribe salas, participantes y estado de reproducción<br/><i>[SQL / better-sqlite3]</i>"| SqliteDb
 
     %% Leyenda explícita
@@ -83,6 +83,6 @@ graph TB
 
     class Emisor_Node,Receptor_Node,L_Person personStyle;
     class FlutterClient,WebClient,AppServer,L_Container containerStyle;
-    class SqliteDb dbStyle;
+    class DataVolume dbStyle;
     class System_Boundary boundaryStyle;
     class Leyenda legendStyle;

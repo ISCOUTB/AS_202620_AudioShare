@@ -19,8 +19,9 @@ Candidatos:
 - **Sync:** dueño de `startAt` y de las mediciones de desfase. Está
   parcialmente acoplado a Session: Session persiste `status`, `playback_state`
   y `start_at` (NC-10).
-- **Audio:** reenvía los fragmentos `audio.chunk` a los receptores. Es el
-  módulo cuya carga crecería con audio real (receptores × tasa de bits).
+- **Audio:** guarda y sirve la pista MP3 por sala y distribuye el evento
+  demostrativo `audio.chunk`. El tráfico HTTP crece con el tamaño de la pista
+  y el número de descargas.
 
 Hechos del sistema, verificados en el código:
 
@@ -43,8 +44,9 @@ Lo que **no** se sabe:
   monitoreo del panel no muestra datos, ADR-0008). La carga prevista en
   `docs/costos-mensuales.md` (500 salas al mes, 3 receptores por sala) es una
   estimación, no una medida.
-- No hay audio real todavía (NC-01, NC-02), así que no se puede afirmar que
-  el reenvío de audio sea un cuello de botella.
+- La pista MP3 real se distribuye por HTTP desde la rama actual; no hay
+  captura de micrófono/live ni medición de carga o latencia física, así que
+  no se puede afirmar que Audio sea un cuello de botella.
 
 ## Alternativas consideradas
 
@@ -55,7 +57,7 @@ Lo que **no** se sabe:
 - **En contra:** una sola instancia; un reinicio corta todas las conexiones
   (FM-02, FM-03); los módulos comparten proceso, de modo que una excepción no
   controlada o un bloqueo del hilo afecta a todos (`better-sqlite3` es
-  síncrono y el reenvío de audio comparte ese mismo hilo).
+  síncrono y la subida/entrega de pistas comparte recursos con el API).
 
 ### B. Extraer Sync como servicio
 - **A favor:** aísla al dueño de `startAt` y de las mediciones; resolvería
@@ -75,12 +77,13 @@ Lo que **no** se sabe:
     capacidad del servidor no es el obstáculo (ADR-0008 registra 11,67 GiB de
     RAM); lo es el costo de operación.
 
-### C. Extraer Audio como servicio de reenvío
-- **A favor:** es el módulo cuya carga más crecería con audio real.
-- **En contra:** no hay audio real ni medición que muestre un cuello de
-  botella, por lo que extraerlo sería optimizar sin datos. Además el servicio
-  necesitaría saber qué receptores están conectados, lo que duplicaría el
-  registro de streams que hoy está en `app.ts`.
+### C. Extraer Audio como servicio de medios
+- **A favor:** aislaría almacenamiento y descarga de pistas si las mediciones
+  demuestran que su carga afecta al API.
+- **En contra:** todavía no hay medición que muestre un cuello de botella, por
+  lo que extraerlo sería optimizar sin datos. Además, distribuir eventos a
+  receptores seguiría requiriendo coordinarse con el registro de streams de
+  `app.ts`.
 
 ### D. Separar la persistencia de Sync dentro del monolito (NC-10)
 - No es una extracción como servicio y es compatible con A. Es el paso previo

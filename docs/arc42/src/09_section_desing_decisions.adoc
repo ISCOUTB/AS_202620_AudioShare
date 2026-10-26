@@ -11,6 +11,7 @@ Las decisiones arquitectónicas se mantienen como ADR independientes.
 * link:../../adr/0007-correccion-de-reloj-y-ack-de-arranque.md[ADR-0007 — Corrección de reloj del receptor y ACK de arranque]
 * link:../../adr/0008-despliegue-con-dokploy.md[ADR-0008 — Despliegue con Dokploy (reemplaza a ADR-0004)]
 * link:../../adr/0009-no-extraer-modulos-como-servicios.md[ADR-0009 — No extraer módulos como servicios: mantener el monolito modular]
+* link:../../adr/0010-transporte-de-pista-por-http.md[ADR-0010 — Distribuir una pista MP3 por sala mediante HTTP]
 
 El monolito modular se conserva en el backend. La estructura por funcionalidades de Flutter es una organización del cliente, no un cambio del estilo arquitectónico del servidor.
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import request from "supertest";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createApp } from "../src/app.js";
@@ -9,6 +9,7 @@ describe("A-01 - Sincronización de reproducción de audio", () => {
   it("crea una sala, agrega receptores y distribuye eventos", async () => {
     const directory = mkdtempSync(join(tmpdir(), "audioshare-a01-"));
     const app = createApp({ databaseFile: join(directory, "audioshare.sqlite") });
+    const track = readFileSync(join(process.cwd(), "public/audio/demo.mp3"));
 
     try {
       const roomResponse = await request(app)
@@ -19,6 +20,38 @@ describe("A-01 - Sincronización de reproducción de audio", () => {
       const roomId = roomResponse.body.roomId;
 
       expect(roomId).toBeDefined();
+
+      await request(app)
+        .post(`/rooms/${roomId}/track`)
+        .set("Content-Type", "audio/mpeg")
+        .send(track)
+        .expect(201, { roomId, bytes: track.length });
+
+      const downloadedTrack = await request(app)
+        .get(`/rooms/${roomId}/track`)
+        .buffer(true)
+        .parse((response, callback) => {
+          const chunks: Buffer[] = [];
+          response.on("data", (chunk: Buffer) => chunks.push(chunk));
+          response.on("end", () => callback(null, Buffer.concat(chunks)));
+        })
+        .expect(200);
+
+      expect(downloadedTrack.headers["content-type"]).toContain("audio/mpeg");
+      expect(downloadedTrack.body).toEqual(track);
+
+      const range = await request(app)
+        .get(`/rooms/${roomId}/track`)
+        .set("Range", "bytes=0-127")
+        .buffer(true)
+        .parse((response, callback) => {
+          const chunks: Buffer[] = [];
+          response.on("data", (chunk: Buffer) => chunks.push(chunk));
+          response.on("end", () => callback(null, Buffer.concat(chunks)));
+        })
+        .expect(206);
+
+      expect(range.body).toEqual(track.subarray(0, 128));
 
       await request(app)
         .post(`/rooms/${roomId}/receivers`)
@@ -86,10 +119,17 @@ describe("A-01 - Sincronización de reproducción de audio", () => {
         .send({ emitterId: "persistent-emitter" })
         .expect(201);
       const roomId = roomResponse.body.roomId;
+      const track = readFileSync(join(process.cwd(), "public/audio/demo.mp3"));
 
       await request(firstApp)
         .post(`/rooms/${roomId}/receivers`)
         .send({ receiverId: "persistent-receiver" })
+        .expect(201);
+
+      await request(firstApp)
+        .post(`/rooms/${roomId}/track`)
+        .set("Content-Type", "audio/mpeg")
+        .send(track)
         .expect(201);
 
       firstApp.locals.close();
@@ -103,6 +143,18 @@ describe("A-01 - Sincronización de reproducción de audio", () => {
           expect.objectContaining({ id: "persistent-receiver", role: "receiver" }),
         ]),
       );
+
+      const downloadedTrack = await request(secondApp)
+        .get(`/rooms/${roomId}/track`)
+        .buffer(true)
+        .parse((response, callback) => {
+          const chunks: Buffer[] = [];
+          response.on("data", (chunk: Buffer) => chunks.push(chunk));
+          response.on("end", () => callback(null, Buffer.concat(chunks)));
+        })
+        .expect(200);
+
+      expect(downloadedTrack.body).toEqual(track);
       secondApp.locals.close();
     } finally {
       rmSync(directory, { recursive: true, force: true });

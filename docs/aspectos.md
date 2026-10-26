@@ -35,6 +35,11 @@ Permite establecer una comunicación entre un dispositivo emisor y varios dispos
 
 ## Matriz de trazabilidad
 
+La decisión de transporte de pista MP3 está registrada en
+[ADR-0010](./adr/0010-transporte-de-pista-por-http.md). `audio.chunk` sigue
+siendo demostrativo; las pruebas de bytes están en `tests/a01.test.ts` y
+`test/audio_track_repository_test.dart`.
+
 | ID | Aspecto | Escenario | Objetivo / métrica | Requisito | Decisión arquitectónica | ADR | C4 | Implementación | Pruebas |
 | ---- | --------------------------------------- | --------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
 | A-01 | Sincronización de reproducción de audio | [EC-01 — Sincronización inicial](./escenarios_calidad.md#ec-01--sincronización-inicial) | Diferencia máxima entre receptores ≤ 100 ms | RF-01: transmitir audio a uno o varios receptores; RF-02: utilizar una referencia temporal común | Monolito Modular con cliente Flutter | [ADR-0001 — Usar monolito modular](./adr/0001-usar-monolito-modular.md), [ADR-0003 — Cliente Flutter](./adr/0003-transicion-a-flutter.md), [ADR-0005 — Validación de la sincronización inicial](./adr/0005-validacion-sincronizacion-inicial.md), [ADR-0007 — Corrección de reloj y ACK de arranque](./adr/0007-correccion-de-reloj-y-ack-de-arranque.md), [ADR-0008 — Despliegue con Dokploy](./adr/0008-despliegue-con-dokploy.md), [ADR-0009 — No extraer módulos como servicios](./adr/0009-no-extraer-modulos-como-servicios.md) | [C4 Nivel 3 — Componentes](./c4/Componentes%20-%20Nivel%203.mmd) | [`src/modules/sync/index.ts`](../src/modules/sync/index.ts) (`estimateBestOffset`, `delayUntilStart`, `SyncMeasurements`), [`src/app.ts`](../src/app.ts) (`/time`, `/ack`, `/sync`), [`lib/features/sync/domain/sync_service.dart`](../lib/features/sync/domain/sync_service.dart) | [`tests/sync-a01.test.ts`](../tests/sync-a01.test.ts), [`tests/failure-modes.test.ts`](../tests/failure-modes.test.ts) (FM-01 y FM-02; análisis en [`modos-de-fallo.md`](./modos-de-fallo.md) e [`idempotencia-y-saga.md`](./idempotencia-y-saga.md)), [`tests/support/simulated-receiver.ts`](../tests/support/simulated-receiver.ts), [`test/sync_service_test.dart`](../test/sync_service_test.dart); medición y mutación en [`evidencia-a01-ec01.md`](./evidencia-a01-ec01.md); `test/models_test.dart`, `test/view_model_test.dart`, `test/widget_test.dart` |
@@ -138,7 +143,7 @@ El flujo funcional que se mantiene después de la migración es:
 8. `AudioService` gestiona la información relacionada con el audio.
 9. Los receptores utilizan la información de sincronización para coordinar la reproducción.
 
-La implementación actual debe considerarse como un corte vertical de validación de la arquitectura y del flujo funcional. La captura de audio físico, la reproducción física sincronizada entre múltiples dispositivos y la medición experimental de las diferencias temporales entre dispositivos permanecen como aspectos que deben validarse mediante pruebas específicas.
+La implementación actual permite seleccionar un MP3, subirlo por sala, descargarlo y preparar su reproducción local sincronizada. La captura de micrófono/live, la comprobación de sonido audible y la medición experimental de diferencias entre dispositivos físicos permanecen pendientes de pruebas específicas.
 
 ---
 

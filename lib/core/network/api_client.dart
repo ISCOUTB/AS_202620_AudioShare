@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
@@ -112,5 +113,26 @@ class ApiClient {
       );
     }
     return data;
+  }
+
+  Future<void> uploadBytes(
+    String path,
+    Uint8List bytes, {
+    required String contentType,
+  }) async {
+    final uri = baseUri.resolve(path);
+    final response = await _client.send(
+      http.Request('POST', uri)
+        ..headers['Content-Type'] = contentType
+        ..bodyBytes = bytes,
+    );
+    final text = await response.stream.bytesToString();
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      var message = 'Error de comunicación';
+      try {
+        message = (jsonDecode(text) as Map)['error'] as String? ?? message;
+      } catch (_) {}
+      throw ApiException(message, statusCode: response.statusCode);
+    }
   }
 }

@@ -67,8 +67,8 @@ En resumen:
 | `startAt`, eventos `sync.start`/`sync.pause`
 
 | Audio
-| Distribución de paquetes de audio
-| Eventos `audio.chunk`, secuencia
+| Almacenamiento y descarga de la pista MP3 de la sala; reproducción local en los receptores
+| `tracks/{roomId}.mp3`; `audio.chunk` sigue siendo texto demostrativo
 |===
 
 Una relación entre contextos no está sana hoy: Session persiste datos que
@@ -100,10 +100,11 @@ link:../../contracts/asyncapi.yaml[`docs/contracts/asyncapi.yaml`].
 - **Sincronización:** `startAt`, estado y posición viajan en el contrato
   de sala (ver `docs/contracts/`) y se representan del lado de Flutter
   mediante `SyncService`.
-- **Audio:** `AudioService` es una frontera reemplazable en el cliente;
-  `MockAudioService` deja explícito que la captura/reproducción física de
-  audio real sigue pendiente (NC-01, NC-02, NC-07 en
-  link:../../no_conformidades.md[`docs/no_conformidades.md`]).
+- **Audio:** `JustAudioService` carga, busca, reproduce y pausa el MP3 de la
+  sala. `MockAudioService` se conserva para pruebas. No se implementa captura
+  de micrófono/live y la salida audible aún requiere validar dispositivos
+  físicos (NC-02, NC-03, NC-07 en
+  link:../../no_conformidades.md[`docs/no_conformidades.md`]; ADR-0010).
 - **Pruebas:** modelos, ViewModel y widgets se prueban en Dart
   (`flutter test`); el contrato HTTP y SQLite se prueban con Vitest
   (`npm test`), incluida la prueba de contrato de

@@ -93,18 +93,17 @@ laboratorio quedan como alternativas documentadas en
   Volumes» del panel no debe usarse salvo que se quiera empezar con la
   base vacía (por su nombre; no se probó).
 - **Redespliegue automático:** como el disparador es «On Push», cada
-  push a `master` genera un despliegue en el panel. Las duraciones
-  observadas varían (2 s en unos, 1 min 15 s en otro), y el `Dockerfile`
-  solo copia `package*.json`, `tsconfig.json`, `src/` y `public/`, por lo
-  que un push que cambie solo documentación, pruebas o `lib/` no
-  debería alterar la imagen. **No está verificado qué despliegues
-  recrean el contenedor**; uno que sí lo haga corta las conexiones NDJSON
-  abiertas. Por prudencia, no hacer push durante una demostración o
-  sustentación; si hace falta, se puede desactivar *Autodeploy* en el
-  panel.
-- **Cliente servido:** la imagen no incluye Flutter Web; la URL pública
-  sirve el cliente legado. Si se quiere publicar Flutter Web, el
-  `Dockerfile` necesita una etapa de compilación.
+  push a `master` genera un despliegue en el panel. El Dockerfile actual
+  compila tanto `src/` como Flutter Web desde `lib/`, `web/`, `pubspec.yaml`
+  y `pubspec.lock`; los cambios en cualquiera de esos archivos reconstruyen
+  una etapa. **No está verificado qué despliegues recrean el contenedor**;
+  uno que sí lo haga corta las conexiones NDJSON abiertas. Por prudencia,
+  no hacer push durante una demostración o sustentación; si hace falta,
+  se puede desactivar *Autodeploy* en el panel.
+- **Cliente servido (hecho observado al aceptar este ADR):** la URL pública
+  servía el cliente legado. La rama actual añade una etapa Flutter Web al
+  `Dockerfile` (ADR-0010); hace falta reconstruir y redesplegar la imagen
+  para cambiar lo publicado.
 - **Registro de imágenes:** `publish-image.yml` sigue publicando
   `vincexcard1916/audioshare-api:latest` en Docker Hub en cada push, pero
   el compose usa `build: .`, así que el despliegue en Dokploy no consume

@@ -1,6 +1,10 @@
+import 'dart:typed_data';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/network/api_client.dart';
+import '../../../audio/data/audio_track_repository.dart';
 import '../../../audio/domain/audio_service.dart';
 import '../../../sync/data/sync_repository.dart';
 import '../../data/repositories/room_repository.dart';
@@ -13,17 +17,19 @@ class HomePage extends StatefulWidget {
     this.syncRepository,
     this.api,
     this.audioFactory,
+    this.audioTrackRepository,
     super.key,
   });
   final RoomRepository repository;
   final SyncRepository? syncRepository;
 
   /// Si se indica, se muestra el campo "Servidor" y se descarga la pista de
-  /// `GET /track` al unirse como receptor.
+  /// la sala al unirse como receptor.
   final ApiClient? api;
 
   /// Crea el [AudioService] de cada sala; por defecto, el simulado.
   final AudioService Function()? audioFactory;
+  final AudioTrackRepository? audioTrackRepository;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -36,6 +42,8 @@ class _HomePageState extends State<HomePage> {
   late final serverController = TextEditingController(text: widget.api?.baseUri.toString() ?? '');
   String? error;
   bool loading = false;
+  Uint8List? selectedTrack;
+  String? selectedTrackName;
 
   @override
   void dispose() {
@@ -56,6 +64,10 @@ class _HomePageState extends State<HomePage> {
       }
       api.baseUri = server;
     }
+    if (create && widget.audioTrackRepository != null && selectedTrack == null) {
+      setState(() => error = 'Selecciona un archivo MP3 antes de crear la sala.');
+      return;
+    }
     setState(() { loading = true; error = null; });
     final viewModel = SessionViewModel(
       repository: widget.repository,
@@ -73,8 +85,47 @@ class _HomePageState extends State<HomePage> {
       setState(() { loading = false; error = viewModel.error; });
       return;
     }
+    if (create && widget.audioTrackRepository != null) {
+      try {
+        await widget.audioTrackRepository!.upload(viewModel.room!.id, selectedTrack!);
+      } catch (exception) {
+        viewModel.dispose();
+        if (mounted) setState(() { loading = false; error = 'No se pudo subir el MP3: $exception'; });
+        return;
+      }
+    }
+    if (!mounted) {
+      viewModel.dispose();
+      return;
+    }
     await Navigator.of(context).push(MaterialPageRoute(builder: (_) => RoomPage(viewModel: viewModel)));
     if (mounted) setState(() => loading = false);
+  }
+
+  Future<void> _pickTrack() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['mp3'],
+        withData: true,
+      );
+      if (result == null || !mounted) return;
+      final file = result.files.single;
+      final bytes = file.bytes;
+      if (bytes == null || bytes.isEmpty) {
+        setState(() => error = 'No se pudo leer el archivo seleccionado.');
+      } else if (bytes.length > 50 * 1024 * 1024) {
+        setState(() => error = 'El MP3 no puede superar 50 MB.');
+      } else {
+        setState(() {
+          selectedTrack = bytes;
+          selectedTrackName = file.name;
+          error = null;
+        });
+      }
+    } catch (exception) {
+      if (mounted) setState(() => error = 'No se pudo seleccionar el MP3: $exception');
+    }
   }
 
   @override
@@ -110,6 +161,19 @@ class _HomePageState extends State<HomePage> {
                           ),
                         ],
                       ),
+                    ),
+                  if (widget.audioTrackRepository != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: Row(children: [
+                        OutlinedButton.icon(
+                          onPressed: loading ? null : _pickTrack,
+                          icon: const Icon(Icons.audio_file),
+                          label: const Text('Seleccionar MP3'),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(child: Text(selectedTrackName ?? 'La pista se enviará a los receptores.')),
+                      ]),
                     ),
                   if (error != null) _ErrorBanner(error!),
                   LayoutBuilder(builder: (context, constraints) {

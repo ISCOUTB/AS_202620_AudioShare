@@ -33,8 +33,8 @@ class SessionViewModel extends ChangeNotifier {
   /// Si es null, el receptor no calibra su reloj ni envía ACK (comportamiento previo).
   final SyncRepository? syncRepository;
 
-  /// Pista de audio que el receptor descarga al unirse (`GET /track`). Si es
-  /// null no se carga audio (comportamiento previo).
+  /// URL base del backend; el receptor descarga su pista con
+  /// `GET /rooms/:roomId/track`. Si es null no se carga audio.
   final Uri? trackUri;
   final int Function() _clock;
   final Future<void> Function(Duration) _wait;
@@ -82,6 +82,7 @@ class SessionViewModel extends ChangeNotifier {
       _updateSync();
       await _calibrateClock();
       await _loadTrack();
+      await _startIfScheduled();
       if (syncRepository != null) unawaited(_listen(roomId, receiverId));
     });
   }
@@ -118,9 +119,11 @@ class SessionViewModel extends ChangeNotifier {
   /// Descarga la pista antes de que llegue el primer `sync.start`.
   Future<void> _loadTrack() async {
     final uri = trackUri;
-    if (uri == null) return;
+    final current = room;
+    if (uri == null || current == null) return;
     try {
-      await audio.load(uri.toString());
+      final roomTrackUri = uri.resolve('/rooms/${Uri.encodeComponent(current.id)}/track');
+      await audio.load(roomTrackUri.toString());
       audioWarning = null;
     } catch (_) {
       audioWarning = 'No se pudo descargar la pista de audio: este receptor no sonará.';
@@ -148,7 +151,12 @@ class SessionViewModel extends ChangeNotifier {
     final isReceiver = current.participants.any((p) => p.id == me && p.role == ParticipantRole.receiver);
     final startAt = current.startAt;
     if (!isReceiver || !current.playing || startAt == null) return;
-    await _scheduleStart(startAt);
+    final serverNow = _clock() + (clockOffsetMs ?? 0);
+    final elapsedMs = serverNow - startAt;
+    await _scheduleStart(
+      startAt,
+      positionMs: current.positionMs + (elapsedMs > 0 ? elapsedMs.toInt() : 0),
+    );
   }
 
   /// Espera hasta [startAt] (reloj del servidor), arranca el audio y envía el

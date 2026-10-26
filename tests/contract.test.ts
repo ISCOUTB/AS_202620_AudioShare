@@ -178,6 +178,41 @@ describe("Prueba de contrato — OpenAPI", () => {
     expect(range.headers["content-range"]).toMatch(/^bytes 0-99\//);
   });
 
+  it("POST /rooms/:roomId/track cumple el contrato y devuelve el archivo subido", async () => {
+    const room = await request(app)
+      .post("/rooms")
+      .send({ emitterId: "emitter-contract" })
+      .expect(201);
+    const bytes = Buffer.from([0x49, 0x44, 0x33, 1, 2, 3]);
+
+    await request(app)
+      .post(`/rooms/${room.body.roomId}/track`)
+      .set("Content-Type", "audio/mpeg")
+      .send(Buffer.from("not audio"))
+      .expect(400);
+
+    const upload = await request(app)
+      .post(`/rooms/${room.body.roomId}/track`)
+      .set("Content-Type", "audio/mpeg")
+      .send(bytes)
+      .expect(201);
+
+    expect(upload.body).toEqual({ roomId: room.body.roomId, bytes: bytes.length });
+
+    const download = await request(app)
+      .get(`/rooms/${room.body.roomId}/track`)
+      .buffer(true)
+      .parse((response, callback) => {
+        const chunks: Buffer[] = [];
+        response.on("data", (chunk: Buffer) => chunks.push(chunk));
+        response.on("end", () => callback(null, Buffer.concat(chunks)));
+      })
+      .expect(200);
+
+    expect(download.headers["content-type"]).toContain("audio/mpeg");
+    expect(download.body).toEqual(bytes);
+  });
+
   it("GET /time cumple ServerTime", async () => {
     const res = await request(app).get("/time").expect(200);
     validate("ServerTime", res.body);

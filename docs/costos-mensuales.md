@@ -12,8 +12,8 @@ razonable para un prototipo académico en demo, no en producción.
 | Salas creadas / mes | 500 | ~4 equipos de prueba × ~4 sesiones/día × ~30 días, redondeado a la baja |
 | Receptores por sala | 3 (promedio) | Consistente con las pruebas de `tests/a01.test.ts` (2 receptores) más margen |
 | Eventos `play`/`pause` por sala | 6 | Uso típico de una demo corta |
-| Tamaño de datos almacenados | < 10 MB | SQLite solo guarda salas, participantes y estado de reproducción; no audio real (el `audio.chunk` es demostrativo, no se persiste) |
-| Tráfico de salida (NDJSON) | ~500 salas × 3 receptores × (6 eventos × ~200 bytes) ≈ **1.8 MB/mes** | Volumen mínimo porque no hay audio físico transmitido todavía (ver README > Pendiente) |
+| Tamaño de datos almacenados | SQLite < 10 MB más archivos MP3 | Cada sala puede almacenar un MP3 de hasta 50 MiB; el total depende de salas y retención. Las pistas comparten el volumen persistente con SQLite. |
+| Tráfico de salida estimado | NDJSON: ~500 salas × 3 receptores × (6 eventos × ~200 bytes) ≈ **1.8 MB/mes**, más descargas MP3 | La estimación NDJSON excluye la pista; el tráfico MP3 depende de duración, bitrate, receptores y repeticiones. |
 | Horas de ejecución | 720 h/mes si el proceso está siempre activo (servidor del laboratorio); variable en Render Free por el sleep tras inactividad | — |
 
 ## Costo por alternativa
@@ -53,10 +53,10 @@ compite con el objetivo de EC-04 (receptor nuevo en ≤3 s) si la
 primera petición llega justo después de un período sin tráfico. Se
 documenta como riesgo aceptado, igual que se hizo con Render.
 
-Con audio real transmitido en vez de chunks demostrativos, el tráfico
-de datos (que en Container Apps se factura aparte de las
-solicitudes) crecería en órdenes de magnitud y ahí sí habría que
-recalcular contra el límite de banda ancha saliente del servicio.
+El endpoint actual distribuye una pista MP3 completa, por lo que el
+tráfico de salida crece aproximadamente con el tamaño del archivo por
+cada receptor que lo descarga. La captura/streaming en vivo sigue fuera
+de alcance y cualquier estimación de consumo debe añadir las pistas MP3.
 
 ## Costo que no es dinero
 

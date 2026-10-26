@@ -49,20 +49,19 @@ reproducción de audio entre los dispositivos conectados a una misma sesión.
 
 ## 3. Contexto Audio
 
-El contexto **Audio** se encarga del manejo y distribución de los datos de
-audio que serán recibidos por los dispositivos participantes.
+El contexto **Audio** gestiona el almacenamiento y la descarga de la pista
+MP3 de una sala, además del evento de demostración `audio.chunk`.
 
 ### Responsabilidades
 
 - Gestionar los datos de audio.
-- Procesar y distribuir los paquetes de audio.
-- Generar y gestionar los mensajes relacionados con la transmisión de audio.
+- Guardar el MP3 asociado a una sala y servirlo con soporte Range.
+- Mantener el contrato del evento demostrativo `audio.chunk`.
 
 ### Datos propios
 
-- Paquetes de audio.
-- Datos relacionados con el flujo de audio.
-- Eventos `audio.chunk`.
+- Archivo MP3 por sala (`tracks/{roomId}.mp3`).
+- Secuencia y payload textual de `audio.chunk` (no es contenido de audio).
 
 ---
 
@@ -75,15 +74,15 @@ audio que serán recibidos por los dispositivos participantes.
           │                  │                  │
           ▼                  ▼                  ▼
      ┌──────────┐       ┌──────────┐       ┌──────────┐
-     │ Session  │       │   Sync   │       │  Audio   │
-     ├──────────┤       ├──────────┤       ├──────────┤
-     │ Salas    │       │startAt   │       │ Audio    │
-     │Particip. │──────►│sync.start│──────►│ chunks   │
-     │ Sesiones │       │          │       │Streaming │
-     └──────────┘       └──────────┘       └──────────┘
+    │ Session  │       │   Sync   │       │  Audio   │
+    ├──────────┤       ├──────────┤       ├──────────┤
+    │ Salas    │       │startAt   │       │ Pista    │
+    │Particip. │──────►│sync.start│──────►│ MP3/sala │
+    │ Sesiones │       │          │       │ HTTP     │
+    └──────────┘       └──────────┘       └──────────┘
 
      Gestión de          Sincronización       Transmisión
-       sesiones          de reproducción       de audio
+      sesiones          de reproducción      de la pista
 ```
 
 ## Relaciones tipificadas
