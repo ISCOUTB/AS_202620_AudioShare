@@ -1,5 +1,6 @@
+import { randomUUID } from "node:crypto";
 import { mkdirSync } from "node:fs";
-import { writeFile } from "node:fs/promises";
+import { rename, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 export interface AudioChunk {
@@ -35,7 +36,22 @@ export class AudioTrackStore {
     return join(this.directory, `${roomId}.mp3`);
   }
 
-  save(roomId: string, track: Buffer): Promise<void> {
-    return writeFile(this.pathFor(roomId), track);
+  /**
+   * Guarda la pista de forma atómica (ADR-0011): escribe un archivo temporal
+   * en el mismo directorio y lo renombra sobre el definitivo. Un lector
+   * concurrente o un fallo a mitad de escritura nunca ve una pista parcial:
+   * o queda la pista anterior o queda la nueva completa.
+   */
+  async save(roomId: string, track: Buffer): Promise<void> {
+    const destination = this.pathFor(roomId);
+    const temporary = `${destination}.${randomUUID()}.tmp`;
+
+    try {
+      await writeFile(temporary, track);
+      await rename(temporary, destination);
+    } catch (error) {
+      await unlink(temporary).catch(() => undefined);
+      throw error;
+    }
   }
 }

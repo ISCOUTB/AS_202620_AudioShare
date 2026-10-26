@@ -450,7 +450,11 @@ export function createApp(
       return;
     }
 
-    res.setHeader("Cache-Control", "public, max-age=3600");
+    // Caché con revalidación (docs/diseno-cache.md): el cliente o un
+    // intermediario puede guardar la pista, pero debe validarla con ETag /
+    // Last-Modified antes de usarla. Si el archivo cambia en la misma URL,
+    // la siguiente petición recibe la versión nueva (antes: max-age=3600).
+    res.setHeader("Cache-Control", "public, no-cache");
     res.type("audio/mpeg");
     res.sendFile(file);
   });

@@ -91,6 +91,37 @@ ejecutable en
 link:../../contracts/openapi.yaml[`docs/contracts/openapi.yaml`] y
 link:../../contracts/asyncapi.yaml[`docs/contracts/asyncapi.yaml`].
 
+=== Consistencia de datos y entrega de eventos
+
+SQLite es la fuente de verdad del estado de salas, participantes y
+reproducción (link:../../adr/0011-fuente-de-verdad-y-almacenamiento-de-pistas.md[ADR-0011]).
+Una operación de escritura primero se persiste y después se publica:
+
+* *Crear sala:* atómica; la sala y su emisor se insertan en una sola
+  transacción.
+* *PLAY y PAUSE:* estado, posición y `startAt` se guardan en una sola
+  sentencia `UPDATE` y los eventos se publican después. No existe garantía
+  entre persistir y publicar: si el proceso cae entre ambos pasos, el estado
+  queda guardado y los receptores no reciben el evento. Se recuperan
+  consultando `GET /rooms/{roomId}`.
+* *Subir pista:* se escribe un archivo temporal y se renombra, de modo que
+  nunca se sirve una pista parcial. SQLite y el sistema de archivos no
+  comparten transacción.
+* *Eventos:* entrega como máximo una vez por conexión abierta, sin
+  reentrega, sin replay y sin deduplicación en el servidor.
+
+La tabla completa operación → garantía, con lo implementado y lo pendiente,
+está en link:../../consistencia-operaciones.md[`docs/consistencia-operaciones.md`].
+
+=== Caché
+
+La única caché implementada es HTTP. `GET /track` se sirve con
+`Cache-Control: public, no-cache` y `ETag`: se guarda pero se revalida en
+cada uso, de modo que un archivo reemplazado en la misma URL no se sirve
+obsoleto. La pista de una sala (`GET /rooms/{roomId}/track`) usa `no-store`.
+No hay caché de servidor; los TTL e invalidaciones propuestos para una
+caché futura están en link:../../diseno-cache.md[`docs/diseno-cache.md`].
+
 === Conceptos propios del cliente Flutter
 
 - **Errores:** `ApiClient` traduce respuestas no exitosas a

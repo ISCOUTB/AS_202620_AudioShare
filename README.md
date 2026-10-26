@@ -141,6 +141,9 @@ La ruta recomendada en Codespaces es abrir el puerto `3000`, porque mantiene la 
 - [Idempotencia y análisis de saga](docs/idempotencia-y-saga.md)
 - [ADR-0009 — No extraer módulos como servicios](docs/adr/0009-no-extraer-modulos-como-servicios.md)
 - [ADR-0010 — Distribuir una pista MP3 por sala mediante HTTP](docs/adr/0010-transporte-de-pista-por-http.md)
+- [Operaciones y garantías de consistencia](docs/consistencia-operaciones.md)
+- [Diseño de caché e invalidación](docs/diseno-cache.md)
+- [ADR-0011 — Separar estado transaccional y archivos de audio](docs/adr/0011-fuente-de-verdad-y-almacenamiento-de-pistas.md)
 
 ## Estado actual
 

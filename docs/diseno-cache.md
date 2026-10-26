@@ -14,7 +14,23 @@
 | Bytes MP3 | No duplicar en caché de aplicación por defecto | ID/version de archivo | Según política HTTP explícita | Nueva versión/ETag al cambiar la pista |
 | Eventos del stream | No son estado durable | room:{roomId}:event:{version} | Solo memoria de distribución | Snapshot al reconectar; no asumir replay |
 
-Los TTL son límites propuestos, no afirmaciones de que el repositorio ya tenga Redis, caché en memoria o una política HTTP equivalente.
+Los TTL de esta tabla son límites propuestos para una caché de servidor que **no existe**: el repositorio no tiene Redis ni caché en memoria. Lo que sí existe hoy es la caché HTTP descrita en «Caché implementada».
+
+## Caché implementada (S12)
+
+Contraste del 2026-10-25 con `src/app.ts`. La única caché real es la HTTP de la pista; no hay caché de servidor.
+
+| Qué | Dónde | Cuánto | Invalidación tras una escritura |
+|---|---|---|---|
+| Pista MP3 de demostración, `GET /track` (archivo `public/audio/demo.mp3`) | Cliente e intermediarios (`Cache-Control: public, no-cache`) | Puede guardarse, pero **debe revalidarse en cada uso** con `ETag` / `Last-Modified` que Express calcula del archivo. Antigüedad máxima servida: 0. Una petición condicional vigente recibe 304 sin bytes | Si el archivo cambia en la misma URL, el cambio de `ETag` hace que la siguiente petición reciba la versión nueva. No hace falta invalidar ni versionar la URL |
+| Pista MP3 de una sala, `GET /rooms/:roomId/track` | Ninguno (`Cache-Control: no-store`) | 0 | No aplica: nunca se guarda. Un reemplazo con `POST .../track` es visible en la siguiente descarga |
+| Stream NDJSON, `GET /rooms/:roomId/stream/:receiverId` | Ninguno (`Cache-Control: no-cache`) | 0 | No aplica |
+
+**Cambio de S12.** `GET /track` respondía `public, max-age=3600`: si se reemplazaba el archivo en la misma URL, los clientes podían reproducir el audio anterior hasta una hora. Se cambió a revalidación con `ETag`, que mantiene la ventaja de la caché (304 sin transferir los ~470 KB de `demo.mp3`) sin servir audio obsoleto.
+
+**Política de invalidación vigente.** Para la pista, la invalidación es por revalidación (`no-cache` + `ETag`) en `/track` y por no cachear (`no-store`) en la pista de sala. Si en el futuro se quiere un `max-age` largo, la condición es servir la pista bajo una URL versionada (`/rooms/:roomId/track/{version}`) y no sobrescribir bytes bajo una URL ya cacheada.
+
+**Pruebas:** `tests/consistency-cache.test.ts` comprueba la cabecera y el 304 de `/track`, y el `no-store` de la pista de sala.
 
 ## Flujo de lectura y escritura
 1. En una escritura, validar y persistir el cambio en SQLite.

@@ -13,6 +13,18 @@ info:
     no espera a que cada receptor confirme la entrega antes de responder al
     cliente que lo originó.
 
+    Garantía de entrega: como máximo una vez por conexión abierta
+    (at-most-once). El servidor escribe cada evento en las conexiones que
+    están abiertas en ese instante; no espera confirmación, no reintenta y
+    no hace replay al reconectar. Los eventos sync.start y sync.pause no
+    llevan identificador ni versión, por lo que el receptor no puede
+    detectar pérdidas ni duplicados; audio.chunk lleva una secuencia global
+    del proceso, no por sala. El servidor no deduplica: un play repetido
+    emite un nuevo sync.start con otro startAt, y el receptor debe tratar el
+    más reciente como sustituto del anterior. Para recuperar el estado tras
+    una desconexión, el receptor consulta GET /rooms/{roomId}. Ver
+    docs/consistencia-operaciones.md.
+
 channels:
   roomStream:
     address: /rooms/{roomId}/stream/{receiverId}

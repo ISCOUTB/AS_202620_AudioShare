@@ -1,0 +1,59 @@
+ifndef::imagesdir[:imagesdir: ../images]
+
+[[section-risks-and-technical-debt]]
+== Riesgos y deuda técnica
+
+Esta sección resume los riesgos técnicos vigentes. El análisis completo, con
+la evidencia de cada uno (`R` = reproducido con prueba, `L` = lectura de
+código), está en link:../../modos-de-fallo.md[`docs/modos-de-fallo.md`]; las
+garantías de consistencia, en
+link:../../consistencia-operaciones.md[`docs/consistencia-operaciones.md`].
+
+[cols="1,3,1,3"]
+|===
+| ID | Riesgo o deuda | Severidad | Estado y mitigación
+
+| FM-01, FM-02
+| La reconexión borraba el registro del receptor y las salas persistentes no tenían entrada de stream tras un reinicio.
+| Alta
+| Corregidos y cubiertos por `tests/failure-modes.test.ts`.
+
+| FM-05
+| `PLAY` cambia el coordinador en memoria antes de persistir; si SQLite falla, ambos divergen y el cliente recibe un 500 sin cuerpo JSON.
+| Media
+| Abierto. Reordenar «calcular → persistir → actualizar coordinador → publicar» y responder JSON.
+
+| FM-04
+| `PLAY` repetido calcula otro `startAt` y emite otro evento; no es idempotente por estado.
+| Alta
+| Abierto en el servidor; el cliente solo deshabilita el botón.
+
+| FM-09
+| Un receptor que abre el stream no recibe el estado actual; los eventos no se reentregan (garantía at-most-once).
+| Media
+| Abierto. Propuesta: evento `sync.snapshot` al abrir el stream y versión por sala. Mientras tanto se recupera con `GET /rooms/{roomId}`.
+
+| FM-14
+| El volumen con SQLite y pistas no tiene respaldo; «Fresh Volumes» en Dokploy lo borra.
+| Alta
+| Abierto. Respaldo coordinado de la base y `data/tracks/` y prueba de restauración (ADR-0011).
+
+| ADR-0011
+| Las pistas se asocian a la sala por el nombre del archivo; no hay metadatos en SQLite, versiones ni reconciliación de temporales huérfanos.
+| Media
+| Abierto. La publicación atómica ya está implementada; el resto figura en el estado de implementación del ADR.
+
+| NC-10
+| `Session` persiste datos que pertenecen a `Sync` (`start_at`, `playback_state`).
+| Media
+| Abierto. Auditoría en `docs/auditoria-propiedad-datos.md`.
+
+| NC-02, NC-03
+| La salida de audio y el desfase real (EC-01) solo se comprobaron con receptores simulados, no con dispositivos físicos.
+| Alta
+| Abierto. Medir con dispositivos y una referencia externa.
+|===
+
+*Deuda documental.* `docs/modos-de-fallo.md` aún describe FM-08 (pausa sin
+posición) como abierto, aunque la posición ya se conserva (NC-04); debe
+actualizarse en la próxima revisión de ese documento.
