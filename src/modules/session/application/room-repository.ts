@@ -7,6 +7,7 @@ import type {
 
 export interface RoomRepository {
   createRoom(emitterId: string): Room;
+  listRooms(): Room[];
   findRoom(roomId: string): Room | undefined;
   getRoom(roomId: string): Room | undefined;
   addParticipant(roomId: string, participant: Participant): Participant;

@@ -13,7 +13,41 @@ class AudioShareApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final api = ApiClient();
+    final ApiClient api;
+    try {
+      api = ApiClient();
+    } on ApiConfigurationException catch (exception) {
+      return MaterialApp(
+        title: 'AudioShare',
+        debugShowCheckedModeBanner: false,
+        theme: buildTheme(),
+        home: Scaffold(
+          body: SafeArea(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 560),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Configuración del servidor no válida',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(exception.message),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return MaterialApp(
       title: 'AudioShare',
       debugShowCheckedModeBanner: false,

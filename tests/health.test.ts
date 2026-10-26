@@ -55,4 +55,54 @@ describe("esqueleto ejecutable", () => {
     expect(startedAt).toBeGreaterThanOrEqual(beforeStart);
     expect(startedAt).toBeLessThanOrEqual(Date.now());
   });
+
+  it("expone la colección de salas en GET /rooms", async () => {
+    const createRoom = await request(app)
+      .post("/rooms")
+      .send({ emitterId: "emitter-a" })
+      .expect(201);
+
+    const response = await request(app).get("/rooms").expect(200);
+
+    expect(Array.isArray(response.body)).toBe(true);
+    expect(response.body).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          roomId: createRoom.body.roomId,
+          status: "stopped",
+          participants: expect.arrayContaining([
+            expect.objectContaining({
+              id: "emitter-a",
+              role: "emitter",
+            }),
+          ]),
+        }),
+      ]),
+    );
+  });
+
+  it("permite preflight solo desde un origen configurado", async () => {
+    await request(app)
+      .options("/rooms")
+      .set("Origin", "http://localhost:3000")
+      .set("Access-Control-Request-Method", "POST")
+      .expect("Access-Control-Allow-Origin", "http://localhost:3000")
+      .expect(204);
+
+    await request(app)
+      .options("/rooms")
+      .set("Origin", "http://localhost:8080")
+      .set("Access-Control-Request-Method", "POST")
+      .expect("Access-Control-Allow-Origin", "http://localhost:8080")
+      .expect(204);
+
+    const denied = await request(app)
+      .options("/rooms")
+      .set("Origin", "https://untrusted.example")
+      .set("Access-Control-Request-Method", "POST")
+      .expect(403);
+
+    expect(denied.body.error).toBe("Origen no permitido");
+    expect(denied.headers["access-control-allow-origin"]).toBeUndefined();
+  });
 });

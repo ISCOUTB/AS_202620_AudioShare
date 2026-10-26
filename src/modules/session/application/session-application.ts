@@ -8,6 +8,10 @@ export class SessionApplication {
     return this.rooms.createRoom(emitterId);
   }
 
+  listRooms(): Room[] {
+    return this.rooms.listRooms();
+  }
+
   getRoom(roomId: string): Room | undefined {
     return this.rooms.getRoom(roomId);
   }

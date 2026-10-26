@@ -69,25 +69,37 @@ npm ci
 
 ## Ejecución
 
-Inicia el backend y la aplicación Flutter Web en `http://localhost:3000`:
-
-```bash
-npm run dev
-```
-
-Cuando exista `build/web`, el backend sirve automáticamente esa aplicación Flutter en el mismo puerto. Para reconstruirla tras cambios:
+Compila Flutter Web y arranca el backend; Express sirve ambos bajo el mismo
+origen en `http://localhost:3000`:
 
 ```bash
 flutter build web
+npm run dev
 ```
 
-Para desarrollo Flutter con recarga en caliente, usa otra terminal:
+Para desarrollo Flutter con recarga en caliente, mantén `npm run dev` en una
+terminal y arranca Flutter en otra. Configura explícitamente la URL de la API;
+un servidor web separado no puede deducir de forma fiable dónde está el backend:
 
 ```bash
-flutter run -d web-server --web-hostname 0.0.0.0 --web-port 8080
+flutter run -d web-server --web-hostname 0.0.0.0 --web-port 8080 \
+  --dart-define=AUDIOSHARE_API_URL=http://localhost:3000
 ```
 
-En Android, configura el backend con una dirección accesible desde el dispositivo. El cliente usa `10.0.2.2:3000` por defecto en el emulador Android y la URL de la página en Web.
+En Codespaces, abre la app preferiblemente desde el puerto `3000`, que sirve
+Flutter y API en el mismo origen. Si necesitas hot reload en el puerto `8080`,
+usa una segunda terminal y pasa explícitamente el host del backend:
+
+```bash
+flutter run -d web-server --web-hostname 0.0.0.0 --web-port 8080 \
+  --dart-define="AUDIOSHARE_API_URL=https://${CODESPACE_NAME}-3000.app.github.dev"
+```
+
+El backend permite el origen Flutter del Codespace actual y los orígenes
+localhost de desarrollo; en producción, CORS solo permite el dominio público.
+En un dispositivo físico, configura un backend HTTPS público o la IP LAN del
+servidor desde «Opciones avanzadas». `localhost` en el teléfono no representa
+el computador.
 
 ## Tests
 
@@ -138,7 +150,11 @@ La ruta recomendada en Codespaces es abrir el puerto `3000`, porque mantiene la 
 
 **Límites verificados:** `audio.chunk` sigue siendo un evento JSON con payload de texto demostrativo; no transporta ni controla el MP3. El audio viaja por el endpoint binario HTTP separado. Esta entrega comparte una pista completa, no captura ni transmite micrófono en vivo. La reproducción en el dispositivo usa `just_audio`, pero la salida física y el desfase entre dispositivos aún requieren validación con equipos reales; EC-01/EC-02 no se consideran demostrados físicamente.
 
-La aplicación se conecta por defecto a `https://audioshare.iscoutb.dev`; para otro backend (por ejemplo, LAN) se cambia en "Opciones avanzadas" o al compilar con `--dart-define=AUDIOSHARE_API_URL=http://IP:3000`.
+Flutter Web usa el mismo origen desde el que se sirve la app; el contenedor
+Express entrega tanto el frontend como la API. Los clientes nativos usan
+`https://audioshare.iscoutb.dev` por defecto. Un override
+`AUDIOSHARE_API_URL` se valida y nunca se reemplaza silenciosamente por otro
+servidor; una compilación release rechaza localhost, HTTP y hosts temporales.
 
 ## Evolución del proyecto
 
@@ -151,11 +167,11 @@ móviles manteniendo las responsabilidades principales del backend.
 
 ## CI
 
-`.github/workflows/flutter.yml` ejecuta `flutter pub get`, `flutter analyze`, `flutter test` y `flutter build web`. `.github/workflows/ci.yml` conserva la compilación y las pruebas del backend. `.github/workflows/publish-image.yml` construye la imagen Docker con backend y Flutter Web y la publica en Docker Hub en cada push a `master`.
+`.github/workflows/flutter.yml` ejecuta `flutter pub get`, `flutter analyze`, `flutter test` y `flutter build web`. `.github/workflows/ci.yml` conserva la compilación y las pruebas del backend. Dokploy construye el Dockerfile del repositorio desde `docker-compose.yml`; `publish-image.yml` publica además una imagen en Docker Hub que Dokploy no consume.
 
 ## Despliegue
 
-El despliegue usa Dokploy y Docker Compose. El Dockerfile de esta rama ya compila Flutter Web y Express lo sirve desde el mismo origen; la URL pública observada históricamente servía el cliente legado y requiere un redespliegue para incorporar este cambio. El volumen persistente contiene SQLite y las pistas MP3 por sala.
+El despliegue usa Dokploy y Docker Compose. El Dockerfile compila Flutter Web y Express sirve frontend, API y `/health` desde el mismo origen. Una comprobación directa del 2026-10-26 encontró que `https://audioshare.iscoutb.dev/` aún entrega el cliente legado y `GET /rooms` responde 404; por tanto, se requiere un redespliegue desde la revisión actual antes de declarar operativa esta configuración. El volumen persistente contiene SQLite y las pistas MP3 por sala.
 
 ## Aplicación
 

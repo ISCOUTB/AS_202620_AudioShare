@@ -20,6 +20,9 @@ curl -sS http://localhost:3000/time
   `./docker-compose.yml`, disparador «On Push», *Autodeploy* activado.
 - Dominio: `audioshare.iscoutb.dev` → servicio `api`, puerto 3000, HTTPS,
   certificado `letsencrypt`.
+- El contenedor sirve Flutter Web y la API desde el mismo origen. Compose
+  limita CORS a `https://audioshare.iscoutb.dev`; el navegador no debe
+  apuntar a un host de Codespaces.
 - Respaldos de volumen: ninguno configurado.
 - Monitoreo del servicio: 0 sin datos. Capacidad del servidor: 11,67 GiB
   de RAM y 76,45 GB de disco (uso global de la máquina a las 06:16 UTC:
@@ -92,6 +95,12 @@ desde un respaldo; el volumen sigue sin respaldos configurados.
 
 - `Dockerfile` ahora incluye una etapa Flutter Web; el cambio requiere un
   redespliegue para que la URL pública deje de servir el cliente legado.
+- Comprobación externa del 2026-10-26: `/` respondió 200 con el cliente
+  legado, `/health` respondió 200, pero `GET /rooms` respondió 404. El
+  health check confirma que un proceso Express está activo, no que esté
+  ejecutando esta revisión. No se accedió al panel Dokploy ni se hizo un
+  despliegue; hay que reconstruir la rama configurada allí y repetir las
+  comprobaciones de `/`, `/health`, `/rooms` y creación/unión de sala.
 - Las pistas `data/tracks/` usan el mismo volumen `audioshare-data` que
   SQLite y no tienen respaldo independiente.
 - `publish-image.yml` publica una imagen en Docker Hub que el despliegue

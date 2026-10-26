@@ -25,14 +25,24 @@ interface Client {
 }
 
 export function createApp(
-  options: { databaseFile?: string; serveFlutterWeb?: boolean } = {},
+  options: {
+    databaseFile?: string;
+    serveFlutterWeb?: boolean;
+    allowedOrigins?: string[];
+  } = {},
 ): Express {
   const app = express();
+  const allowedOrigins = new Set(options.allowedOrigins ?? config.corsOrigins);
 
   app.use((req: Request, res: Response, next) => {
     const origin = req.header("Origin");
 
     if (origin) {
+      if (!allowedOrigins.has(origin)) {
+        res.status(403).json({ error: "Origen no permitido" });
+        return;
+      }
+
       res.setHeader("Access-Control-Allow-Origin", origin);
       res.setHeader("Vary", "Origin");
     }
@@ -103,6 +113,22 @@ export function createApp(
     : legacyWebDirectory;
 
   app.use(express.static(webDirectory));
+
+  app.get("/rooms", (_req: Request, res: Response) => {
+    const rooms = sessions.listRooms();
+
+    res.status(200).json(
+      rooms.map((room) => ({
+        roomId: room.id,
+        createdAt: room.createdAt,
+        status: room.status,
+        playbackState: room.playbackState,
+        startAt: room.startAt,
+        participants: room.participants,
+        connectedReceivers: streams.get(room.id)?.size ?? 0,
+      })),
+    );
+  });
 
   /*
    * Crea una sala.

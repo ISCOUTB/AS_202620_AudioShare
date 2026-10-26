@@ -86,6 +86,14 @@ export class SQLiteRoomRepository implements RoomRepository {
     return this.getRoom(room.id) as Room;
   }
 
+  listRooms(): Room[] {
+    const roomIds = this.database
+      .prepare("SELECT id FROM rooms ORDER BY created_at ASC, id ASC")
+      .all() as Array<{ id: string }>;
+
+    return roomIds.map((row) => this.getRoom(row.id)).filter(Boolean) as Room[];
+  }
+
   findRoom(roomId: string): Room | undefined {
     return this.getRoom(roomId);
   }
