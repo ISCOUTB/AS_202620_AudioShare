@@ -11,6 +11,9 @@ import '../../../sync/data/sync_event.dart';
 import '../../../sync/data/sync_repository.dart';
 import '../../../sync/domain/sync_service.dart';
 
+/// Estado de la pista en ESTE dispositivo (solo receptores).
+enum TrackStatus { none, downloading, ready, failed }
+
 class SessionViewModel extends ChangeNotifier {
   SessionViewModel({
     required this.repository,
@@ -58,6 +61,21 @@ class SessionViewModel extends ChangeNotifier {
   /// Aviso no fatal si la pista no se pudo descargar.
   String? audioWarning;
 
+  /// Estado de descarga de la pista en este dispositivo. Un receptor solo abre
+  /// el stream de eventos (y por tanto cuenta como conectado) cuando está `ready`.
+  TrackStatus trackStatus = TrackStatus.none;
+
+  static const double defaultVolume = 0.8;
+  final Map<String, double> _volumes = {};
+
+  /// Volumen mostrado para [participantId] (el volumen es local de cada teléfono).
+  double volumeOf(String participantId) => _volumes[participantId] ?? defaultVolume;
+
+  bool _listening = false;
+
+  /// Sin `trackUri` no hay audio que cargar; con él, hace falta la pista lista.
+  bool get _trackUsable => trackUri == null || trackStatus == TrackStatus.ready;
+
   int? _ackedStartAt;
   bool _disposed = false;
   bool _streamRejected = false;
@@ -83,8 +101,31 @@ class SessionViewModel extends ChangeNotifier {
       await _calibrateClock();
       await _loadTrack();
       await _startIfScheduled();
-      if (syncRepository != null) unawaited(_listen(roomId, receiverId));
+      _startListening();
     });
+  }
+
+  /// Reintenta la descarga de la pista tras un fallo. Si queda lista, el
+  /// receptor abre el stream y, si la sala ya está sonando, se sincroniza.
+  Future<void> retryTrack() async {
+    if (room == null || trackStatus == TrackStatus.downloading) return;
+    await _run(() async {
+      await _loadTrack();
+      if (trackStatus != TrackStatus.ready) return;
+      room = await repository.getRoom(room!.id);
+      _updateSync();
+      await _startIfScheduled();
+      _startListening();
+    });
+  }
+
+  void _startListening() {
+    final current = room;
+    final me = identity;
+    if (syncRepository == null || current == null || me == null) return;
+    if (_listening || !_trackUsable) return;
+    _listening = true;
+    unawaited(_listen(current.id, me));
   }
 
   Future<void> refresh() async {
@@ -114,20 +155,31 @@ class SessionViewModel extends ChangeNotifier {
     });
   }
 
-  Future<void> setReceiverVolume(String receiverId, double volume) => audio.setVolume(receiverId, volume);
+  Future<void> setReceiverVolume(String receiverId, double volume) async {
+    final value = volume.clamp(0.0, 1.0).toDouble();
+    _volumes[receiverId] = value;
+    notifyListeners();
+    await audio.setVolume(receiverId, value);
+  }
 
   /// Descarga la pista antes de que llegue el primer `sync.start`.
   Future<void> _loadTrack() async {
     final uri = trackUri;
     final current = room;
     if (uri == null || current == null) return;
+    trackStatus = TrackStatus.downloading;
+    audioWarning = null;
+    notifyListeners();
     try {
       final roomTrackUri = uri.resolve('/rooms/${Uri.encodeComponent(current.id)}/track');
       await audio.load(roomTrackUri.toString());
+      trackStatus = TrackStatus.ready;
       audioWarning = null;
     } catch (_) {
-      audioWarning = 'No se pudo descargar la pista de audio: este receptor no sonará.';
+      trackStatus = TrackStatus.failed;
+      audioWarning = 'No se pudo descargar la pista de audio: este receptor no sonará hasta que reintentes.';
     }
+    notifyListeners();
   }
 
   Future<void> _calibrateClock() async {
@@ -147,7 +199,7 @@ class SessionViewModel extends ChangeNotifier {
   Future<void> _startIfScheduled() async {
     final current = room;
     final me = identity;
-    if (current == null || me == null) return;
+    if (current == null || me == null || !_trackUsable) return;
     final isReceiver = current.participants.any((p) => p.id == me && p.role == ParticipantRole.receiver);
     final startAt = current.startAt;
     if (!isReceiver || !current.playing || startAt == null) return;
@@ -168,6 +220,8 @@ class SessionViewModel extends ChangeNotifier {
     final offset = clockOffsetMs;
     final me = identity;
     if (current == null || repo == null || offset == null || me == null) return;
+    // Sin la pista lista no se arranca ni se envía ACK: sería un ACK falso.
+    if (!_trackUsable) return;
     if (startAt == _ackedStartAt) return;
 
     _ackedStartAt = startAt;
@@ -211,6 +265,7 @@ class SessionViewModel extends ChangeNotifier {
       if (_disposed || _streamRejected) break;
       await Future<void>.delayed(reconnectDelay);
     }
+    _listening = false;
   }
 
   Future<void> _onEvent(SyncEvent event) async {

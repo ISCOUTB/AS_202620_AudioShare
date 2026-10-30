@@ -40,15 +40,49 @@ class _RoomPageState extends State<RoomPage> {
       const SizedBox(height: 18),
       _StateCard(room: room),
       const SizedBox(height: 16),
+      if (model.trackStatus != TrackStatus.none) ...[_TrackCard(status: model.trackStatus, loading: model.loading, onRetry: model.retryTrack), const SizedBox(height: 16)],
       if (model.error != null) Text(model.error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
       if (emitter) Row(children: [Expanded(child: FilledButton.icon(onPressed: model.loading || room.status == PlaybackStatus.playing ? null : model.play, icon: const Icon(Icons.play_arrow), label: const Text('INICIAR'))), const SizedBox(width: 12), Expanded(child: OutlinedButton.icon(onPressed: model.loading || room.status != PlaybackStatus.playing ? null : model.pause, icon: const Icon(Icons.pause), label: const Text('PAUSAR')))]),
       const SizedBox(height: 22),
       Text('PARTICIPANTES (${room.participants.length})', style: Theme.of(context).textTheme.labelLarge?.copyWith(letterSpacing: 1)),
       const SizedBox(height: 10),
-      ...room.participants.map((participant) => _ParticipantTile(participant: participant, onVolume: participant.role == ParticipantRole.receiver ? (value) => model.setReceiverVolume(participant.id, value) : null)),
+      ...room.participants.map((participant) => _ParticipantTile(participant: participant, volume: model.volumeOf(participant.id), onVolume: participant.role == ParticipantRole.receiver && participant.id == model.identity ? (value) => model.setReceiverVolume(participant.id, value) : null)),
       const SizedBox(height: 22),
       _SyncCard(snapshot: model.synchronization, simulated: model.audio.isSimulated, offsetMs: model.clockOffsetMs, warning: [model.calibrationWarning, model.audioWarning].whereType<String>().join('\n')),
     ])));
+  }
+}
+
+class _TrackCard extends StatelessWidget {
+  const _TrackCard({required this.status, required this.loading, required this.onRetry});
+  final TrackStatus status;
+  final bool loading;
+  final Future<void> Function() onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final (icon, text) = switch (status) {
+      TrackStatus.downloading => (Icons.downloading, 'Descargando la pista…'),
+      TrackStatus.ready => (Icons.check_circle_outline, 'Pista lista en este dispositivo'),
+      TrackStatus.failed => (Icons.error_outline, 'No se pudo descargar la pista'),
+      TrackStatus.none => (Icons.info_outline, ''),
+    };
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [Icon(icon), const SizedBox(width: 12), Expanded(child: Text(text))]),
+            if (status == TrackStatus.downloading) ...[const SizedBox(height: 12), const LinearProgressIndicator()],
+            if (status == TrackStatus.failed) ...[
+              const SizedBox(height: 12),
+              OutlinedButton.icon(onPressed: loading ? null : onRetry, icon: const Icon(Icons.refresh), label: const Text('REINTENTAR')),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -78,11 +112,12 @@ class _StateCard extends StatelessWidget {
 }
 
 class _ParticipantTile extends StatelessWidget {
-  const _ParticipantTile({required this.participant, this.onVolume});
+  const _ParticipantTile({required this.participant, required this.volume, this.onVolume});
   final Participant participant;
+  final double volume;
   final ValueChanged<double>? onVolume;
   @override
-  Widget build(BuildContext context) => Card(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8), child: Row(children: [Icon(participant.role == ParticipantRole.emitter ? Icons.volume_up : Icons.headphones), const SizedBox(width: 12), Expanded(child: Text('${participant.id}\n${participant.role.name}')), if (onVolume != null) SizedBox(width: 120, child: Slider(value: .8, onChanged: onVolume))])));
+  Widget build(BuildContext context) => Card(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8), child: Row(children: [Icon(participant.role == ParticipantRole.emitter ? Icons.volume_up : Icons.headphones), const SizedBox(width: 12), Expanded(child: Text('${participant.id}\n${participant.role.name}')), if (onVolume != null) SizedBox(width: 120, child: Slider(value: volume, onChanged: onVolume))])));
 }
 
 class _SyncCard extends StatelessWidget {

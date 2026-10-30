@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import {
+  PARTICIPANT_ROLE_CONFLICT,
   SessionApplication,
   SQLiteRoomRepository,
 } from "./modules/session/index.js";
@@ -168,7 +169,17 @@ export function createApp(
           receiverId: receiver.id,
           role: receiver.role,
         });
-      } catch {
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          error.message === PARTICIPANT_ROLE_CONFLICT
+        ) {
+          res.status(409).json({
+            error: "El identificador ya está en uso en esta sala con otro rol",
+          });
+          return;
+        }
+
         res.status(404).json({
           error: "Sala no encontrada",
         });

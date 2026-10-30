@@ -9,6 +9,7 @@ import type {
   Room,
   Role,
 } from "../../domain/models.js";
+import { PARTICIPANT_ROLE_CONFLICT } from "../../domain/models.js";
 import type { RoomRepository } from "../../application/room-repository.js";
 
 interface RoomRow {
@@ -128,8 +129,22 @@ export class SQLiteRoomRepository implements RoomRepository {
   }
 
   addParticipant(roomId: string, participant: Participant): Participant {
-    if (!this.getRoom(roomId)) {
+    const room = this.getRoom(roomId);
+
+    if (!room) {
       throw new Error("Sala no encontrada");
+    }
+
+    // Unirse es idempotente: el mismo identificador con el mismo rol vuelve a
+    // entrar (p. ej. tras cerrar la app) en vez de fallar contra la clave primaria.
+    const existing = room.participants.find((item) => item.id === participant.id);
+
+    if (existing) {
+      if (existing.role !== participant.role) {
+        throw new Error(PARTICIPANT_ROLE_CONFLICT);
+      }
+
+      return existing;
     }
 
     this.insertParticipant(roomId, participant);

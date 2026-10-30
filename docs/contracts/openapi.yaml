@@ -88,6 +88,14 @@ paths:
                 $ref: "#/components/schemas/AddReceiverResponse"
         "404":
           $ref: "#/components/responses/NotFound"
+        "409":
+          description: >
+            El identificador ya pertenece a otro rol en esta sala. Repetir el
+            mismo identificador con el mismo rol es idempotente y devuelve 201.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /rooms/{roomId}/play:
     post:

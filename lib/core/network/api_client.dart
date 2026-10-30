@@ -34,6 +34,10 @@ class ApiClient {
   final http.Client _client;
   static const _requestTimeout = Duration(seconds: 15);
 
+  /// Una subida solo recibe respuesta cuando el servidor termina de recibir el
+  /// cuerpo completo; con 15 s un MP3 grande falla en Wi-Fi lento o datos móviles.
+  static const uploadTimeout = Duration(minutes: 10);
+
   /// Dirección del backend. Se puede cambiar en tiempo de ejecución (campo
   /// "Servidor" de la pantalla inicial) para usar la IP del equipo en la LAN.
   Uri baseUri;
@@ -198,6 +202,7 @@ class ApiClient {
         ..bodyBytes = bytes,
       uri,
       'POST $path',
+      timeout: uploadTimeout,
     );
     final text = await response.stream.bytesToString();
     if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -208,13 +213,14 @@ class ApiClient {
   Future<http.StreamedResponse> _send(
     http.BaseRequest request,
     Uri uri,
-    String operation,
-  ) async {
+    String operation, {
+    Duration timeout = _requestTimeout,
+  }) async {
     if (kDebugMode) {
       debugPrint('AudioShare API $operation -> ${uri.origin}');
     }
     try {
-      return await _client.send(request).timeout(_requestTimeout);
+      return await _client.send(request).timeout(timeout);
     } on TimeoutException {
       throw ApiException(
         'Tiempo de espera agotado al conectar con ${uri.origin} ($operation).',

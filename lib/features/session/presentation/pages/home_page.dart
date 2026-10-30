@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
@@ -10,6 +11,14 @@ import '../../../sync/data/sync_repository.dart';
 import '../../data/repositories/room_repository.dart';
 import '../viewmodels/session_view_model.dart';
 import 'room_page.dart';
+
+/// Identificador por defecto distinto en cada teléfono. Con un valor fijo
+/// (p. ej. `receiver-mobile`) dos teléfonos chocarían en la misma sala.
+String _newDeviceId(String prefix) {
+  final random = Random.secure();
+  final suffix = List.generate(6, (_) => random.nextInt(16).toRadixString(16)).join();
+  return '$prefix-$suffix';
+}
 
 class HomePage extends StatefulWidget {
   const HomePage({
@@ -36,9 +45,9 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final emitterController = TextEditingController(text: 'emitter-mobile');
+  final emitterController = TextEditingController(text: _newDeviceId('emisor'));
   final roomController = TextEditingController();
-  final receiverController = TextEditingController(text: 'receiver-mobile');
+  final receiverController = TextEditingController(text: _newDeviceId('receptor'));
   late final serverController = TextEditingController(text: widget.api?.baseUri.toString() ?? '');
   String? error;
   bool loading = false;
