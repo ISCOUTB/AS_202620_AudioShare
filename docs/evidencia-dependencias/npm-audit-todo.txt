@@ -1,0 +1,44 @@
+﻿# npm audit report
+
+@vitest/mocker  <=4.1.11
+Severity: moderate
+Vitest: Path Traversal / Arbitrary File Read via @vitest/mocker Redirect Mock - https://github.com/advisories/GHSA-82fw-gwwq-j7x9
+Vitest: Code injection via unauthenticated manual mock registration - https://github.com/advisories/GHSA-qxg6-89mg-rqv8
+Depends on vulnerable versions of vite
+fix available via `npm audit fix --force`
+Will install vitest@4.1.12, which is a breaking change
+node_modules/@vitest/mocker
+  vitest  <=4.1.10
+  Depends on vulnerable versions of @vitest/mocker
+  Depends on vulnerable versions of tinypool
+  Depends on vulnerable versions of vite
+  Depends on vulnerable versions of vite-node
+  node_modules/vitest
+
+esbuild  <=0.24.2
+Severity: moderate
+esbuild enables any website to send any requests to the development server and read the response - https://github.com/advisories/GHSA-67mh-4wv8-2f99
+fix available via `npm audit fix --force`
+Will install vitest@4.1.12, which is a breaking change
+node_modules/vite/node_modules/esbuild
+  vite  <=6.4.3
+  Depends on vulnerable versions of esbuild
+  node_modules/vite
+    vite-node  <=2.2.0-beta.2
+    Depends on vulnerable versions of vite
+    node_modules/vite-node
+
+tinypool  <=2.1.1
+Severity: critical
+Tinypool: Prototype Pollution gadget in worker options leads to Remote Code Execution - https://github.com/advisories/GHSA-5gmw-xhrv-c9v3
+Tinypool: Prototype Pollution Gadget to RCE in run() options - https://github.com/advisories/GHSA-85c8-ppgw-ccpr
+fix available via `npm audit fix --force`
+Will install vitest@4.1.12, which is a breaking change
+node_modules/tinypool
+
+
+
+6 vulnerabilities (3 moderate, 1 high, 2 critical)
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force

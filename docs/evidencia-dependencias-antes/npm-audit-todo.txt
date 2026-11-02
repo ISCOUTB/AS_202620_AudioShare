@@ -1,0 +1,68 @@
+﻿# npm audit report
+
+@vitest/mocker  <=4.1.11
+Severity: moderate
+Vitest: Path Traversal / Arbitrary File Read via @vitest/mocker Redirect Mock - https://github.com/advisories/GHSA-82fw-gwwq-j7x9
+Vitest: Code injection via unauthenticated manual mock registration - https://github.com/advisories/GHSA-qxg6-89mg-rqv8
+Depends on vulnerable versions of vite
+fix available via `npm audit fix --force`
+Will install vitest@4.1.12, which is a breaking change
+node_modules/@vitest/mocker
+  vitest  <=4.1.10
+  Depends on vulnerable versions of @vitest/mocker
+  Depends on vulnerable versions of tinypool
+  Depends on vulnerable versions of vite
+  Depends on vulnerable versions of vite-node
+  node_modules/vitest
+
+body-parser  <1.20.9
+Severity: high
+body-parser vulnerable to Denial of Service via trailing bytes after a compressed request body - https://github.com/advisories/GHSA-27r3-jxmh-p828
+fix available via `npm audit fix`
+node_modules/body-parser
+
+esbuild  <=0.24.2
+Severity: moderate
+esbuild enables any website to send any requests to the development server and read the response - https://github.com/advisories/GHSA-67mh-4wv8-2f99
+fix available via `npm audit fix --force`
+Will install vitest@4.1.12, which is a breaking change
+node_modules/vite/node_modules/esbuild
+  vite  <=6.4.3
+  Depends on vulnerable versions of esbuild
+  node_modules/vite
+    vite-node  <=2.2.0-beta.2
+    Depends on vulnerable versions of vite
+    node_modules/vite-node
+
+fast-uri  3.0.0 - 3.1.8
+Severity: moderate
+fast-uri vulnerable to URI scheme spoofing via percent-encoded scheme decoding - https://github.com/advisories/GHSA-w74x-v6f9-j3xg
+fast-uri vulnerable to improper path equivalence in relative reference normalization - https://github.com/advisories/GHSA-xhq7-xmqj-769h
+fast-uri vulnerable to host confusion via unchecked WHATWG host canonicalization - https://github.com/advisories/GHSA-wjr9-j795-jxcr
+fast-uri vulnerable to scheme injection via an unescaped first-segment colon in suffix references - https://github.com/advisories/GHSA-333x-w4r6-6crp
+fix available via `npm audit fix`
+node_modules/fast-uri
+
+source-map-js  1.0.0 - 1.2.1
+Severity: high
+source-map-js allows event-loop denial of service through indexed source-map section offsets - https://github.com/advisories/GHSA-68fv-2mgg-jv7q
+fix available via `npm audit fix`
+node_modules/source-map-js
+
+tinypool  <=2.1.1
+Severity: critical
+Tinypool: Prototype Pollution gadget in worker options leads to Remote Code Execution - https://github.com/advisories/GHSA-5gmw-xhrv-c9v3
+Tinypool: Prototype Pollution Gadget to RCE in run() options - https://github.com/advisories/GHSA-85c8-ppgw-ccpr
+fix available via `npm audit fix --force`
+Will install vitest@4.1.12, which is a breaking change
+node_modules/tinypool
+
+
+
+9 vulnerabilities (4 moderate, 3 high, 2 critical)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force

@@ -1,0 +1,12 @@
+﻿# npm audit report
+
+body-parser  <1.20.9
+Severity: high
+body-parser vulnerable to Denial of Service via trailing bytes after a compressed request body - https://github.com/advisories/GHSA-27r3-jxmh-p828
+fix available via `npm audit fix`
+node_modules/body-parser
+
+1 high severity vulnerability
+
+To address all issues, run:
+  npm audit fix

@@ -1,0 +1,131 @@
+﻿audioshare@0.1.0 C:\Users\HP\AS_202620_AudioShare
+Ôö£ÔöÇÔö¼ better-sqlite3@13.0.3
+Ôöé ÔööÔöÇÔöÇ node-addon-api@8.9.2
+ÔööÔöÇÔö¼ express@4.22.3
+  Ôö£ÔöÇÔö¼ accepts@1.3.8
+  Ôöé Ôö£ÔöÇÔö¼ mime-types@2.1.35
+  Ôöé Ôöé ÔööÔöÇÔöÇ mime-db@1.52.0
+  Ôöé ÔööÔöÇÔöÇ negotiator@0.6.3
+  Ôö£ÔöÇÔöÇ array-flatten@1.1.1
+  Ôö£ÔöÇÔö¼ body-parser@1.20.8
+  Ôöé Ôö£ÔöÇÔöÇ bytes@3.1.2
+  Ôöé Ôö£ÔöÇÔöÇ content-type@1.0.5 deduped
+  Ôöé Ôö£ÔöÇÔöÇ debug@2.6.9 deduped
+  Ôöé Ôö£ÔöÇÔöÇ depd@2.0.0 deduped
+  Ôöé Ôö£ÔöÇÔöÇ destroy@1.2.0
+  Ôöé Ôö£ÔöÇÔöÇ http-errors@2.0.1 deduped
+  Ôöé Ôö£ÔöÇÔö¼ iconv-lite@0.4.24
+  Ôöé Ôöé ÔööÔöÇÔöÇ safer-buffer@2.1.2
+  Ôöé Ôö£ÔöÇÔöÇ on-finished@2.4.1 deduped
+  Ôöé Ôö£ÔöÇÔöÇ qs@6.16.1 deduped
+  Ôöé Ôö£ÔöÇÔö¼ raw-body@2.5.3
+  Ôöé Ôöé Ôö£ÔöÇÔöÇ bytes@3.1.2 deduped
+  Ôöé Ôöé Ôö£ÔöÇÔöÇ http-errors@2.0.1 deduped
+  Ôöé Ôöé Ôö£ÔöÇÔöÇ iconv-lite@0.4.24 deduped
+  Ôöé Ôöé ÔööÔöÇÔöÇ unpipe@1.0.0 deduped
+  Ôöé Ôö£ÔöÇÔöÇ type-is@1.6.18 deduped
+  Ôöé ÔööÔöÇÔöÇ unpipe@1.0.0
+  Ôö£ÔöÇÔö¼ content-disposition@0.5.4
+  Ôöé ÔööÔöÇÔöÇ safe-buffer@5.2.1 deduped
+  Ôö£ÔöÇÔöÇ content-type@1.0.5
+  Ôö£ÔöÇÔöÇ cookie-signature@1.0.7
+  Ôö£ÔöÇÔöÇ cookie@0.7.2
+  Ôö£ÔöÇÔö¼ debug@2.6.9
+  Ôöé ÔööÔöÇÔöÇ ms@2.0.0
+  Ôö£ÔöÇÔöÇ depd@2.0.0
+  Ôö£ÔöÇÔöÇ encodeurl@2.0.0
+  Ôö£ÔöÇÔöÇ escape-html@1.0.3
+  Ôö£ÔöÇÔöÇ etag@1.8.1
+  Ôö£ÔöÇÔö¼ finalhandler@1.3.2
+  Ôöé Ôö£ÔöÇÔöÇ debug@2.6.9 deduped
+  Ôöé Ôö£ÔöÇÔöÇ encodeurl@2.0.0 deduped
+  Ôöé Ôö£ÔöÇÔöÇ escape-html@1.0.3 deduped
+  Ôöé Ôö£ÔöÇÔöÇ on-finished@2.4.1 deduped
+  Ôöé Ôö£ÔöÇÔöÇ parseurl@1.3.3 deduped
+  Ôöé Ôö£ÔöÇÔöÇ statuses@2.0.2 deduped
+  Ôöé ÔööÔöÇÔöÇ unpipe@1.0.0 deduped
+  Ôö£ÔöÇÔöÇ fresh@0.5.2
+  Ôö£ÔöÇÔö¼ http-errors@2.0.1
+  Ôöé Ôö£ÔöÇÔöÇ depd@2.0.0 deduped
+  Ôöé Ôö£ÔöÇÔöÇ inherits@2.0.4
+  Ôöé Ôö£ÔöÇÔöÇ setprototypeof@1.2.0 deduped
+  Ôöé Ôö£ÔöÇÔöÇ statuses@2.0.2 deduped
+  Ôöé ÔööÔöÇÔöÇ toidentifier@1.0.1
+  Ôö£ÔöÇÔöÇ merge-descriptors@1.0.3
+  Ôö£ÔöÇÔöÇ methods@1.1.2
+  Ôö£ÔöÇÔö¼ on-finished@2.4.1
+  Ôöé ÔööÔöÇÔöÇ ee-first@1.1.1
+  Ôö£ÔöÇÔöÇ parseurl@1.3.3
+  Ôö£ÔöÇÔöÇ path-to-regexp@0.1.13
+  Ôö£ÔöÇÔö¼ proxy-addr@2.0.8
+  Ôöé Ôö£ÔöÇÔöÇ forwarded@0.2.0
+  Ôöé ÔööÔöÇÔöÇ ipaddr.js@1.9.1
+  Ôö£ÔöÇÔö¼ qs@6.16.1
+  Ôöé Ôö£ÔöÇÔöÇ es-define-property@1.0.1
+  Ôöé ÔööÔöÇÔö¼ side-channel@1.1.1
+  Ôöé   Ôö£ÔöÇÔöÇ es-errors@1.3.0
+  Ôöé   Ôö£ÔöÇÔöÇ object-inspect@1.13.4
+  Ôöé   Ôö£ÔöÇÔö¼ side-channel-list@1.0.1
+  Ôöé   Ôöé Ôö£ÔöÇÔöÇ es-errors@1.3.0 deduped
+  Ôöé   Ôöé ÔööÔöÇÔöÇ object-inspect@1.13.4 deduped
+  Ôöé   Ôö£ÔöÇÔö¼ side-channel-map@1.0.1
+  Ôöé   Ôöé Ôö£ÔöÇÔö¼ call-bound@1.0.4
+  Ôöé   Ôöé Ôöé Ôö£ÔöÇÔö¼ call-bind-apply-helpers@1.0.2
+  Ôöé   Ôöé Ôöé Ôöé Ôö£ÔöÇÔöÇ es-errors@1.3.0 deduped
+  Ôöé   Ôöé Ôöé Ôöé ÔööÔöÇÔöÇ function-bind@1.1.2 deduped
+  Ôöé   Ôöé Ôöé ÔööÔöÇÔöÇ get-intrinsic@1.3.0 deduped
+  Ôöé   Ôöé Ôö£ÔöÇÔöÇ es-errors@1.3.0 deduped
+  Ôöé   Ôöé Ôö£ÔöÇÔö¼ get-intrinsic@1.3.0
+  Ôöé   Ôöé Ôöé Ôö£ÔöÇÔöÇ call-bind-apply-helpers@1.0.2 deduped
+  Ôöé   Ôöé Ôöé Ôö£ÔöÇÔöÇ es-define-property@1.0.1 deduped
+  Ôöé   Ôöé Ôöé Ôö£ÔöÇÔöÇ es-errors@1.3.0 deduped
+  Ôöé   Ôöé Ôöé Ôö£ÔöÇÔö¼ es-object-atoms@1.1.2
+  Ôöé   Ôöé Ôöé Ôöé ÔööÔöÇÔöÇ es-errors@1.3.0 deduped
+  Ôöé   Ôöé Ôöé Ôö£ÔöÇÔöÇ function-bind@1.1.2
+  Ôöé   Ôöé Ôöé Ôö£ÔöÇÔö¼ get-proto@1.0.1
+  Ôöé   Ôöé Ôöé Ôöé Ôö£ÔöÇÔö¼ dunder-proto@1.0.1
+  Ôöé   Ôöé Ôöé Ôöé Ôöé Ôö£ÔöÇÔöÇ call-bind-apply-helpers@1.0.2 deduped
+  Ôöé   Ôöé Ôöé Ôöé Ôöé Ôö£ÔöÇÔöÇ es-errors@1.3.0 deduped
+  Ôöé   Ôöé Ôöé Ôöé Ôöé ÔööÔöÇÔöÇ gopd@1.2.0 deduped
+  Ôöé   Ôöé Ôöé Ôöé ÔööÔöÇÔöÇ es-object-atoms@1.1.2 deduped
+  Ôöé   Ôöé Ôöé Ôö£ÔöÇÔöÇ gopd@1.2.0
+  Ôöé   Ôöé Ôöé Ôö£ÔöÇÔöÇ has-symbols@1.1.0
+  Ôöé   Ôöé Ôöé Ôö£ÔöÇÔö¼ hasown@2.0.4
+  Ôöé   Ôöé Ôöé Ôöé ÔööÔöÇÔöÇ function-bind@1.1.2 deduped
+  Ôöé   Ôöé Ôöé ÔööÔöÇÔöÇ math-intrinsics@1.1.0
+  Ôöé   Ôöé ÔööÔöÇÔöÇ object-inspect@1.13.4 deduped
+  Ôöé   ÔööÔöÇÔö¼ side-channel-weakmap@1.0.2
+  Ôöé     Ôö£ÔöÇÔöÇ call-bound@1.0.4 deduped
+  Ôöé     Ôö£ÔöÇÔöÇ es-errors@1.3.0 deduped
+  Ôöé     Ôö£ÔöÇÔöÇ get-intrinsic@1.3.0 deduped
+  Ôöé     Ôö£ÔöÇÔöÇ object-inspect@1.13.4 deduped
+  Ôöé     ÔööÔöÇÔöÇ side-channel-map@1.0.1 deduped
+  Ôö£ÔöÇÔöÇ range-parser@1.2.1
+  Ôö£ÔöÇÔöÇ safe-buffer@5.2.1
+  Ôö£ÔöÇÔö¼ send@0.19.2
+  Ôöé Ôö£ÔöÇÔöÇ debug@2.6.9 deduped
+  Ôöé Ôö£ÔöÇÔöÇ depd@2.0.0 deduped
+  Ôöé Ôö£ÔöÇÔöÇ destroy@1.2.0 deduped
+  Ôöé Ôö£ÔöÇÔöÇ encodeurl@2.0.0 deduped
+  Ôöé Ôö£ÔöÇÔöÇ escape-html@1.0.3 deduped
+  Ôöé Ôö£ÔöÇÔöÇ etag@1.8.1 deduped
+  Ôöé Ôö£ÔöÇÔöÇ fresh@0.5.2 deduped
+  Ôöé Ôö£ÔöÇÔöÇ http-errors@2.0.1 deduped
+  Ôöé Ôö£ÔöÇÔöÇ mime@1.6.0
+  Ôöé Ôö£ÔöÇÔöÇ ms@2.1.3
+  Ôöé Ôö£ÔöÇÔöÇ on-finished@2.4.1 deduped
+  Ôöé Ôö£ÔöÇÔöÇ range-parser@1.2.1 deduped
+  Ôöé ÔööÔöÇÔöÇ statuses@2.0.2 deduped
+  Ôö£ÔöÇÔö¼ serve-static@1.16.3
+  Ôöé Ôö£ÔöÇÔöÇ encodeurl@2.0.0 deduped
+  Ôöé Ôö£ÔöÇÔöÇ escape-html@1.0.3 deduped
+  Ôöé Ôö£ÔöÇÔöÇ parseurl@1.3.3 deduped
+  Ôöé ÔööÔöÇÔöÇ send@0.19.2 deduped
+  Ôö£ÔöÇÔöÇ setprototypeof@1.2.0
+  Ôö£ÔöÇÔöÇ statuses@2.0.2
+  Ôö£ÔöÇÔö¼ type-is@1.6.18
+  Ôöé Ôö£ÔöÇÔöÇ media-typer@0.3.0
+  Ôöé ÔööÔöÇÔöÇ mime-types@2.1.35 deduped
+  Ôö£ÔöÇÔöÇ utils-merge@1.0.1
+  ÔööÔöÇÔöÇ vary@1.1.2
+

@@ -265,3 +265,9 @@ Proyecto académico desarrollado para la asignatura correspondiente de Ingenier�
 ## About
 
 Plataforma para transmitir audio en tiempo real desde un dispositivo a múltiples dispositivos conectados.
+
+## Privacidad y seguridad
+
+- Qué datos trata AudioShare y por cuánto tiempo: [docs/privacidad.md](docs/privacidad.md)
+- Amenazas priorizadas y mitigaciones: [docs/amenazas-priorizadas.md](docs/amenazas-priorizadas.md)
+- Análisis de dependencias: [docs/analisis-dependencias.md](docs/analisis-dependencias.md)
