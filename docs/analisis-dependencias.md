@@ -11,11 +11,8 @@ Elaborado el 2026-11-01 a partir de `package.json`, `package-lock.json`,
 | Inventario de paquetes y licencias de npm y de pub | Lectura de los archivos de bloqueo (`package-lock.json`, `pubspec.lock`) | Hecho |
 | Revisión de la cadena de suministro (CI, Docker, rangos de versión) | Lectura de los archivos de configuración | Hecho |
 | Consulta de un aviso concreto (`qs`) | Búsqueda en OSV y Tenable el 2026-11-01 | Hecho |
-| `npm audit`, `npm outdated`, `flutter pub outdated` | **Se ejecutan en la máquina del equipo** con `scripts/analizar-dependencias.ps1`. El entorno donde se redactó este documento no tenía acceso a la red, así que no se pudo consultar el registro de avisos de npm. | Pendiente de ejecutar; ver «Resultado de la ejecución» |
+| `npm audit`, `npm outdated`, `flutter pub outdated` | **Se ejecutan en la máquina del equipo** con `scripts/analizar-dependencias.ps1`. | ver «Resultado de la ejecución» |
 
-Por eso este documento no afirma que «no hay vulnerabilidades»: afirma lo que
-se pudo comprobar leyendo los archivos y deja las cifras de las herramientas
-para el resumen que genera el script.
 
 ## Inventario
 
