@@ -63,7 +63,7 @@ legal.
 | Minimización | Sin cuentas ni datos de contacto; identificadores aleatorios por defecto; no registrar IP en la aplicación. |
 | Finalidad | Los datos sirven solo para coordinar la reproducción de la sala. No se usan para analítica ni se comparten con terceros. |
 | Transparencia | Aviso corto en la pantalla de inicio y en el README (texto propuesto más abajo). |
-| Limitación de la conservación | Caducidad de salas y pistas (propuesta abajo). |
+| Limitación de la conservación | Caducidad de salas y pistas (propuesta abajo; **aún no implementada**). |
 | Seguridad | Token de emisor y de receptor, HTTPS, límites (AM-01, AM-03, AM-04, AM-06). |
 | Acceso y supresión | `DELETE /rooms/:roomId` autenticado con el token de emisor (AM-11). |
 
@@ -90,13 +90,23 @@ interpreta el alcance y qué aviso de privacidad corresponde.
 
 ## Aviso de privacidad (texto propuesto)
 
+El aviso describe lo que **hoy** ocurre. No debe anunciar caducidad ni borrado
+mientras esas funciones no estén implementadas y probadas (AM-11): prometer una
+supresión que no existe sería peor que no decir nada.
+
 > AudioShare no te pide cuenta ni datos de contacto. Para coordinar la sala se
 > guarda un identificador de dispositivo (generado al azar, puedes cambiarlo;
 > no escribas tu nombre real), el rol y la hora en que entraste. Si eres el
 > emisor, también se guarda en el servidor el MP3 que subas, y lo descargan los
 > receptores de tu sala. Los datos se usan solo para sincronizar la
-> reproducción, no se comparten con terceros y se borran cuando la sala
-> caduca. No subas contenido sobre el que no tengas derechos.
+> reproducción y no se comparten con terceros. **Hoy no se borran
+> automáticamente ni existe una función para borrarlos**; la caducidad y el
+> borrado a petición están en desarrollo. No subas contenido sobre el que no
+> tengas derechos ni nada que no quieras conservar en el servidor.
+
+Cuando la caducidad y `DELETE /rooms/:roomId` estén implementados y con
+pruebas, se reemplaza la frase destacada por el plazo real y el medio para
+pedir el borrado.
 
 ## Pendiente
 
@@ -106,4 +116,5 @@ interpreta el alcance y qué aviso de privacidad corresponde.
 - Definir un canal de contacto del equipo para solicitudes de borrado y
   añadirlo al README.
 - Revisar la retención de registros y de IP en el proxy de Dokploy.
-- Mostrar el aviso de privacidad en la pantalla de inicio de la app.
+- Mostrar el aviso de privacidad en la pantalla de inicio de la app, con el texto de hoy (sin prometer borrado).
+- Actualizar el aviso para anunciar caducidad y borrado solo cuando estén implementados y probados.

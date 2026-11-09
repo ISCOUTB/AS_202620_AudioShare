@@ -93,14 +93,21 @@ desde un respaldo; el volumen sigue sin respaldos configurados.
 
 ### Limitaciones conocidas
 
-- `Dockerfile` ahora incluye una etapa Flutter Web; el cambio requiere un
-  redespliegue para que la URL pública deje de servir el cliente legado.
-- Comprobación externa del 2026-10-26: `/` respondió 200 con el cliente
-  legado, `/health` respondió 200, pero `GET /rooms` respondió 404. El
-  health check confirma que un proceso Express está activo, no que esté
-  ejecutando esta revisión. No se accedió al panel Dokploy ni se hizo un
-  despliegue; hay que reconstruir la rama configurada allí y repetir las
-  comprobaciones de `/`, `/health`, `/rooms` y creación/unión de sala.
+- Redespliegue por Dokploy hecho el 2026-11-01 (Dokploy construye con
+  `build: .`; no consume la imagen de Docker Hub). Evidencia: `GET /health`
+  respondió `startedAt` 2026-11-02T04:21:16.779Z, posterior a la corrección de
+  `body-parser`, y `npm ls body-parser` dentro del contenedor mostró 1.20.9.
+  Comprobación externa del 2026-11-08: la raíz entrega el cliente Flutter Web
+  (descripción y `<base href="/">` de `web/index.html`), no el cliente legado
+  «AudioShare | Demo A-01» del 2026-10-26.
+- Límite de esa evidencia: `/health` no incluye el commit servido, y la
+  sincronización entre dispositivos no se repitió sobre la revisión actual
+  (las corridas físicas son del 2026-10-19). Pendiente: exponer el commit o la
+  versión en `/health` y repetir las corridas con `scripts/capturar-corrida.ps1`.
+- Comprobación externa del 2026-10-26, anterior al redespliegue: `/` respondió
+  200 con el cliente legado, `/health` 200 y `GET /rooms` 404. El health check
+  confirma que un proceso Express está activo, no que ejecute una revisión
+  determinada.
 - Las pistas `data/tracks/` usan el mismo volumen `audioshare-data` que
   SQLite y no tienen respaldo independiente.
 - `publish-image.yml` publica una imagen en Docker Hub que el despliegue

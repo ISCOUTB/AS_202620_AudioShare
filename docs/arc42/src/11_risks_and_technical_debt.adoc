@@ -7,7 +7,13 @@ Esta sección resume los riesgos técnicos vigentes. El análisis completo, con
 la evidencia de cada uno (`R` = reproducido con prueba, `L` = lectura de
 código), está en link:../../modos-de-fallo.md[`docs/modos-de-fallo.md`]; las
 garantías de consistencia, en
-link:../../consistencia-operaciones.md[`docs/consistencia-operaciones.md`].
+link:../../consistencia-operaciones.md[`docs/consistencia-operaciones.md`]; las
+amenazas de seguridad, en
+link:../../amenazas-priorizadas.md[`docs/amenazas-priorizadas.md`]; las
+dependencias, en
+link:../../analisis-dependencias.md[`docs/analisis-dependencias.md`]; y la
+medición de EC-01, en
+link:../../evidencia-a01-ec01.md[`docs/evidencia-a01-ec01.md`].
 
 [cols="1,3,1,3"]
 |===
@@ -49,9 +55,72 @@ link:../../consistencia-operaciones.md[`docs/consistencia-operaciones.md`].
 | Abierto. Auditoría en `docs/auditoria-propiedad-datos.md`.
 
 | NC-02, NC-03
-| La salida de audio y el desfase real (EC-01) solo se comprobaron con receptores simulados, no con dispositivos físicos.
+| La salida audible no se comprobó. El desfase de EC-01 tiene dos corridas físicas con dos receptores: 34 ms (cumple el umbral de 100 ms) y 333,5 ms (no cumple, causa sin determinar). El instante medido lo declara cada receptor y no incluye la latencia de salida de audio.
 | Alta
-| Abierto. Medir con dispositivos y una referencia externa.
+| Abierto. EC-01 no está demostrado en dispositivos físicos. Repetir al menos cinco corridas con celular y PC y medir el desfase acústico con una referencia externa (`docs/evidencia-a01-ec01.md`).
+
+| FM-11
+| Estimación de reloj inválida o llegada tardía de `startAt` (`START_LEAD_MS = 500`): hipótesis principal para la corrida de 333,5 ms, aún sin comprobar.
+| Media
+| Abierto. Registrar el RTT de las muestras de `/time` y el instante de recepción del evento; descartar muestras con RTT alto.
+
+| AM-01, AM-02, AM-03
+| Los endpoints de control no autentican; `GET /rooms` enumera todas las salas y la subida de pista no tiene cuota. La API está publicada en internet.
+| Alta
+| Abierto. Token de emisor y de receptor, retirar `GET /rooms` en producción y límite de tamaño y de espacio (`docs/amenazas-priorizadas.md`).
+
+| AM-04
+| Sin límites de tasa ni de cantidad de salas, receptores y conexiones de stream.
+| Alta
+| Abierto. Limitador por IP, topes por sala y límite en el proxy.
+
+| DEP-04
+| La imagen de Docker Hub se publica en cada push sin esperar al CI (Dokploy no la consume: construye con `build: .`).
+| Media
+| Abierto. Condicionar la publicación a las pruebas y etiquetar con el SHA además de `latest`.
+
+| DEP-01
+| `body-parser` 1.20.8 tenía un aviso alto de denegación de servicio en producción.
+| Alta
+| Corregido (1.20.9) y verificado en el contenedor de Dokploy el 2026-11-01.
+
+| DEP-07
+| Seis avisos en dependencias de desarrollo (`vitest` 2.1.9, `tinypool`, `vite`, `esbuild`); no llegan a la imagen.
+| Baja
+| Aceptado con plan: migrar `vitest` a la rama 4.x en una tarea aparte.
+|===
+
+=== Revisión de pares (seguimiento del 2026-11-05)
+
+Fuente: seguimiento de AudioShare en el repositorio de revisiones del curso
+(`ISCOUTB/AS_202620_feedback`, archivo `revisiones/2026-2/seguimiento-2026-11-05.md`),
+sobre la punta `b2eb60d` de `master`, observada el 2026-11-05. La revisión no
+recalifica semanas; conserva cuatro pendientes. Cada uno se incorpora aquí con
+su estado y la evidencia que existe.
+
+[cols="3,1,4,4"]
+|===
+| Hallazgo del revisor | Estado | Qué se hizo y evidencia | Qué falta
+
+| Redesplegar mediante el flujo Dokploy y demostrar frontend, API y sincronización entre dispositivos; publicar la imagen de Docker Hub no acredita la revisión servida.
+| Parcial
+| Redespliegue por Dokploy el 2026-11-01 (Dokploy construye con `build: .`, no usa la imagen). `GET /health` respondió `startedAt` 2026-11-02T04:21:16.779Z y `npm ls body-parser` dentro del contenedor mostró 1.20.9. Comprobación externa del 2026-11-08: la raíz de la URL pública sirve el cliente Flutter Web, ya no el cliente legado del 2026-10-26. Registrado en `docs/despliegue.md`.
+| `/health` no expone el commit servido, y la sincronización entre dispositivos no se demostró sobre esta revisión (las corridas físicas son del 2026-10-19). Exponer commit o versión en `/health` y repetir las corridas con `scripts/capturar-corrida.ps1`.
+
+| Implementar y probar control de acceso por sala, cuotas de subida y límites de tasa; acompañar borrado y caducidad con una política y un aviso que no prometan una supresión ya operativa.
+| Abierto (implementación). Aviso corregido.
+| Diseñados en AM-01, AM-03, AM-04 y AM-11 (`docs/amenazas-priorizadas.md`); ninguno implementado. El aviso de privacidad propuesto decía que los datos «se borran cuando la sala caduca»; se reescribió para decir que hoy no se borran ni hay función para hacerlo (`docs/privacidad.md`).
+| Token de emisor y de receptor, límite de tamaño y de espacio de subida, limitador por IP; pruebas `supertest` que esperen 401, 413 y 429. `DELETE /rooms/:roomId` y caducidad con pruebas antes de anunciar el borrado.
+
+| Integrar la auditoría de producción al CI; resolver o justificar con análisis completo los seis avisos de desarrollo; actualizar la acción de Sonar que emite una advertencia de seguridad.
+| Resuelto en esta entrega, con tarea de salida
+| `ci.yml` ejecuta `npm audit --omit=dev --audit-level=high` (DEP-02). Los seis avisos de `vitest`, `tinypool`, `esbuild`, `vite` y `vite-node` tienen análisis por aviso: precondición, alcance en este repositorio y versión que lo corrige (`docs/analisis-dependencias.md`). La acción de Sonar tiene CVE-2025-58178 (corregido en 5.3.1) y CVE-2025-59844 (corregido en 6.0.0); se fija la versión 6.0.0 por SHA (DEP-12).
+| Migrar `vitest` de 2.1.9 a 4.1.12, que según `npm audit` cierra la cadena, y repetir la auditoría. Activar Dependabot.
+
+| Documentar la prueba Flutter omitida y validar descarga, reintento y reingreso en dispositivos reales.
+| Documentado. Validación abierta.
+| `test/audio_playback_web_test.dart` se omite con `skip: !kIsWeb`, y `flutter.yml` ejecuta `flutter test` en la máquina virtual de Dart, así que **no corre nunca en el CI**. Necesita un servidor en `127.0.0.1:3000` que sirva `/track`. No hay evidencia registrada de que pase.
+| Ejecutarla con `flutter test --platform chrome test/audio_playback_web_test.dart` contra un servidor local y registrar el resultado; decidir si entra al CI o se declara manual. Probar en el celular y el PC la descarga de la pista, el reintento tras un corte de red y el reingreso del receptor.
 |===
 
 *Deuda documental.* `docs/modos-de-fallo.md` aún describe FM-08 (pausa sin

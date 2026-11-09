@@ -174,7 +174,7 @@ móviles manteniendo las responsabilidades principales del backend.
 
 ## Despliegue
 
-El despliegue usa Dokploy y Docker Compose. El Dockerfile compila Flutter Web y Express sirve frontend, API y `/health` desde el mismo origen. Una comprobación directa del 2026-10-26 encontró que `https://audioshare.iscoutb.dev/` aún entrega el cliente legado y `GET /rooms` responde 404; por tanto, se requiere un redespliegue desde la revisión actual antes de declarar operativa esta configuración. El volumen persistente contiene SQLite y las pistas MP3 por sala.
+El despliegue usa Dokploy y Docker Compose. El Dockerfile compila Flutter Web y Express sirve frontend, API y `/health` desde el mismo origen. Comprobaciones externas de `https://audioshare.iscoutb.dev/`: el 2026-10-26 la raíz entregaba el cliente legado y `GET /rooms` respondía 404 (antes del redespliegue); el 2026-11-08, después del redespliegue por Dokploy del 2026-11-01, la raíz entrega el cliente Flutter Web. `/health` informa `startedAt` pero no el commit servido, así que la revisión desplegada se acredita hoy con `startedAt` y con las versiones instaladas en el contenedor (ver [`docs/despliegue.md`](docs/despliegue.md)). El volumen persistente contiene SQLite y las pistas MP3 por sala.
 
 ## Aplicación
 
