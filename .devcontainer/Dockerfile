@@ -1,6 +1,6 @@
 FROM mcr.microsoft.com/devcontainers/base:ubuntu-24.04
 
-ARG FLUTTER_VERSION=3.35.7
+ARG FLUTTER_VERSION=3.47.5
 ENV FLUTTER_HOME=/opt/flutter
 ENV PATH=${FLUTTER_HOME}/bin:${FLUTTER_HOME}/bin/cache/dart-sdk/bin:${PATH}
 
