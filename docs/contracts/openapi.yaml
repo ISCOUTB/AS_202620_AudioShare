@@ -38,15 +38,28 @@ paths:
                 emitterId:
                   type: string
                   description: >
-                    Identificador del emisor. Si se omite, el servidor genera
+                    Nombre que el emisor elige para sí mismo, de 1 a 30
+                    caracteres (se guarda sin espacios al borde y sin
+                    caracteres de control). Si se omite, el servidor genera
                     uno (crypto.randomUUID()).
       responses:
         "201":
-          description: Sala creada
+          description: >
+            Sala creada. El `roomId` es un código de 6 dígitos (con ceros a la
+            izquierda, por ejemplo `048213`). Las salas anteriores a la semana
+            14 conservan su UUID y siguen funcionando.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/CreateRoomResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "503":
+          description: El servidor no pudo guardar la sala (fallo de almacenamiento).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /rooms/{roomId}:
     get:
@@ -63,6 +76,8 @@ paths:
                 $ref: "#/components/schemas/RoomState"
         "404":
           $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
 
   /rooms/{roomId}/receivers:
     post:
@@ -79,6 +94,9 @@ paths:
               properties:
                 receiverId:
                   type: string
+                  description: >
+                    Nombre que el receptor elige, con las mismas reglas que
+                    `emitterId`. Si se omite, el servidor genera uno.
       responses:
         "201":
           description: Receptor agregado
@@ -86,8 +104,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AddReceiverResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "404":
           $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         "409":
           description: >
             El identificador ya pertenece a otro rol en esta sala. Repetir el
@@ -96,6 +118,45 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+
+  /rooms/{roomId}/emitter:
+    post:
+      operationId: rejoinEmitter
+      summary: Vuelve a entrar como emisor de una sala existente
+      description: >
+        Sin cuentas de usuario (AM-01), el emisor se reconoce por el nombre con
+        el que creó la sala. Cualquier otro nombre recibe 403.
+      parameters:
+        - $ref: "#/components/parameters/RoomId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [emitterId]
+              properties:
+                emitterId:
+                  type: string
+      responses:
+        "200":
+          description: El nombre corresponde al emisor de la sala
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmitterAccessResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          description: El nombre no corresponde al emisor de esta sala.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
 
   /rooms/{roomId}/play:
     post:
@@ -370,6 +431,11 @@ components:
       name: roomId
       in: path
       required: true
+      description: >
+        Código de la sala: 6 dígitos (o un UUID en salas anteriores). Las salas
+        sin actividad durante `ROOM_TTL_HOURS` (24 h por defecto) se borran con
+        su pista. Consultar códigos inexistentes de forma repetida bloquea al
+        origen unos instantes (429).
       schema:
         type: string
 
@@ -380,15 +446,41 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/ErrorResponse"
+    BadRequest:
+      description: Petición inválida (por ejemplo, un nombre vacío o de más de 30 caracteres).
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    TooManyRequests:
+      description: >
+        Demasiados intentos con códigos de sala inexistentes desde este origen.
+        La cabecera `Retry-After` indica los segundos de espera.
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
 
   schemas:
     HealthStatus:
       type: object
-      required: [status, system, modules, startedAt]
+      required: [status, system, modules, startedAt, storage]
       properties:
         status:
           type: string
-          const: ok
+          enum: [ok, degraded]
+          description: >
+            `degraded` si el servidor no puede escribir en el almacenamiento.
+            Aun así responde 200: el healthcheck de Docker solo mide que el
+            proceso vive.
+        storage:
+          type: string
+          enum: [ok, error]
+          description: Resultado de una escritura de prueba en SQLite.
         system:
           type: string
         modules:
@@ -467,6 +559,18 @@ components:
           type: string
         emitterId:
           type: string
+
+    EmitterAccessResponse:
+      type: object
+      required: [roomId, emitterId, role]
+      properties:
+        roomId:
+          type: string
+        emitterId:
+          type: string
+        role:
+          type: string
+          const: emitter
 
     AddReceiverResponse:
       type: object

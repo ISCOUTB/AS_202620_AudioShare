@@ -266,3 +266,13 @@ el ADR-0004.
 - `TasksOperationsNotAllowed`: ACR Tasks está bloqueado en Azure for
   Students. No uses `--source`; usa `--image`.
 - `403 Forbidden` al bajar de ghcr.io: usa la imagen pública de Docker Hub.
+
+## Variables de entorno de la semana 14 (2026-11-09)
+
+`docker-compose.yml` define ahora, además de `GIT_SHA`:
+
+- `ROOM_TTL_HOURS=24`: una sala sin actividad durante ese plazo se borra con su pista (0 = nunca). La primera búsqueda ocurre 30 segundos después de arrancar, así que **al desplegar por primera vez se borrarán las salas antiguas con más de 24 horas sin actividad**; la base se migra sola (columna `last_activity_at`).
+- `TRUST_PROXY=1`: un salto de proxy (Traefik), para que el límite de intentos use la IP del cliente.
+- `EXPOSE_ROOM_LIST` (opcional): `GET /rooms` está cerrado en producción salvo `true`.
+
+Comprobación tras desplegar: `GET /health` debe devolver `commit` con el SHA, `storage: "ok"` y `status: "ok"`; crear una sala debe dar un `roomId` de 6 dígitos.

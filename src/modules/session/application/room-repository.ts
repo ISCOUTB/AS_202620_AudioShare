@@ -17,5 +17,13 @@ export interface RoomRepository {
     playbackState: PlaybackState,
     startAt: number | null,
   ): Room;
+  /** Marca actividad en la sala (base de la caducidad por inactividad). */
+  touchRoom(roomId: string, at: string): void;
+  /** Identificadores de salas sin actividad desde antes de `beforeIso`. */
+  listInactiveRoomIds(beforeIso: string): string[];
+  /** Borra la sala y sus participantes. Devuelve si existía. */
+  deleteRoom(roomId: string): boolean;
+  /** Comprueba que se puede escribir en el almacenamiento. */
+  checkWritable(): boolean;
   close(): void;
 }

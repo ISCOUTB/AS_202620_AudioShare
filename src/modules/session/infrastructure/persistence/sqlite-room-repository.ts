@@ -1,5 +1,5 @@
 import Database from "better-sqlite3";
-import { randomUUID } from "node:crypto";
+import { randomInt } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import type {
@@ -11,6 +11,14 @@ import type {
 } from "../../domain/models.js";
 import { PARTICIPANT_ROLE_CONFLICT } from "../../domain/models.js";
 import type { RoomRepository } from "../../application/room-repository.js";
+
+/** Intentos de generar un código de sala libre antes de rendirse. */
+const ROOM_CODE_ATTEMPTS = 20;
+
+/** Código de sala de 6 dígitos (con ceros a la izquierda): fácil de dictar y teclear. */
+function generateRoomCode(): string {
+  return String(randomInt(0, 1_000_000)).padStart(6, "0");
+}
 
 interface RoomRow {
   id: string;
@@ -39,7 +47,8 @@ export class SQLiteRoomRepository implements RoomRepository {
         created_at TEXT NOT NULL,
         status TEXT NOT NULL CHECK (status IN ('stopped', 'playing', 'paused')),
         playback_state TEXT NOT NULL,
-        start_at INTEGER
+        start_at INTEGER,
+        last_activity_at TEXT
       );
 
       CREATE TABLE IF NOT EXISTS participants (
@@ -50,12 +59,48 @@ export class SQLiteRoomRepository implements RoomRepository {
         PRIMARY KEY (room_id, id),
         FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE
       );
+
+      CREATE TABLE IF NOT EXISTS health_probe (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        checked_at TEXT NOT NULL
+      );
     `);
+
+    // Migración: las bases creadas antes de la caducidad no tienen la columna.
+    const columns = this.database
+      .prepare("PRAGMA table_info(rooms)")
+      .all() as Array<{ name: string }>;
+
+    if (!columns.some((column) => column.name === "last_activity_at")) {
+      this.database.exec("ALTER TABLE rooms ADD COLUMN last_activity_at TEXT");
+    }
+
+    this.database.exec(
+      "UPDATE rooms SET last_activity_at = created_at WHERE last_activity_at IS NULL",
+    );
   }
 
   createRoom(emitterId: string): Room {
+    let id: string | undefined;
+
+    for (let attempt = 0; attempt < ROOM_CODE_ATTEMPTS; attempt += 1) {
+      const candidate = generateRoomCode();
+      const taken = this.database
+        .prepare("SELECT 1 FROM rooms WHERE id = ?")
+        .get(candidate);
+
+      if (!taken) {
+        id = candidate;
+        break;
+      }
+    }
+
+    if (id === undefined) {
+      throw new Error("No se pudo generar un código de sala único");
+    }
+
     const room: Room = {
-      id: randomUUID(),
+      id,
       createdAt: new Date().toISOString(),
       status: "stopped",
       playbackState: { playing: false, positionMs: 0 },
@@ -71,7 +116,7 @@ export class SQLiteRoomRepository implements RoomRepository {
     const transaction = this.database.transaction(() => {
       this.database
         .prepare(
-          "INSERT INTO rooms (id, created_at, status, playback_state, start_at) VALUES (?, ?, ?, ?, ?)",
+          "INSERT INTO rooms (id, created_at, status, playback_state, start_at, last_activity_at) VALUES (?, ?, ?, ?, ?, ?)",
         )
         .run(
           room.id,
@@ -79,6 +124,7 @@ export class SQLiteRoomRepository implements RoomRepository {
           room.status,
           JSON.stringify(room.playbackState),
           room.startAt,
+          room.createdAt,
         );
       this.insertParticipant(room.id, participant);
     });
@@ -168,6 +214,39 @@ export class SQLiteRoomRepository implements RoomRepository {
     }
 
     return this.getRoom(roomId) as Room;
+  }
+
+  touchRoom(roomId: string, at: string): void {
+    this.database
+      .prepare("UPDATE rooms SET last_activity_at = ? WHERE id = ?")
+      .run(at, roomId);
+  }
+
+  listInactiveRoomIds(beforeIso: string): string[] {
+    const rows = this.database
+      .prepare(
+        "SELECT id FROM rooms WHERE COALESCE(last_activity_at, created_at) < ? ORDER BY id",
+      )
+      .all(beforeIso) as Array<{ id: string }>;
+
+    return rows.map((row) => row.id);
+  }
+
+  deleteRoom(roomId: string): boolean {
+    return this.database.prepare("DELETE FROM rooms WHERE id = ?").run(roomId).changes > 0;
+  }
+
+  checkWritable(): boolean {
+    try {
+      this.database
+        .prepare(
+          "INSERT INTO health_probe (id, checked_at) VALUES (1, ?) ON CONFLICT(id) DO UPDATE SET checked_at = excluded.checked_at",
+        )
+        .run(new Date().toISOString());
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   close(): void {

@@ -102,6 +102,33 @@ describe("Prueba de contrato — OpenAPI", () => {
     validate("RoomState", res.body);
   });
 
+  it("POST /rooms/:roomId/emitter cumple EmitterAccessResponse", async () => {
+    const room = await request(app)
+      .post("/rooms")
+      .send({ emitterId: "emitter-contract" })
+      .expect(201);
+
+    const res = await request(app)
+      .post(`/rooms/${room.body.roomId}/emitter`)
+      .send({ emitterId: "emitter-contract" })
+      .expect(200);
+
+    validate("EmitterAccessResponse", res.body);
+  });
+
+  it("POST /rooms con un nombre inválido cumple ErrorResponse", async () => {
+    const res = await request(app)
+      .post("/rooms")
+      .send({ emitterId: "" })
+      .expect(400);
+    validate("ErrorResponse", res.body);
+  });
+
+  it("el código de sala nuevo es de 6 dígitos", async () => {
+    const res = await request(app).post("/rooms").send({}).expect(201);
+    expect(res.body.roomId).toMatch(/^\d{6}$/);
+  });
+
   it("GET /rooms/:roomId con sala inexistente cumple ErrorResponse", async () => {
     const res = await request(app).get("/rooms/no-existe").expect(404);
     validate("ErrorResponse", res.body);

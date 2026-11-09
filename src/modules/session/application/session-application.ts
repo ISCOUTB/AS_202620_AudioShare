@@ -52,6 +52,22 @@ export class SessionApplication {
     );
   }
 
+  touchRoom(roomId: string, at: string): void {
+    this.rooms.touchRoom(roomId, at);
+  }
+
+  inactiveRoomIds(beforeIso: string): string[] {
+    return this.rooms.listInactiveRoomIds(beforeIso);
+  }
+
+  deleteRoom(roomId: string): boolean {
+    return this.rooms.deleteRoom(roomId);
+  }
+
+  storageWritable(): boolean {
+    return this.rooms.checkWritable();
+  }
+
   close(): void {
     this.rooms.close();
   }

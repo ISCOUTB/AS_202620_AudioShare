@@ -82,16 +82,16 @@ una persona; el equipo reparte los nombres. «Tratamiento» es **mitigar**
 | --- | --- | --- | --- | --- | --- |
 | AM-03 | Exigir el token de emisor (AM-01) en `POST .../track`; fijar un límite de tamaño acorde a la pista de demostración (`public/audio/demo.mp3` pesa unos 470 KB) en lugar de 50 MB; rechazar la subida si el espacio libre del volumen baja de un umbral; borrar la pista al cerrar o caducar la sala (AM-11). | Audio + Session | Mitigar | M | Pendiente |
 | AM-01 | Generar en `POST /rooms` un token aleatorio de emisor (32 bytes) y guardar solo su hash SHA-256 en SQLite; exigirlo como `Authorization: Bearer` en `play`, `pause`, `audio` y `track`. Dar un token de receptor al hacer `join`, exigido en `stream` y `ack`. Declarar el esquema en `openapi.yaml` y registrar la decisión en un ADR nuevo. | Session (+ contrato, + Flutter `ApiClient`) | Mitigar | L | Pendiente |
-| AM-02 | Eliminar `GET /rooms` o restringirlo a `NODE_ENV !== "production"`; el código de sala pasa a ser el secreto de entrada. Actualizar `tests/health.test.ts`, que hoy lo prueba. | Session | Mitigar | S | Pendiente |
-| AM-04 | Limitador de tasa por IP (en memoria, sin dependencia nueva, o `express-rate-limit`); topes por sala de receptores y conexiones `stream`; descartar conexiones cuyo buffer de escritura supere un umbral; configurar `trust proxy` para que la IP sea la real. En paralelo, límite en el proxy de Dokploy. | Session + Operación | Mitigar / Transferir (proxy) | M | Pendiente |
+| AM-02 | Eliminar `GET /rooms` o restringirlo a `NODE_ENV !== "production"`; el código de sala pasa a ser el secreto de entrada. Actualizar `tests/health.test.ts`, que hoy lo prueba. | Session | Mitigar | S | Implementada en código (2026-11-09): `GET /rooms` responde 404 en producción salvo `EXPOSE_ROOM_LIST=true`; pendiente de desplegar |
+| AM-04 | Limitador de tasa por IP (en memoria, sin dependencia nueva, o `express-rate-limit`); topes por sala de receptores y conexiones `stream`; descartar conexiones cuyo buffer de escritura supere un umbral; configurar `trust proxy` para que la IP sea la real. En paralelo, límite en el proxy de Dokploy. | Session + Operación | Mitigar / Transferir (proxy) | M | Parcial (2026-11-09): límite de consultas a códigos inexistentes por origen, con `TRUST_PROXY`; faltan topes por sala y contrapresión de `stream` |
 | AM-05 | Añadir `npm audit --omit=dev --audit-level=high` al CI; crear `.github/dependabot.yml` para `npm`, `pub`, `github-actions` y `docker`; fijar las acciones por SHA de commit; documentar la revisión de `flutter pub outdated` en cada entrega. Detalle en [`analisis-dependencias.md`](./analisis-dependencias.md). | CI / Operación | Mitigar | S | Pendiente |
 | AM-06 | Mantener HTTPS como valor por defecto (ya lo es); mostrar un aviso en la pantalla de inicio cuando el servidor sea `http://`; dejar `usesCleartextTraffic` solo para builds de depuración o para el dominio de laboratorio. **Riesgo residual aceptado** para demostraciones en LAN, que necesitan `http://`. | Flutter | Mitigar parcialmente + Aceptar | S | Pendiente |
 | AM-07 | Validar la estructura mínima del MP3 (cabecera de trama completa), enviar `X-Content-Type-Options: nosniff` y manejar los errores de decodificación en `JustAudioService` sin cerrar la sala. | Audio + Flutter | Mitigar | M | Pendiente |
 | AM-08 | Incluir `startAt` en el ACK y responder 409 si no coincide (FM-06); ligar el ACK al token de receptor (AM-01); marcar en `/metrics` que el desfase es **autodeclarado** por los receptores. | Sync | Mitigar | M | Pendiente |
 | AM-14 | Sustituir `innerHTML` por `textContent` (o escapar) en `public/app.js`; validar `receiverId` y `emitterId` en el servidor con una lista permitida (AM-13). | Web heredada + Session | Mitigar | S | Pendiente |
 | AM-09 | `app.disable("x-powered-by")`; cabeceras `X-Content-Type-Options`, `Referrer-Policy` y una CSP para `build/web` (con prueba, porque Flutter Web puede requerir ajustes). | Backend (`app.ts`) | Mitigar | S | Pendiente |
-| AM-11 | Caducidad de salas y pistas (el plazo lo fija el equipo, ver `privacidad.md`); `DELETE /rooms/:roomId` autenticado con el token de emisor. | Session + Audio | Mitigar | M | Pendiente |
-| AM-13 | Validar `emitterId`/`receiverId` (cadena de 1 a 64 caracteres con `[A-Za-z0-9._-]`) y el tipo de `payload`; manejador de errores central que responda JSON; distinguir 404, 409 y 400 en `join`. | Session | Mitigar | S | Pendiente |
+| AM-11 | Caducidad de salas y pistas (el plazo lo fija el equipo, ver `privacidad.md`); `DELETE /rooms/:roomId` autenticado con el token de emisor. | Session + Audio | Mitigar | M | Parcial (2026-11-09): caducidad de 24 h implementada (ADR-0013), pendiente de desplegar; falta `DELETE` autenticado |
+| AM-13 | Validar `emitterId`/`receiverId` (cadena de 1 a 64 caracteres con `[A-Za-z0-9._-]`) y el tipo de `payload`; manejador de errores central que responda JSON; distinguir 404, 409 y 400 en `join`. | Session | Mitigar | S | Parcial (2026-11-09): nombres de 1 a 30 caracteres sin caracteres de control; no se restringe el alfabeto ni se valida `payload` |
 | AM-10 | Respaldo programado del volumen en Dokploy y una restauración de prueba. | Operación | Transferir | S | Pendiente |
 | AM-12 | Registrar un identificador derivado del token (no el token) y la IP real en los eventos de control; conservar los registros un tiempo acotado. | Backend (`logger.ts`) | Mitigar | S | Pendiente |
 
@@ -101,8 +101,11 @@ una persona; el equipo reparte los nombres. «Tratamiento» es **mitigar**
   texto), lo que descarta inyección SQL por los identificadores.
 - `AudioTrackStore.pathFor` solo admite `roomId` con `[a-f0-9-]`, lo que evita
   recorrer directorios; la escritura de la pista es atómica (ADR-0011).
-- Los `roomId` son UUID v4 generados con `randomUUID()`: no se adivinan; el
-  problema es que `GET /rooms` los publica (AM-02).
+- Hasta la semana 13 los `roomId` eran UUID v4 (no se adivinaban) y el problema
+  era que `GET /rooms` los publicaba (AM-02). Desde el 2026-11-09 el código es de
+  6 dígitos (un millón de combinaciones, ADR-0013): ya se pueden adivinar, por
+  eso se cerró `GET /rooms` en producción y se limitan los intentos con códigos
+  inexistentes (AM-04). Las salas antiguas conservan su UUID.
 - Lista de orígenes permitidos para CORS, con valores distintos en producción.
 - El contenedor corre como usuario sin privilegios (`USER audioshare`) y la
   imagen final no conserva las herramientas de compilación.

@@ -63,11 +63,13 @@ legal.
 | Minimización | Sin cuentas ni datos de contacto; identificadores aleatorios por defecto; no registrar IP en la aplicación. |
 | Finalidad | Los datos sirven solo para coordinar la reproducción de la sala. No se usan para analítica ni se comparten con terceros. |
 | Transparencia | Aviso corto en la pantalla de inicio y en el README (texto propuesto más abajo). |
-| Limitación de la conservación | Caducidad de salas y pistas (propuesta abajo; **aún no implementada**). |
+| Limitación de la conservación | Caducidad por inactividad de 24 h (`ROOM_TTL_HOURS`, ADR-0013): implementada y probada en el código el 2026-11-09, **pendiente de desplegar**. Borrado a petición: aún no. |
 | Seguridad | Token de emisor y de receptor, HTTPS, límites (AM-01, AM-03, AM-04, AM-06). |
 | Acceso y supresión | `DELETE /rooms/:roomId` autenticado con el token de emisor (AM-11). |
 
 ## Retención propuesta
+
+Estado a 2026-11-09: la caducidad por inactividad de salas y pistas ya está en el código (ADR-0013, `tests/rooms-lifecycle.test.ts`) con un plazo de 24 horas; no está desplegada en el servidor público. Lo que sigue **sin existir** es el borrado a petición (`DELETE /rooms/:roomId`), que necesita el token de emisor (AM-01).
 
 Valores de partida para discutir; el equipo los fija y los registra en un ADR.
 
@@ -104,9 +106,14 @@ supresión que no existe sería peor que no decir nada.
 > borrado a petición están en desarrollo. No subas contenido sobre el que no
 > tengas derechos ni nada que no quieras conservar en el servidor.
 
-Cuando la caducidad y `DELETE /rooms/:roomId` estén implementados y con
-pruebas, se reemplaza la frase destacada por el plazo real y el medio para
-pedir el borrado.
+Cuando la caducidad esté **desplegada** y comprobada en el servidor público,
+la frase destacada pasa a: «Las salas sin actividad durante 24 horas se borran
+automáticamente junto con su pista. Todavía no hay una función para pedir el
+borrado antes de ese plazo.» Mientras no esté desplegada, el aviso sigue
+diciendo lo que ocurre hoy. Además, como cada persona elige su nombre en el
+cliente, el aviso debe pedir un apodo y no datos que no quiera compartir con
+los demás participantes de la sala; con `GET /rooms` cerrado en producción, ese
+nombre solo lo ve quien conoce el código de la sala.
 
 ## Pendiente
 

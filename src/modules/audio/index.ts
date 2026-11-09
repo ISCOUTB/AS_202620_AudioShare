@@ -36,6 +36,17 @@ export class AudioTrackStore {
     return join(this.directory, `${roomId}.mp3`);
   }
 
+  /** Borra la pista de una sala. Si no existe, no es un error. */
+  async delete(roomId: string): Promise<void> {
+    try {
+      await unlink(this.pathFor(roomId));
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+        throw error;
+      }
+    }
+  }
+
   /**
    * Guarda la pista de forma atómica (ADR-0011): escribe un archivo temporal
    * en el mismo directorio y lo renombra sobre el definitivo. Un lector

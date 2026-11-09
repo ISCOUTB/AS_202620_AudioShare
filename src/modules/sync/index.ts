@@ -180,6 +180,15 @@ export class SyncMeasurements {
     };
   }
 
+  /** Olvida las mediciones de una sala (se llama al caducar la sala). */
+  forgetRoom(roomId: string): void {
+    for (const key of Array.from(this.starts.keys())) {
+      if (key.startsWith(`${roomId}:`)) {
+        this.starts.delete(key);
+      }
+    }
+  }
+
   report(roomId: string, startAt: number): SyncReport {
     const room = this.starts.get(`${roomId}:${startAt}`) ?? new Map();
     const acks: ReceiverAck[] = Array.from(room.entries()).map(

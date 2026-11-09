@@ -26,6 +26,11 @@ services:
       - DATABASE_FILE=data/audioshare.sqlite
       - LOG_LEVEL=info
       - CORS_ORIGINS=https://audioshare.iscoutb.dev
+      # Una sala sin actividad durante estas horas se borra con su pista (0 = nunca).
+      - ROOM_TTL_HOURS=24
+      # Un salto de proxy (Traefik en Dokploy): hace que el límite de intentos
+      # use la IP real del cliente y no la del proxy.
+      - TRUST_PROXY=1
     volumes:
       - audioshare-data:/app/data
     healthcheck:

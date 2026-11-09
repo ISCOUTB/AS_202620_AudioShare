@@ -123,6 +123,30 @@ su estado y la evidencia que existe.
 | Ejecutarla con `flutter test --platform chrome test/audio_playback_web_test.dart` contra un servidor local y registrar el resultado; decidir si entra al CI o se declara manual. Probar en el celular y el PC la descarga de la pista, el reintento tras un corte de red y el reingreso del receptor.
 |===
 
+=== Cambios de la semana 14 y riesgos nuevos (2026-11-09)
+
+Código de sala de 6 dígitos, caducidad por inactividad, límite de intentos y errores en JSON (ADR-0013; `tests/rooms-lifecycle.test.ts`; implementado y probado en el código, **pendiente de desplegar**).
+
+[cols="3,1,4"]
+|===
+| Riesgo o hallazgo | Estado | Tratamiento
+| Un código de 6 dígitos tiene un millón de combinaciones y se puede adivinar.
+| Mitigado parcialmente
+| `GET /rooms` cerrado en producción, límite de 20 consultas a códigos inexistentes por origen y minuto (429) y caducidad de 24 h. Sigue sin token de emisor (AM-01).
+| Una sala caduca a las 24 h sin actividad y su pista se borra: se pierde el contenido si nadie la usa.
+| Aceptado por diseño
+| Plazo configurable (`ROOM_TTL_HOURS`); una sala con receptores conectados no se borra. Debe decirse en el aviso de privacidad al desplegar.
+| Sin `TRUST_PROXY` detrás de Traefik, el límite de intentos se aplica a la IP del proxy y podría bloquear a todos.
+| Mitigado
+| `TRUST_PROXY=1` en `docker-compose.yml`; verificar tras desplegar.
+| El emisor vuelve por su nombre, sin credencial; quien conozca el código y su nombre toma el control.
+| Aceptado (AM-01 abierto)
+| Mismo nivel de exposición que hoy (cualquiera con el código puede llamar a `play` y `pause`).
+| El 2026-11-08, `POST /rooms` respondía 500 con las lecturas funcionando y `/health` en `ok`.
+| Mitigado en código
+| Errores de SQLite como 503 en JSON y `/health` con `storage` (escritura de prueba). Causa en el servidor **no confirmada**: el panel de Dokploy no estaba disponible.
+|===
+
 *Deuda documental saldada (2026-11-08).* `docs/modos-de-fallo.md` describía FM-08
 (pausa sin posición) como abierto aunque la posición ya se conservaba (NC-04);
 el documento y `docs/idempotencia-y-saga.md` quedaron alineados con el código y
