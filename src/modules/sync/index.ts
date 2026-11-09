@@ -59,8 +59,9 @@ export function estimateBestOffset(samples: ClockSample[]): number {
     throw new Error("Se necesita al menos una muestra de reloj");
   }
 
-  const best = samples.reduce((a, b) =>
-    b.t1 - b.t0 < a.t1 - a.t0 ? b : a,
+  const best = samples.reduce(
+    (a, b) => (b.t1 - b.t0 < a.t1 - a.t0 ? b : a),
+    samples[0],
   );
 
   return estimateOffset(best);

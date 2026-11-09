@@ -10,8 +10,9 @@ WORKDIR /app
 # better-sqlite3 compila un módulo nativo: hacen falta herramientas de build.
 RUN apk add --no-cache python3 make g++
 
+# La etapa de build solo ejecuta tsc: no necesita scripts de instalación.
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm ci --ignore-scripts
 
 COPY tsconfig.json ./
 COPY src ./src
@@ -22,7 +23,7 @@ FROM ghcr.io/cirruslabs/flutter:3.35.7 AS flutter-build
 WORKDIR /app
 
 COPY pubspec.yaml pubspec.lock ./
-RUN flutter pub get
+RUN flutter pub get --enforce-lockfile
 
 COPY lib ./lib
 COPY web ./web
@@ -36,6 +37,8 @@ ENV NODE_ENV=production
 RUN apk add --no-cache python3 make g++ \
     && addgroup -S audioshare && adduser -S audioshare -G audioshare
 
+# Sin --ignore-scripts a propósito: better-sqlite3 compila su módulo nativo
+# durante la instalación (ver DEP-06 en docs/analisis-dependencias.md).
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev && apk del python3 make g++
 
