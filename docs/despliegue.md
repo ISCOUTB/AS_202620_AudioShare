@@ -100,10 +100,17 @@ desde un respaldo; el volumen sigue sin respaldos configurados.
   Comprobación externa del 2026-11-08: la raíz entrega el cliente Flutter Web
   (descripción y `<base href="/">` de `web/index.html`), no el cliente legado
   «AudioShare | Demo A-01» del 2026-10-26.
-- Límite de esa evidencia: `/health` no incluye el commit servido, y la
-  sincronización entre dispositivos no se repitió sobre la revisión actual
-  (las corridas físicas son del 2026-10-19). Pendiente: exponer el commit o la
-  versión en `/health` y repetir las corridas con `scripts/capturar-corrida.ps1`.
+- Límite de esa evidencia: el `/health` desplegado no incluye el commit servido,
+  y la sincronización entre dispositivos no se repitió sobre la revisión actual
+  (las corridas físicas son del 2026-10-19).
+- Commit en `/health` (2026-11-08): el código ya devuelve el campo `commit`
+  (variable `GIT_SHA`, argumento de build del `Dockerfile` y de
+  `docker-compose.yml`). **No está desplegado todavía.** Para que el valor sea
+  real hay que definir `GIT_SHA` con el SHA del commit en las variables de
+  entorno del servicio en Dokploy antes de cada redespliegue; si no se define,
+  `/health` informa `unknown` y no acredita ninguna revisión. Pendiente:
+  redesplegar, comprobar `commit` y repetir las corridas con
+  `scripts/capturar-corrida.ps1`.
 - Comprobación externa del 2026-10-26, anterior al redespliegue: `/` respondió
   200 con el cliente legado, `/health` 200 y `GET /rooms` 404. El health check
   confirma que un proceso Express está activo, no que ejecute una revisión

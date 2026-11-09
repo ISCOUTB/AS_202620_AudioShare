@@ -14,9 +14,10 @@ desplazan con cada cambio.
   (`tests/failure-modes.test.ts`; resultado en la sección «Resultado de las
   pruebas»). `L` = lectura del código a esa fecha: **no se ejecutó una prueba
   que reproduzca el fallo**. `D` = ya documentado en un ADR o en otro
-  documento del repositorio. Solo FM-01 y FM-02 están reproducidos; el resto
-  son lectura, y al final se listan las pruebas que los convertirían en
-  evidencia.
+  documento del repositorio. FM-01 y FM-02 están reproducidos con `tests/failure-modes.test.ts`; FM-08
+  se corrigió después de este análisis y lo cubre `tests/resume-position.test.ts`
+  (2026-11-08: 45 pruebas en verde en total). El resto son lectura, y al final
+  se listan las pruebas que los convertirían en evidencia.
 - **Severidad.** Alta: rompe EC-01 o EC-04, o deja una sala inutilizable sin
   aviso al usuario. Media: degrada la medición o exige intervención manual.
   Baja: riesgo aceptable en el alcance actual.
@@ -36,7 +37,7 @@ desplazan con cada cambio.
 | FM-05 | **Fallo parcial dentro de `PLAY`.** `sync.start()` pone `playing = true` y calcula `startAt` antes de que `startPlayback` escriba en SQLite (manejador de `POST /rooms/:roomId/play`). | Si la escritura falla (disco lleno, base bloqueada), el coordinador y la base divergen. El cliente recibe un 500 que no es JSON y `ApiClient` lo reporta como «respuesta inválida». | Media | No | Orden «calcular → persistir → actualizar coordinador → publicar». Manejador de errores que responda JSON. | L |
 | FM-06 | **ACK tardío atribuido a otra reproducción.** El manejador de `.../ack` usa `room.startAt` vigente; el cuerpo del ACK no dice a qué `startAt` responde. | Un ACK de la reproducción N que llega después de `PLAY` N+1 se registra en N+1 y distorsiona el desfase medido: puede dar un falso incumplimiento o un falso cumplimiento de EC-01. | Media | No | Incluir `startAt` en el cuerpo del ACK; responder 409 si no coincide con el vigente. | L |
 | FM-07 | **Reintentar el `join` devuelve un 404 engañoso.** `POST .../receivers`: la clave primaria `(room_id, id)` hace fallar el segundo `INSERT` y el `catch {}` genérico responde «Sala no encontrada». | Un receptor que reintenta tras un timeout cree que la sala no existe. Tampoco hay forma de distinguir sala inexistente de receptor repetido. | Media | No | `join` idempotente: 200 si ya es receptor de esa sala, 409 si el id es el del emisor, 404 solo si la sala no existe. | L |
-| FM-08 | **La pausa no conserva la posición.** `SyncCoordinator.positionMs` nunca se actualiza (`SyncCoordinator` en `src/modules/sync/index.ts`) y `startPlayback` fija `positionMs: 0`. | `PAUSE` informa siempre posición 0 y `PLAY` posterior empieza de cero: no existe reanudación (EC-03, NC-04). | Media | No | Calcular la posición al pausar como `ahora − startAt` más lo acumulado, y reanudar desde ahí. | L, D |
+| FM-08 | **La pausa no conservaba la posición.** `SyncCoordinator.positionMs` nunca se actualizaba y `startPlayback` fijaba `positionMs: 0`. | `PAUSE` informaba siempre posición 0 y `PLAY` posterior empezaba de cero: no existía reanudación (EC-03, NC-04). | Media | No (corregido) | Corregido: `PAUSE` calcula la posición con `positionAt` (`base + ahora − startAt`, sin retroceder antes de `startAt`), la persiste y `PLAY` desde `paused` reanuda desde ella. Falta medir la sincronía física tras reanudar (NC-04). | R |
 | FM-09 | **El receptor que llega durante la reproducción no recibe estado.** Los eventos se publican solo en el instante de `PLAY` y `PAUSE`; al abrir el stream no se envía nada. | Un receptor nuevo o reconectado no sabe `startAt` ni la posición, salvo que consulte `GET /rooms/:id` por su cuenta (EC-04, NC-05). | Media | No | Al abrir el stream, enviar un evento `sync.snapshot` con `status`, `startAt` y `positionMs`. Sirve también para reconectar. | L, D |
 | FM-10 | **Conexión muerta no detectada y escritura sin control.** `client.send` hace `res.write` sin mirar su retorno ni `writableLength`; no hay latido. | Un receptor lento o con la red caída acumula datos en memoria y sigue contando en `connectedReceivers`. Un proxy intermedio podría cerrar conexiones sin tráfico (no se verificó la configuración del proxy de Dokploy). | Media | No | Latido (línea `ping`) periódico; descartar al cliente cuyo buffer supere un umbral; el cliente reconecta con espera creciente. | L |
 | FM-11 | **Estimación de reloj inválida o llegada tardía de `startAt`.** `START_LEAD_MS = 500` y el error de la estimación puede llegar a RTT/2 (ADR-0007). Si el receptor se entera después de `startAt`, `delayUntilStart` devuelve 0. | El receptor arranca tarde, o con un offset malo, y el desfase supera 100 ms. | Media | Parcial: se elige la muestra de menor RTT (`estimateBestOffset`) y el ACK registra `deviationMs`. | Descartar muestras con RTT alto, tomar varias, re-sincronizar antes de cada `PLAY` y tras reconectar. Revisar `START_LEAD_MS` con RTT reales. | L, D |
@@ -54,8 +55,7 @@ desplazan con cada cambio.
    y en sus pruebas): FM-04 (respuestas idempotentes y 409 en `PAUSE`),
    FM-06 (`startAt` en el ACK), FM-07 (200 al repetir `join`) y FM-09 (nuevo
    evento `sync.snapshot`).
-3. **Dependen de decisiones o de operación:** FM-08 (modelo de posición),
-   FM-10 (parámetros del latido), FM-12 (modelo de autenticación), FM-14
+3. **Dependen de decisiones o de operación:** FM-10 (parámetros del latido), FM-12 (modelo de autenticación), FM-14
    (respaldos en el panel).
 
 ## Resultado de las pruebas (2026-10-18)
@@ -101,11 +101,11 @@ que el servidor tarda en detectar).
 | FM-05 | Repositorio que falle al escribir: el coordinador no debe quedar en `playing` y la respuesta debe ser JSON. |
 | FM-06 | `PLAY`, `PLAY` de nuevo, ACK con el `startAt` anterior: debe responder 409. |
 | FM-07 | `join` repetido con el mismo id: 200 la segunda vez; con el id del emisor: 409. |
-| FM-08 | `PLAY`, espera, `PAUSE`: `positionMs` mayor que 0. |
+| FM-08 | `PLAY`, espera, `PAUSE`: `positionMs` mayor que 0. **Ya escrita:** `tests/resume-position.test.ts`. |
 | FM-09 | Receptor que abre el stream con la sala en `playing`: su primer evento es `sync.snapshot` con `startAt`. |
 
-Las dos primeras filas (FM-01 y FM-02) ya están escritas y ejecutadas (ver
-arriba). Las demás siguen pendientes.
+Las filas de FM-01 y FM-02 (ver arriba) y la de FM-08 ya están escritas y
+ejecutadas. Las demás siguen pendientes.
 
 ## Modos que aparecerán con audio real (no evaluados)
 

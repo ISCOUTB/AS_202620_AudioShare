@@ -34,6 +34,11 @@ FROM node:22-alpine AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 
+# Commit servido: se expone en GET /health (campo `commit`). Se pasa al
+# construir: docker build --build-arg GIT_SHA=$(git rev-parse HEAD) .
+ARG GIT_SHA=unknown
+ENV GIT_SHA=$GIT_SHA
+
 RUN apk add --no-cache python3 make g++ \
     && addgroup -S audioshare && adduser -S audioshare -G audioshare
 

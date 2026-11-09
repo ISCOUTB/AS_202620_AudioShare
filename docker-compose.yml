@@ -9,7 +9,13 @@
 # Sin este volumen, cada redeploy empieza sin salas ni pistas guardadas.
 services:
   api:
-    build: .
+    build:
+      context: .
+      args:
+        # Dokploy: definir GIT_SHA en las variables de entorno del servicio
+        # antes de cada redespliegue; docker compose lo interpola aquí.
+        # Local: GIT_SHA=$(git rev-parse HEAD) docker compose up -d --build
+        GIT_SHA: ${GIT_SHA:-unknown}
     image: audioshare-api:latest
     restart: unless-stopped
     ports:

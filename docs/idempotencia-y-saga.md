@@ -55,9 +55,10 @@ Solo hay tres estados (`stopped`, `playing`, `paused`; es la restricción
 
 Dependencias y advertencias:
 
-- La reanudación desde `positionMs` requiere resolver FM-08. Hoy `PLAY` desde
-  `paused` empieza de cero. Mientras FM-08 no se resuelva, el diseño de
-  `paused → playing` debe documentarse como «reinicia desde cero».
+- La reanudación desde `positionMs` depende de FM-08, que ya está resuelto:
+  `PAUSE` guarda la posición y `PLAY` desde `paused` reanuda desde ella
+  (`tests/resume-position.test.ts`). Lo que sigue pendiente de este diseño es
+  la idempotencia por estado (FM-04), no la posición.
 - Un `PLAY` idempotente por estado es peligroso si la sala queda en
   `playing` sin que nadie reproduzca (FM-03). Por eso la reconciliación al
   arrancar (`playing → paused`) va junto con este cambio, no después.

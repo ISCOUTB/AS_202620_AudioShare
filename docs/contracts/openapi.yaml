@@ -400,6 +400,12 @@ components:
           description: >
             Instante (ISO 8601) en que arrancó el servicio. Cambia cuando el
             proceso se reinicia, por ejemplo tras un redespliegue.
+        commit:
+          type: string
+          description: >
+            Commit con el que se construyó la imagen (variable `GIT_SHA`).
+            Vale `unknown` si el build no lo recibió; en ese caso no acredita
+            qué revisión se sirve.
 
     Participant:
       type: object

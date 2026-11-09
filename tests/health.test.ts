@@ -56,6 +56,29 @@ describe("esqueleto ejecutable", () => {
     expect(startedAt).toBeLessThanOrEqual(Date.now());
   });
 
+  it("informa el commit servido en /health, o unknown si el build no lo recibió", async () => {
+    const previous = process.env.GIT_SHA;
+
+    try {
+      delete process.env.GIT_SHA;
+      const unset = createApp({
+        databaseFile: join(directory, "sin-sha.sqlite"),
+      });
+      const sinSha = await request(unset).get("/health").expect(200);
+      unset.locals.close();
+      expect(sinSha.body.commit).toBe("unknown");
+
+      process.env.GIT_SHA = "b2eb60d1234567890abcdef1234567890abcdef0";
+      const set = createApp({ databaseFile: join(directory, "con-sha.sqlite") });
+      const conSha = await request(set).get("/health").expect(200);
+      set.locals.close();
+      expect(conSha.body.commit).toBe(process.env.GIT_SHA);
+    } finally {
+      if (previous === undefined) delete process.env.GIT_SHA;
+      else process.env.GIT_SHA = previous;
+    }
+  });
+
   it("expone la colección de salas en GET /rooms", async () => {
     const createRoom = await request(app)
       .post("/rooms")

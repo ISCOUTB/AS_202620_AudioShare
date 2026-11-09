@@ -87,7 +87,7 @@ link:../../evidencia-a01-ec01.md[`docs/evidencia-a01-ec01.md`].
 | DEP-07
 | Seis avisos en dependencias de desarrollo (`vitest` 2.1.9, `tinypool`, `vite`, `esbuild`); no llegan a la imagen.
 | Baja
-| Aceptado con plan: migrar `vitest` a la rama 4.x en una tarea aparte.
+| Aceptado con análisis por aviso (`docs/analisis-dependencias.md`) y plan: migrar `vitest` a la rama 4.x en una tarea aparte. Es la tarea de salida del tercer hallazgo de la revisión de pares.
 |===
 
 === Revisión de pares (seguimiento del 2026-11-05)
@@ -104,8 +104,8 @@ su estado y la evidencia que existe.
 
 | Redesplegar mediante el flujo Dokploy y demostrar frontend, API y sincronización entre dispositivos; publicar la imagen de Docker Hub no acredita la revisión servida.
 | Parcial
-| Redespliegue por Dokploy el 2026-11-01 (Dokploy construye con `build: .`, no usa la imagen). `GET /health` respondió `startedAt` 2026-11-02T04:21:16.779Z y `npm ls body-parser` dentro del contenedor mostró 1.20.9. Comprobación externa del 2026-11-08: la raíz de la URL pública sirve el cliente Flutter Web, ya no el cliente legado del 2026-10-26. Registrado en `docs/despliegue.md`.
-| `/health` no expone el commit servido, y la sincronización entre dispositivos no se demostró sobre esta revisión (las corridas físicas son del 2026-10-19). Exponer commit o versión en `/health` y repetir las corridas con `scripts/capturar-corrida.ps1`.
+| Redespliegue por Dokploy el 2026-11-01 (Dokploy construye con `build: .`, no usa la imagen). `GET /health` respondió `startedAt` 2026-11-02T04:21:16.779Z y `npm ls body-parser` dentro del contenedor mostró 1.20.9. Comprobación externa del 2026-11-08: la raíz de la URL pública sirve el cliente Flutter Web, ya no el cliente legado del 2026-10-26. Registrado en `docs/despliegue.md`. Desde el 2026-11-08 el código expone el campo `commit` en `/health` (variable `GIT_SHA` recibida como argumento de build; prueba en `tests/health.test.ts` y esquema `HealthStatus` en el contrato OpenAPI), pero **ese cambio aún no está desplegado**: el `/health` público sigue sin informar el commit.
+| La sincronización entre dispositivos no se demostró sobre esta revisión (las corridas físicas son del 2026-10-19). Definir `GIT_SHA` en las variables del servicio en Dokploy, redesplegar y comprobar que `/health` devuelve el commit esperado; luego repetir las corridas con `scripts/capturar-corrida.ps1` y registrar ese commit en cada una.
 
 | Implementar y probar control de acceso por sala, cuotas de subida y límites de tasa; acompañar borrado y caducidad con una política y un aviso que no prometan una supresión ya operativa.
 | Abierto (implementación). Aviso corregido.
@@ -113,7 +113,7 @@ su estado y la evidencia que existe.
 | Token de emisor y de receptor, límite de tamaño y de espacio de subida, limitador por IP; pruebas `supertest` que esperen 401, 413 y 429. `DELETE /rooms/:roomId` y caducidad con pruebas antes de anunciar el borrado.
 
 | Integrar la auditoría de producción al CI; resolver o justificar con análisis completo los seis avisos de desarrollo; actualizar la acción de Sonar que emite una advertencia de seguridad.
-| Resuelto en esta entrega, con tarea de salida
+| Atendido en esta entrega; la migración de `vitest` sigue pendiente (tarea de salida)
 | `ci.yml` ejecuta `npm audit --omit=dev --audit-level=high` (DEP-02). Los seis avisos de `vitest`, `tinypool`, `esbuild`, `vite` y `vite-node` tienen análisis por aviso: precondición, alcance en este repositorio y versión que lo corrige (`docs/analisis-dependencias.md`). La acción de Sonar tiene CVE-2025-58178 (corregido en 5.3.1) y CVE-2025-59844 (corregido en 6.0.0); se fija la versión 6.0.0 por SHA (DEP-12).
 | Migrar `vitest` de 2.1.9 a 4.1.12, que según `npm audit` cierra la cadena, y repetir la auditoría. Activar Dependabot.
 
@@ -123,6 +123,7 @@ su estado y la evidencia que existe.
 | Ejecutarla con `flutter test --platform chrome test/audio_playback_web_test.dart` contra un servidor local y registrar el resultado; decidir si entra al CI o se declara manual. Probar en el celular y el PC la descarga de la pista, el reintento tras un corte de red y el reingreso del receptor.
 |===
 
-*Deuda documental.* `docs/modos-de-fallo.md` aún describe FM-08 (pausa sin
-posición) como abierto, aunque la posición ya se conserva (NC-04); debe
-actualizarse en la próxima revisión de ese documento.
+*Deuda documental saldada (2026-11-08).* `docs/modos-de-fallo.md` describía FM-08
+(pausa sin posición) como abierto aunque la posición ya se conservaba (NC-04);
+el documento y `docs/idempotencia-y-saga.md` quedaron alineados con el código y
+con `tests/resume-position.test.ts`.

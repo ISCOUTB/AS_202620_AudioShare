@@ -72,6 +72,9 @@ export function createApp(
   // comprobar desde fuera si el proceso se reinició (por ejemplo tras un
   // redespliegue) y desde cuándo corre.
   const startedAt = new Date().toISOString();
+  // Commit servido. Lo inyecta el build (ARG/ENV GIT_SHA en el Dockerfile);
+  // sin él, /health informa "unknown" en lugar de inventar un valor.
+  const commit = process.env.GIT_SHA?.trim() || "unknown";
   const coordinators = new Map<string, SyncCoordinator>();
 
   // Las conexiones de una sala se crean bajo demanda. Antes solo se creaban en
@@ -602,6 +605,7 @@ export function createApp(
       system: "AudioShare",
       modules: ["session", "audio", "sync"],
       startedAt,
+      commit,
     });
   });
 
