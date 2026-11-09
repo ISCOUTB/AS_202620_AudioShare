@@ -37,7 +37,7 @@ describe("consistencia: PLAY persiste el estado que luego se lee", () => {
       .send({ emitterId: "emitter-1" })
       .expect(201);
 
-    const play = await request(app).post(`/rooms/${room.roomId}/play`).expect(200);
+    const play = await request(app).post(`/rooms/${room.roomId}/play`).set("Authorization", `Bearer ${room.emitterKey}`).expect(200);
     const read = await request(app).get(`/rooms/${room.roomId}`).expect(200);
 
     expect(read.body.startAt).toBe(play.body.startAt);
@@ -87,6 +87,7 @@ describe("caché de la pista", () => {
 
     await request(app)
       .post(`/rooms/${room.roomId}/track`)
+      .set("Authorization", `Bearer ${room.emitterKey}`)
       .set("Content-Type", "audio/mpeg")
       .send(mp3)
       .expect(201);

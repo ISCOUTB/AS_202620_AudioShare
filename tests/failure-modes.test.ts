@@ -150,10 +150,13 @@ describe("modos de fallo — conexiones de stream", () => {
     return join(directory, "audioshare.sqlite");
   }
 
-  async function post(url: string, body: unknown = {}) {
+  async function post(url: string, body: unknown = {}, emitterKey?: string) {
     return fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(emitterKey ? { Authorization: `Bearer ${emitterKey}` } : {}),
+      },
       body: JSON.stringify(body),
     });
   }
@@ -161,9 +164,9 @@ describe("modos de fallo — conexiones de stream", () => {
   it("FM-01: al reconectar con el mismo receiverId, el cierre de la conexión anterior no deja al receptor sin eventos", async () => {
     const { baseUrl } = await startServer(tempDatabase());
 
-    const { roomId } = (await (
+    const { roomId, emitterKey } = (await (
       await post(`${baseUrl}/rooms`, { emitterId: "emitter-fm01" })
-    ).json()) as { roomId: string };
+    ).json()) as { roomId: string; emitterKey: string };
 
     await post(`${baseUrl}/rooms/${roomId}/receivers`, { receiverId: "r1" });
 
@@ -187,7 +190,7 @@ describe("modos de fallo — conexiones de stream", () => {
     // Sigue habiendo una conexión viva (la B).
     expect.soft(room.connectedReceivers).toBe(1);
 
-    await post(`${baseUrl}/rooms/${roomId}/play`);
+    await post(`${baseUrl}/rooms/${roomId}/play`, {}, emitterKey);
 
     const start = await streamB.waitFor("sync.start", 2000);
 
@@ -200,9 +203,9 @@ describe("modos de fallo — conexiones de stream", () => {
     // Proceso 1: crea la sala y une al receptor.
     const first = await startServer(databaseFile);
 
-    const { roomId } = (await (
+    const { roomId, emitterKey } = (await (
       await post(`${first.baseUrl}/rooms`, { emitterId: "emitter-fm02" })
-    ).json()) as { roomId: string };
+    ).json()) as { roomId: string; emitterKey: string };
 
     await post(`${first.baseUrl}/rooms/${roomId}/receivers`, { receiverId: "r1" });
 
@@ -226,7 +229,7 @@ describe("modos de fallo — conexiones de stream", () => {
     // El servidor no debe terminar la respuesta de inmediato.
     expect.soft(stream.ended).toBe(false);
 
-    await post(`${second.baseUrl}/rooms/${roomId}/play`);
+    await post(`${second.baseUrl}/rooms/${roomId}/play`, {}, emitterKey);
 
     const start = await stream.waitFor("sync.start", 2000);
 

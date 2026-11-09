@@ -1,5 +1,5 @@
 import Database from "better-sqlite3";
-import { randomInt } from "node:crypto";
+import { createHash, randomBytes, randomInt, timingSafeEqual } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import type {
@@ -9,8 +9,14 @@ import type {
   Room,
   Role,
 } from "../../domain/models.js";
-import { PARTICIPANT_ROLE_CONFLICT } from "../../domain/models.js";
-import type { RoomRepository } from "../../application/room-repository.js";
+import {
+  PARTICIPANT_REMOVED,
+  PARTICIPANT_ROLE_CONFLICT,
+} from "../../domain/models.js";
+import type {
+  EmitterKeyCheck,
+  RoomRepository,
+} from "../../application/room-repository.js";
 
 /** Intentos de generar un código de sala libre antes de rendirse. */
 const ROOM_CODE_ATTEMPTS = 20;
@@ -20,12 +26,18 @@ function generateRoomCode(): string {
   return String(randomInt(0, 1_000_000)).padStart(6, "0");
 }
 
+function hashKey(key: string): Buffer {
+  return createHash("sha256").update(key).digest();
+}
+
 interface RoomRow {
   id: string;
   created_at: string;
   status: PlaybackStatus;
   playback_state: string;
   start_at: number | null;
+  track_name: string | null;
+  track_version: number;
 }
 
 interface ParticipantRow {
@@ -48,7 +60,10 @@ export class SQLiteRoomRepository implements RoomRepository {
         status TEXT NOT NULL CHECK (status IN ('stopped', 'playing', 'paused')),
         playback_state TEXT NOT NULL,
         start_at INTEGER,
-        last_activity_at TEXT
+        last_activity_at TEXT,
+        emitter_key_hash TEXT,
+        track_name TEXT,
+        track_version INTEGER NOT NULL DEFAULT 0
       );
 
       CREATE TABLE IF NOT EXISTS participants (
@@ -56,6 +71,14 @@ export class SQLiteRoomRepository implements RoomRepository {
         room_id TEXT NOT NULL,
         role TEXT NOT NULL CHECK (role IN ('emitter', 'receiver')),
         joined_at TEXT NOT NULL,
+        PRIMARY KEY (room_id, id),
+        FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS removed_participants (
+        room_id TEXT NOT NULL,
+        id TEXT NOT NULL,
+        removed_at TEXT NOT NULL,
         PRIMARY KEY (room_id, id),
         FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE
       );
@@ -71,8 +94,20 @@ export class SQLiteRoomRepository implements RoomRepository {
       .prepare("PRAGMA table_info(rooms)")
       .all() as Array<{ name: string }>;
 
-    if (!columns.some((column) => column.name === "last_activity_at")) {
-      this.database.exec("ALTER TABLE rooms ADD COLUMN last_activity_at TEXT");
+    const migrations: Array<[string, string]> = [
+      ["last_activity_at", "ALTER TABLE rooms ADD COLUMN last_activity_at TEXT"],
+      ["emitter_key_hash", "ALTER TABLE rooms ADD COLUMN emitter_key_hash TEXT"],
+      ["track_name", "ALTER TABLE rooms ADD COLUMN track_name TEXT"],
+      [
+        "track_version",
+        "ALTER TABLE rooms ADD COLUMN track_version INTEGER NOT NULL DEFAULT 0",
+      ],
+    ];
+
+    for (const [column, statement] of migrations) {
+      if (!columns.some((existing) => existing.name === column)) {
+        this.database.exec(statement);
+      }
     }
 
     this.database.exec(
@@ -80,7 +115,7 @@ export class SQLiteRoomRepository implements RoomRepository {
     );
   }
 
-  createRoom(emitterId: string): Room {
+  createRoom(emitterId: string): { room: Room; emitterKey: string } {
     let id: string | undefined;
 
     for (let attempt = 0; attempt < ROOM_CODE_ATTEMPTS; attempt += 1) {
@@ -106,7 +141,11 @@ export class SQLiteRoomRepository implements RoomRepository {
       playbackState: { playing: false, positionMs: 0 },
       startAt: null,
       participants: [],
+      trackName: null,
+      trackVersion: 0,
     };
+    // La llave de emisor se devuelve una sola vez; en la base solo queda el hash.
+    const emitterKey = randomBytes(24).toString("base64url");
     const participant: Participant = {
       id: emitterId,
       role: "emitter",
@@ -116,7 +155,7 @@ export class SQLiteRoomRepository implements RoomRepository {
     const transaction = this.database.transaction(() => {
       this.database
         .prepare(
-          "INSERT INTO rooms (id, created_at, status, playback_state, start_at, last_activity_at) VALUES (?, ?, ?, ?, ?, ?)",
+          "INSERT INTO rooms (id, created_at, status, playback_state, start_at, last_activity_at, emitter_key_hash) VALUES (?, ?, ?, ?, ?, ?, ?)",
         )
         .run(
           room.id,
@@ -125,12 +164,71 @@ export class SQLiteRoomRepository implements RoomRepository {
           JSON.stringify(room.playbackState),
           room.startAt,
           room.createdAt,
+          hashKey(emitterKey).toString("hex"),
         );
       this.insertParticipant(room.id, participant);
     });
 
     transaction();
-    return this.getRoom(room.id) as Room;
+    return { room: this.getRoom(room.id) as Room, emitterKey };
+  }
+
+  checkEmitterKey(roomId: string, key: string | undefined): EmitterKeyCheck {
+    const row = this.database
+      .prepare("SELECT emitter_key_hash FROM rooms WHERE id = ?")
+      .get(roomId) as { emitter_key_hash: string | null } | undefined;
+
+    if (!row || row.emitter_key_hash === null) {
+      return row ? "legacy" : "invalid";
+    }
+
+    if (key === undefined || key === "") {
+      return "missing";
+    }
+
+    const expected = Buffer.from(row.emitter_key_hash, "hex");
+
+    return timingSafeEqual(expected, hashKey(key)) ? "valid" : "invalid";
+  }
+
+  removeParticipant(roomId: string, participantId: string, ban: boolean): boolean {
+    const transaction = this.database.transaction(() => {
+      const result = this.database
+        .prepare(
+          "DELETE FROM participants WHERE room_id = ? AND id = ? AND role = 'receiver'",
+        )
+        .run(roomId, participantId);
+
+      if (result.changes === 0) {
+        return false;
+      }
+
+      if (ban) {
+        this.database
+          .prepare(
+            "INSERT OR IGNORE INTO removed_participants (room_id, id, removed_at) VALUES (?, ?, ?)",
+          )
+          .run(roomId, participantId, new Date().toISOString());
+      }
+
+      return true;
+    });
+
+    return transaction();
+  }
+
+  replaceTrack(roomId: string, trackName: string | null): Room {
+    const result = this.database
+      .prepare(
+        "UPDATE rooms SET track_name = ?, track_version = track_version + 1, status = 'stopped', playback_state = ?, start_at = NULL WHERE id = ?",
+      )
+      .run(trackName, JSON.stringify({ playing: false, positionMs: 0 }), roomId);
+
+    if (result.changes === 0) {
+      throw new Error("Sala no encontrada");
+    }
+
+    return this.getRoom(roomId) as Room;
   }
 
   listRooms(): Room[] {
@@ -166,6 +264,8 @@ export class SQLiteRoomRepository implements RoomRepository {
       status: room.status,
       playbackState: JSON.parse(room.playback_state) as PlaybackState,
       startAt: room.start_at,
+      trackName: room.track_name,
+      trackVersion: room.track_version,
       participants: participants.map((participant) => ({
         id: participant.id,
         role: participant.role,
@@ -179,6 +279,14 @@ export class SQLiteRoomRepository implements RoomRepository {
 
     if (!room) {
       throw new Error("Sala no encontrada");
+    }
+
+    const banned = this.database
+      .prepare("SELECT 1 FROM removed_participants WHERE room_id = ? AND id = ?")
+      .get(roomId, participant.id);
+
+    if (banned) {
+      throw new Error(PARTICIPANT_REMOVED);
     }
 
     // Unirse es idempotente: el mismo identificador con el mismo rol vuelve a

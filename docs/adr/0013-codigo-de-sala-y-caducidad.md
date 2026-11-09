@@ -17,15 +17,15 @@ El código de sala era un UUID de 36 caracteres: imposible de dictar o teclear e
 3. **Contra la fuerza bruta:** cada origen puede consultar hasta 20 códigos inexistentes por minuto; superado el tope recibe 429 con `Retry-After`, incluso con un código válido. `TRUST_PROXY=1` hace que el origen sea la IP del cliente y no la del proxy.
 4. **`GET /rooms` cerrado en producción** (404) salvo `EXPOSE_ROOM_LIST=true` (AM-02).
 5. **Nombres elegidos por el usuario:** 1 a 30 caracteres, sin espacios al borde ni caracteres de control; se rechazan con 400. Si el cliente no envía nombre, el servidor genera uno (clientes anteriores).
-6. **Regreso del emisor:** `POST /rooms/:roomId/emitter` con el nombre con el que creó la sala; otro nombre recibe 403.
+6. **Regreso del emisor:** `POST /rooms/:roomId/emitter`. Aquí se reconocía por el nombre; el ADR-0014 lo cambia a una llave de emisor (el nombre solo sirve en salas anteriores a las llaves).
 7. **Errores siempre en JSON:** un último manejador responde 400, 413, 503 (fallo de SQLite) o 500, y `/health` informa `storage` (`ok` o `error`) con una escritura de prueba, manteniendo HTTP 200 para que el healthcheck de Docker mida solo que el proceso vive.
 
 ## Consecuencias
 
 - Una sala dura, como máximo, 24 horas desde su última actividad; la pista subida se pierde con ella. Es deliberado (privacidad y espacio) y debe decirse a los usuarios.
 - **Riesgo aceptado:** un millón de códigos no es un secreto fuerte. Con los tres controles anteriores, adivinar un código exige superar el límite de intentos y acertar dentro de la ventana de vida de la sala. No sustituye a un token de emisor (AM-01), que sigue pendiente.
-- **Riesgo aceptado:** el emisor se reconoce por su nombre, igual que hoy cualquiera que conozca el código puede llamar a `play` y `pause` (AM-01).
+- **Riesgo aceptado** (superado por el ADR-0014, que añade la llave de emisor): el emisor se reconocía por su nombre y cualquiera que conociera el código podía llamar a `play` y `pause` (AM-01).
 - **Operación:** sin `TRUST_PROXY` detrás de Traefik, todos los clientes comparten una IP y un atacante podría bloquear a los demás; está definido en `docker-compose.yml`.
 - El límite de intentos vive en memoria del proceso: se reinicia con el servicio y no se comparte entre instancias.
 - Se descarta mostrar el código en minúsculas o con guiones, y usar letras: dictarlo por teléfono con solo dígitos es más simple.
-- `DELETE /rooms/:roomId` sigue pendiente porque sin token cualquiera podría borrar una sala ajena.
+- `DELETE /rooms/:roomId` quedó pendiente aquí porque sin llave cualquiera podría borrar una sala ajena; el ADR-0014 lo implementa con la llave de emisor.

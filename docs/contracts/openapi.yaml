@@ -79,6 +79,110 @@ paths:
         "429":
           $ref: "#/components/responses/TooManyRequests"
 
+    delete:
+      operationId: closeRoom
+      summary: El emisor cierra la sala para todos
+      description: >
+        Avisa con `room.closed`, borra la pista y la sala, y corta las
+        conexiones abiertas.
+      security:
+        - emitterKey: []
+      parameters:
+        - $ref: "#/components/parameters/RoomId"
+      responses:
+        "204":
+          description: Sala cerrada
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /rooms/{roomId}/receivers/{receiverId}:
+    delete:
+      operationId: leaveRoom
+      summary: Un receptor deja la sala
+      description: >
+        Quita al receptor de la lista y corta su conexión; el emisor y los
+        demás reciben `participant.left` con `reason: left`. No sirve para
+        quitar al emisor. Los receptores no tienen llave: se reconocen por su
+        identificador.
+      parameters:
+        - $ref: "#/components/parameters/RoomId"
+        - name: receiverId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: El receptor salió
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /rooms/{roomId}/kick:
+    post:
+      operationId: kickReceiver
+      summary: El emisor expulsa a un receptor
+      description: >
+        Quita al receptor y veta su nombre en esa sala: si intenta volver a
+        entrar recibe 403. Antes de cerrar su conexión recibe `participant.left`
+        con `reason: removed`.
+      security:
+        - emitterKey: []
+      parameters:
+        - $ref: "#/components/parameters/RoomId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [receiverId]
+              properties:
+                receiverId:
+                  type: string
+      responses:
+        "204":
+          description: Receptor expulsado
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /rooms/{roomId}/events:
+    get:
+      operationId: watchRoomEvents
+      summary: Eventos de la sala para el emisor (NDJSON)
+      description: >
+        Una línea JSON por evento, con `type`: `participant.joined`,
+        `participant.left` (`reason`: `left` o `removed`),
+        `participant.connected`, `participant.disconnected`, `track.changed`
+        (`trackName`, `trackVersion`) y `room.closed`. Los receptores reciben
+        los mismos eventos por su `stream`. No cuenta como receptor.
+      security:
+        - emitterKey: []
+      parameters:
+        - $ref: "#/components/parameters/RoomId"
+      responses:
+        "200":
+          description: Flujo de eventos
+          content:
+            application/x-ndjson:
+              schema:
+                type: string
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   /rooms/{roomId}/receivers:
     post:
       operationId: addReceiver
@@ -124,35 +228,28 @@ paths:
       operationId: rejoinEmitter
       summary: Vuelve a entrar como emisor de una sala existente
       description: >
-        Sin cuentas de usuario (AM-01), el emisor se reconoce por el nombre con
-        el que creó la sala. Cualquier otro nombre recibe 403.
+        El emisor se prueba con la llave que recibió al crear la sala
+        (`emitterKey`), que su dispositivo guarda. Sin llave: 401; con una
+        llave que no corresponde: 403. Las salas anteriores a las llaves (sin
+        llave guardada) se reconocen por el nombre del emisor en el cuerpo
+        (`{"emitterId": "..."}`) hasta que caducan.
+      security:
+        - emitterKey: []
       parameters:
         - $ref: "#/components/parameters/RoomId"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [emitterId]
-              properties:
-                emitterId:
-                  type: string
       responses:
         "200":
-          description: El nombre corresponde al emisor de la sala
+          description: La llave corresponde al emisor de la sala
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/EmitterAccessResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
         "403":
-          description: El nombre no corresponde al emisor de esta sala.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
         "429":
@@ -166,6 +263,8 @@ paths:
         Genera un único `startAt` (timestamp del servidor) que se distribuye
         a todos los receptores conectados por el canal de eventos
         (ver asyncapi.yaml, mensaje sync.start).
+      security:
+        - emitterKey: []
       parameters:
         - $ref: "#/components/parameters/RoomId"
       requestBody:
@@ -184,6 +283,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PlayResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
 
@@ -191,6 +294,8 @@ paths:
     post:
       operationId: pauseRoom
       summary: Pausa la reproducción de la sala
+      security:
+        - emitterKey: []
       parameters:
         - $ref: "#/components/parameters/RoomId"
       responses:
@@ -200,6 +305,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PauseResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
 
@@ -207,6 +316,8 @@ paths:
     post:
       operationId: sendAudioChunk
       summary: Distribuye el evento de demostración audio.chunk (no audio binario)
+      security:
+        - emitterKey: []
       parameters:
         - $ref: "#/components/parameters/RoomId"
       requestBody:
@@ -233,6 +344,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
 
@@ -256,11 +371,17 @@ paths:
   /rooms/{roomId}/track:
     post:
       operationId: uploadRoomTrack
-      summary: Sube la pista MP3 de una sala
+      summary: Sube o cambia la pista MP3 de una sala
       description: >
+        Cada subida reemplaza la pista anterior, deja la sala detenida (posición
+        0), sube `trackVersion` y avisa con `track.changed`. El nombre de la
+        canción se envía codificado (`encodeURIComponent`) en la cabecera
+        `X-Track-Name` (máximo 100 caracteres).
         El emisor sube una pista MP3 completa antes de iniciar la reproducción.
         El archivo se conserva en el almacenamiento persistente del servidor;
         tamaño máximo 50 MiB.
+      security:
+        - emitterKey: []
       parameters:
         - $ref: "#/components/parameters/RoomId"
       requestBody:
@@ -289,6 +410,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
         "500":
@@ -426,6 +551,11 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
 
 components:
+  securitySchemes:
+    emitterKey:
+      type: http
+      scheme: bearer
+      description: Llave de emisor de la sala (`emitterKey`).
   parameters:
     RoomId:
       name: roomId
@@ -448,6 +578,18 @@ components:
             $ref: "#/components/schemas/ErrorResponse"
     BadRequest:
       description: Petición inválida (por ejemplo, un nombre vacío o de más de 30 caracteres).
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Unauthorized:
+      description: "Falta la llave de emisor (cabecera `Authorization: Bearer ...`)."
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Forbidden:
+      description: La llave de emisor no corresponde a esta sala.
       content:
         application/json:
           schema:
@@ -511,6 +653,11 @@ components:
         joinedAt:
           type: string
           format: date-time
+        connected:
+          type: boolean
+          description: >
+            Solo en receptores: si tiene el canal de eventos abierto ahora
+            mismo.
 
     PlaybackState:
       type: object
@@ -531,9 +678,17 @@ components:
         - startAt
         - participants
         - connectedReceivers
+        - trackName
+        - trackVersion
       properties:
         roomId:
           type: string
+        trackName:
+          type: [string, "null"]
+          description: Nombre de la canción actual, si el emisor lo envió.
+        trackVersion:
+          type: integer
+          description: Veces que se ha subido o cambiado la pista (0 = sin pista).
         createdAt:
           type: string
           format: date-time
@@ -553,12 +708,18 @@ components:
 
     CreateRoomResponse:
       type: object
-      required: [roomId, emitterId]
+      required: [roomId, emitterId, emitterKey]
       properties:
         roomId:
           type: string
         emitterId:
           type: string
+        emitterKey:
+          type: string
+          description: >
+            Llave del emisor, entregada solo en esta respuesta (el servidor
+            guarda su hash SHA-256). Se envía como `Authorization: Bearer ...`
+            en las acciones del emisor; quien la pierda no puede recuperarla.
 
     EmitterAccessResponse:
       type: object

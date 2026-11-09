@@ -23,8 +23,12 @@ describe("Ciclo de vida de las salas", () => {
   const open = (options: Parameters<typeof createApp>[0] = {}): Express =>
     createApp({ databaseFile: join(directory, "audioshare.sqlite"), ...options });
 
+  const keys = new Map<string, string>();
+  const auth = (code: string): string => `Bearer ${keys.get(code)}`;
+
   const createRoom = async (emitterId = "emisor"): Promise<string> => {
     const res = await request(app).post("/rooms").send({ emitterId }).expect(201);
+    keys.set(res.body.roomId as string, res.body.emitterKey as string);
     return res.body.roomId as string;
   };
 
@@ -102,41 +106,34 @@ describe("Ciclo de vida de las salas", () => {
   });
 
   describe("regreso del emisor", () => {
-    it("el emisor vuelve con su mismo nombre", async () => {
+    it("el emisor vuelve con su llave", async () => {
       const code = await createRoom("Ana");
 
       const res = await request(app)
         .post(`/rooms/${code}/emitter`)
-        .send({ emitterId: "Ana" })
+        .set("Authorization", auth(code))
         .expect(200);
 
       expect(res.body).toEqual({ roomId: code, emitterId: "Ana", role: "emitter" });
     });
 
-    it("otro nombre, o el de un receptor, recibe 403", async () => {
+    it("sin llave recibe 401 y con la llave de otra sala 403", async () => {
       const code = await createRoom("Ana");
-      await request(app)
-        .post(`/rooms/${code}/receivers`)
-        .send({ receiverId: "Luis" })
-        .expect(201);
+      const other = await createRoom("Pedro");
 
+      await request(app).post(`/rooms/${code}/emitter`).send({ emitterId: "Ana" }).expect(401);
       await request(app)
         .post(`/rooms/${code}/emitter`)
-        .send({ emitterId: "Pedro" })
-        .expect(403);
-      await request(app)
-        .post(`/rooms/${code}/emitter`)
-        .send({ emitterId: "Luis" })
+        .set("Authorization", auth(other))
         .expect(403);
     });
 
-    it("exige el nombre y una sala existente", async () => {
+    it("exige una sala existente", async () => {
       const code = await createRoom("Ana");
 
-      await request(app).post(`/rooms/${code}/emitter`).send({}).expect(400);
       await request(app)
         .post("/rooms/000000/emitter")
-        .send({ emitterId: "Ana" })
+        .set("Authorization", auth(code))
         .expect(404);
     });
   });
@@ -153,6 +150,7 @@ describe("Ciclo de vida de las salas", () => {
       const code = await createRoom();
       await request(app)
         .post(`/rooms/${code}/track`)
+        .set("Authorization", auth(code))
         .set("Content-Type", "audio/mpeg")
         .send(mp3)
         .expect(201);
@@ -193,6 +191,37 @@ describe("Ciclo de vida de las salas", () => {
         controller.abort();
         server.closeAllConnections();
         server.close();
+      }
+    });
+
+    it("una sala anterior a las llaves sigue funcionando: el emisor vuelve por su nombre y se puede controlar", async () => {
+      const legacyFile = join(directory, "sin-llave.sqlite");
+      const legacy = new Database(legacyFile);
+      legacy.exec(`
+        CREATE TABLE rooms (
+          id TEXT PRIMARY KEY, created_at TEXT NOT NULL, status TEXT NOT NULL,
+          playback_state TEXT NOT NULL, start_at INTEGER
+        );
+        CREATE TABLE participants (
+          id TEXT NOT NULL, room_id TEXT NOT NULL, role TEXT NOT NULL,
+          joined_at TEXT NOT NULL, PRIMARY KEY (room_id, id),
+          FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE
+        );
+        INSERT INTO rooms VALUES ('aaaaaaaa-0000-4000-8000-000000000002', '2020-01-01T00:00:00.000Z', 'stopped',
+          '{"playing":false,"positionMs":0}', NULL);
+        INSERT INTO participants VALUES ('Ana', 'aaaaaaaa-0000-4000-8000-000000000002', 'emitter', '2020-01-01T00:00:00.000Z');
+      `);
+      legacy.close();
+
+      const migrated = createApp({ databaseFile: legacyFile, roomTtlMs: 0 });
+      const id = "aaaaaaaa-0000-4000-8000-000000000002";
+
+      try {
+        await request(migrated).post(`/rooms/${id}/emitter`).send({ emitterId: "Ana" }).expect(200);
+        await request(migrated).post(`/rooms/${id}/emitter`).send({ emitterId: "Pedro" }).expect(403);
+        await request(migrated).post(`/rooms/${id}/play`).expect(200);
+      } finally {
+        migrated.locals.close();
       }
     });
 

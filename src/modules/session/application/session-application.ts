@@ -1,11 +1,23 @@
 import type { Participant, Room } from "../domain/models.js";
-import type { RoomRepository } from "./room-repository.js";
+import type { EmitterKeyCheck, RoomRepository } from "./room-repository.js";
 
 export class SessionApplication {
   constructor(private readonly rooms: RoomRepository) {}
 
-  createRoom(emitterId: string): Room {
+  createRoom(emitterId: string): { room: Room; emitterKey: string } {
     return this.rooms.createRoom(emitterId);
+  }
+
+  checkEmitterKey(roomId: string, key: string | undefined): EmitterKeyCheck {
+    return this.rooms.checkEmitterKey(roomId, key);
+  }
+
+  removeParticipant(roomId: string, participantId: string, ban: boolean): boolean {
+    return this.rooms.removeParticipant(roomId, participantId, ban);
+  }
+
+  replaceTrack(roomId: string, trackName: string | null): Room {
+    return this.rooms.replaceTrack(roomId, trackName);
   }
 
   listRooms(): Room[] {

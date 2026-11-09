@@ -110,7 +110,7 @@ describe("Prueba de contrato — OpenAPI", () => {
 
     const res = await request(app)
       .post(`/rooms/${room.body.roomId}/emitter`)
-      .send({ emitterId: "emitter-contract" })
+      .set("Authorization", `Bearer ${room.body.emitterKey}`)
       .expect(200);
 
     validate("EmitterAccessResponse", res.body);
@@ -156,6 +156,7 @@ describe("Prueba de contrato — OpenAPI", () => {
 
     const res = await request(app)
       .post(`/rooms/${room.body.roomId}/play`)
+      .set("Authorization", `Bearer ${room.body.emitterKey}`)
       .send({ payload: "contract-demo" })
       .expect(200);
 
@@ -170,11 +171,13 @@ describe("Prueba de contrato — OpenAPI", () => {
 
     await request(app)
       .post(`/rooms/${room.body.roomId}/play`)
+      .set("Authorization", `Bearer ${room.body.emitterKey}`)
       .send({ payload: "contract-demo" })
       .expect(200);
 
     const res = await request(app)
       .post(`/rooms/${room.body.roomId}/pause`)
+      .set("Authorization", `Bearer ${room.body.emitterKey}`)
       .expect(200);
 
     validate("PauseResponse", res.body);
@@ -188,6 +191,7 @@ describe("Prueba de contrato — OpenAPI", () => {
 
     const res = await request(app)
       .post(`/rooms/${room.body.roomId}/audio`)
+      .set("Authorization", `Bearer ${room.body.emitterKey}`)
       .send({ payload: "contract-demo" })
       .expect(200);
 
@@ -214,12 +218,14 @@ describe("Prueba de contrato — OpenAPI", () => {
 
     await request(app)
       .post(`/rooms/${room.body.roomId}/track`)
+      .set("Authorization", `Bearer ${room.body.emitterKey}`)
       .set("Content-Type", "audio/mpeg")
       .send(Buffer.from("not audio"))
       .expect(400);
 
     const upload = await request(app)
       .post(`/rooms/${room.body.roomId}/track`)
+      .set("Authorization", `Bearer ${room.body.emitterKey}`)
       .set("Content-Type", "audio/mpeg")
       .send(bytes)
       .expect(201);
@@ -259,7 +265,11 @@ describe("Prueba de contrato — OpenAPI", () => {
         .expect(201);
     }
 
-    const play = await request(app).post(`/rooms/${roomId}/play`).send({}).expect(200);
+    const play = await request(app)
+      .post(`/rooms/${roomId}/play`)
+      .set("Authorization", `Bearer ${room.body.emitterKey}`)
+      .send({})
+      .expect(200);
 
     const ack = await request(app)
       .post(`/rooms/${roomId}/receivers/r1/ack`)

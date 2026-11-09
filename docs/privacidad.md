@@ -63,13 +63,13 @@ legal.
 | Minimización | Sin cuentas ni datos de contacto; identificadores aleatorios por defecto; no registrar IP en la aplicación. |
 | Finalidad | Los datos sirven solo para coordinar la reproducción de la sala. No se usan para analítica ni se comparten con terceros. |
 | Transparencia | Aviso corto en la pantalla de inicio y en el README (texto propuesto más abajo). |
-| Limitación de la conservación | Caducidad por inactividad de 24 h (`ROOM_TTL_HOURS`, ADR-0013): implementada y probada en el código el 2026-11-09, **pendiente de desplegar**. Borrado a petición: aún no. |
+| Limitación de la conservación | Caducidad por inactividad de 24 h (`ROOM_TTL_HOURS`, ADR-0013): implementada y probada en el código el 2026-11-09, **pendiente de desplegar**. Borrado a petición: `DELETE /rooms/:roomId` con la llave de emisor (ADR-0014), pendiente de desplegar y de la pantalla en Flutter. |
 | Seguridad | Token de emisor y de receptor, HTTPS, límites (AM-01, AM-03, AM-04, AM-06). |
 | Acceso y supresión | `DELETE /rooms/:roomId` autenticado con el token de emisor (AM-11). |
 
 ## Retención propuesta
 
-Estado a 2026-11-09: la caducidad por inactividad de salas y pistas ya está en el código (ADR-0013, `tests/rooms-lifecycle.test.ts`) con un plazo de 24 horas; no está desplegada en el servidor público. Lo que sigue **sin existir** es el borrado a petición (`DELETE /rooms/:roomId`), que necesita el token de emisor (AM-01).
+Estado a 2026-11-09: la caducidad por inactividad de salas y pistas ya está en el código (ADR-0013, `tests/rooms-lifecycle.test.ts`) con un plazo de 24 horas; no está desplegada en el servidor público. Desde el ADR-0014 el servidor también tiene el borrado a petición: el emisor puede cerrar la sala con `DELETE /rooms/:roomId` usando su llave, y borra la pista y la sala. Falta la pantalla en el cliente y desplegarlo.
 
 Valores de partida para discutir; el equipo los fija y los registra en un ADR.
 

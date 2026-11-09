@@ -80,7 +80,7 @@ describe("A-01 / EC-01 — receptores simulados contra el servidor real", () => 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ emitterId: "emitter-sync" }),
       })
-    ).json()) as { roomId: string };
+    ).json()) as { roomId: string; emitterKey: string };
 
     // Tres dispositivos con relojes muy distintos: +3 s, −2,5 s y +120 ms.
     const skews = [3000, -2500, 120];
@@ -101,7 +101,10 @@ describe("A-01 / EC-01 — receptores simulados contra el servidor real", () => 
 
     await fetch(`${baseUrl}/rooms/${room.roomId}/play`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${room.emitterKey}`,
+      },
       body: JSON.stringify({ payload: "audio-demo" }),
     });
 

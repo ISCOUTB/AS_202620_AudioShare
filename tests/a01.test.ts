@@ -23,6 +23,7 @@ describe("A-01 - Sincronización de reproducción de audio", () => {
 
       await request(app)
         .post(`/rooms/${roomId}/track`)
+        .set("Authorization", `Bearer ${roomResponse.body.emitterKey}`)
         .set("Content-Type", "audio/mpeg")
         .send(track)
         .expect(201, { roomId, bytes: track.length });
@@ -69,6 +70,7 @@ describe("A-01 - Sincronización de reproducción de audio", () => {
 
       const play = await request(app)
         .post(`/rooms/${roomId}/play`)
+        .set("Authorization", `Bearer ${roomResponse.body.emitterKey}`)
         .send({ payload: "audio-demo" })
         .expect(200);
 
@@ -96,6 +98,7 @@ describe("A-01 - Sincronización de reproducción de audio", () => {
 
       const audio = await request(app)
         .post(`/rooms/${roomId}/audio`)
+        .set("Authorization", `Bearer ${roomResponse.body.emitterKey}`)
         .send({ payload: "audio-follow-up" })
         .expect(200);
 
@@ -128,6 +131,7 @@ describe("A-01 - Sincronización de reproducción de audio", () => {
 
       await request(firstApp)
         .post(`/rooms/${roomId}/track`)
+        .set("Authorization", `Bearer ${roomResponse.body.emitterKey}`)
         .set("Content-Type", "audio/mpeg")
         .send(track)
         .expect(201);

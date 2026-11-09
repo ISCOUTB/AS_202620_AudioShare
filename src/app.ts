@@ -8,9 +8,11 @@ import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import {
+  PARTICIPANT_REMOVED,
   PARTICIPANT_ROLE_CONFLICT,
   SessionApplication,
   SQLiteRoomRepository,
+  type Room,
 } from "./modules/session/index.js";
 import { AudioStreamHub, AudioTrackStore } from "./modules/audio/index.js";
 import {
@@ -74,6 +76,25 @@ function parseParticipantId(value: unknown, required = false): ParsedParticipant
   return { ok: true, id };
 }
 
+/** Nombre de la canción que envía el cliente en `X-Track-Name` (codificado con %). */
+function parseTrackName(header: string | undefined): string | null {
+  if (header === undefined) {
+    return null;
+  }
+
+  let decoded = header;
+
+  try {
+    decoded = decodeURIComponent(header);
+  } catch {
+    // Si no estaba codificado correctamente, se usa tal cual.
+  }
+
+  const name = decoded.replace(/[\u0000-\u001f\u007f]/g, "").trim().slice(0, 100);
+
+  return name.length > 0 ? name : null;
+}
+
 export function createApp(
   options: {
     databaseFile?: string;
@@ -108,8 +129,11 @@ export function createApp(
       res.setHeader("Vary", "Origin");
     }
 
-    res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    res.setHeader("Access-Control-Allow-Methods", "GET,POST,DELETE,OPTIONS");
+    res.setHeader(
+      "Access-Control-Allow-Headers",
+      "Content-Type,Authorization,X-Track-Name",
+    );
 
     if (req.method === "OPTIONS") {
       res.sendStatus(204);
@@ -192,10 +216,100 @@ export function createApp(
     }
   };
 
+  // Conexiones del emisor que escuchan los eventos de su sala (presencia,
+  // salidas, cambios de pista). No cuentan como receptores.
+  const watchers = new Map<string, Set<Client>>();
+
+  const safeSend = (client: Client, event: unknown): void => {
+    try {
+      client.send(event);
+    } catch (error) {
+      log.warn("stream.send_failed", {
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  };
+
+  /** Envía un evento a los receptores conectados y al emisor que escucha. */
+  const broadcast = (roomId: string, event: unknown, exceptReceiverId?: string): void => {
+    for (const [receiverId, client] of streams.get(roomId) ?? []) {
+      if (receiverId !== exceptReceiverId) {
+        safeSend(client, event);
+      }
+    }
+
+    for (const watcher of watchers.get(roomId) ?? []) {
+      safeSend(watcher, event);
+    }
+  };
+
+  /** Participantes con su presencia: un receptor está conectado si tiene un stream abierto. */
+  const presentParticipants = (room: Room) =>
+    room.participants.map((participant) =>
+      participant.role === "receiver"
+        ? { ...participant, connected: streams.get(room.id)?.has(participant.id) ?? false }
+        : participant,
+    );
+
+  const bearerKey = (req: Request): string | undefined => {
+    const header = req.header("Authorization") ?? "";
+
+    return header.startsWith("Bearer ") ? header.slice(7).trim() : undefined;
+  };
+
+  /*
+   * Acciones solo del emisor (AM-01): exigen la llave que el servidor entregó
+   * al crear la sala. Se comprueba antes de leer el cuerpo, para no aceptar
+   * archivos de 50 MB de quien no tiene permiso. Las salas anteriores a las
+   * llaves (`legacy`) se siguen aceptando hasta que caduquen.
+   */
+  const requireEmitter = (req: Request, res: Response, next: NextFunction): void => {
+    const { roomId } = req.params;
+    const check = sessions.checkEmitterKey(roomId, bearerKey(req));
+
+    if (check === "valid" || check === "legacy") {
+      next();
+      return;
+    }
+
+    if (!sessions.getRoom(roomId)) {
+      res.status(404).json({ error: "Sala no encontrada" });
+      return;
+    }
+
+    if (check === "missing") {
+      res.status(401).json({ error: "Se requiere la llave de emisor" });
+      return;
+    }
+
+    res.status(403).json({ error: "La llave de emisor no es válida para esta sala" });
+  };
+
+  /** Borra una sala: su pista, su fila y todo su estado en memoria. */
+  const destroyRoom = async (roomId: string): Promise<void> => {
+    await tracks.delete(roomId);
+    sessions.deleteRoom(roomId);
+
+    for (const client of Array.from(streams.get(roomId)?.values() ?? [])) {
+      client.close();
+    }
+
+    for (const watcher of Array.from(watchers.get(roomId) ?? [])) {
+      watcher.close();
+    }
+
+    streams.delete(roomId);
+    watchers.delete(roomId);
+    coordinators.delete(roomId);
+    measurements.forgetRoom(roomId);
+    lastTouched.delete(roomId);
+  };
+
   /*
    * Borra las salas sin actividad desde hace más de `roomTtlMs`, junto con su
    * pista y su estado en memoria (AM-11, FM-15). Una sala con receptores
-   * conectados no se borra aunque lleve tiempo sin peticiones.
+   * conectados, o con el emisor mirándola, no se borra aunque lleve tiempo
+   * sin peticiones.
    */
   const sweepExpiredRooms = async (now = Date.now()): Promise<number> => {
     if (roomTtlMs <= 0) {
@@ -216,13 +330,15 @@ export function createApp(
     let removed = 0;
 
     for (const roomId of expired) {
-      if ((streams.get(roomId)?.size ?? 0) > 0) {
+      if (
+        (streams.get(roomId)?.size ?? 0) > 0 ||
+        (watchers.get(roomId)?.size ?? 0) > 0
+      ) {
         continue;
       }
 
       try {
-        await tracks.delete(roomId);
-        sessions.deleteRoom(roomId);
+        await destroyRoom(roomId);
       } catch (error) {
         log.error("room.expire_failed", {
           roomId,
@@ -231,10 +347,6 @@ export function createApp(
         continue;
       }
 
-      streams.delete(roomId);
-      coordinators.delete(roomId);
-      measurements.forgetRoom(roomId);
-      lastTouched.delete(roomId);
       removed += 1;
       log.info("room.expired", { roomId });
     }
@@ -324,7 +436,9 @@ export function createApp(
         status: room.status,
         playbackState: room.playbackState,
         startAt: room.startAt,
-        participants: room.participants,
+        trackName: room.trackName,
+        trackVersion: room.trackVersion,
+        participants: presentParticipants(room),
         connectedReceivers: streams.get(room.id)?.size ?? 0,
       })),
     );
@@ -344,16 +458,18 @@ export function createApp(
     }
 
     const emitterId = parsed.id;
-    const room = sessions.createRoom(emitterId);
+    const { room, emitterKey } = sessions.createRoom(emitterId);
 
     streams.set(room.id, new Map());
 
     metrics.roomsCreated += 1;
     log.info("room.created", { roomId: room.id, emitterId });
 
+    // La llave solo se entrega aquí: el servidor guarda su hash, no la llave.
     res.status(201).json({
       roomId: room.id,
       emitterId,
+      emitterKey,
     });
   });
 
@@ -374,7 +490,23 @@ export function createApp(
       const receiverId = parsed.id;
 
       try {
+        const existed =
+          sessions
+            .getRoom(roomId)
+            ?.participants.some((participant) => participant.id === receiverId) ?? false;
         const receiver = sessions.addReceiver(roomId, receiverId);
+
+        if (!existed) {
+          broadcast(roomId, {
+            type: "participant.joined",
+            participant: {
+              id: receiver.id,
+              role: receiver.role,
+              joinedAt: receiver.joinedAt,
+              connected: false,
+            },
+          });
+        }
 
         res.status(201).json({
           roomId,
@@ -389,6 +521,11 @@ export function createApp(
           res.status(409).json({
             error: "El identificador ya está en uso en esta sala con otro rol",
           });
+          return;
+        }
+
+        if (error instanceof Error && error.message === PARTICIPANT_REMOVED) {
+          res.status(403).json({ error: "El emisor te expulsó de esta sala" });
           return;
         }
 
@@ -407,8 +544,10 @@ export function createApp(
   );
 
   /*
-   * Vuelve a entrar como emisor. Sin cuentas (AM-01), el emisor se reconoce por
-   * el identificador con el que creó la sala; cualquier otro recibe 403.
+   * Vuelve a entrar como emisor. Se prueba con la llave que el servidor dio al
+   * crear la sala (`Authorization: Bearer ...`), que el cliente guarda en el
+   * dispositivo. Solo las salas anteriores a las llaves se reconocen por el
+   * nombre del emisor.
    */
   app.post("/rooms/:roomId/emitter", (req: Request, res: Response) => {
     const { roomId } = req.params;
@@ -419,25 +558,147 @@ export function createApp(
       return;
     }
 
-    const parsed = parseParticipantId(req.body?.emitterId, true);
+    const emitter = room.participants.find(
+      (participant) => participant.role === "emitter",
+    );
+    const check = sessions.checkEmitterKey(roomId, bearerKey(req));
+
+    if (check === "legacy") {
+      const parsed = parseParticipantId(req.body?.emitterId, true);
+
+      if (!parsed.ok) {
+        res.status(400).json({ error: parsed.error });
+        return;
+      }
+
+      if (!emitter || emitter.id !== parsed.id) {
+        res.status(403).json({
+          error: "El identificador no corresponde al emisor de esta sala",
+        });
+        return;
+      }
+    } else if (check === "missing") {
+      res.status(401).json({ error: "Se requiere la llave de emisor" });
+      return;
+    } else if (check !== "valid") {
+      res.status(403).json({ error: "La llave de emisor no es válida para esta sala" });
+      return;
+    }
+
+    res.status(200).json({ roomId, emitterId: emitter?.id ?? "", role: "emitter" });
+  });
+
+  /*
+   * Un receptor deja la sala por su cuenta. Se reconoce por su identificador
+   * (los receptores no tienen llave; AM-01 sigue abierto para ellos), así que
+   * esto solo permite quitar a un receptor, nunca al emisor.
+   */
+  app.delete(
+    "/rooms/:roomId/receivers/:receiverId",
+    (req: Request, res: Response) => {
+      const { roomId, receiverId } = req.params;
+
+      if (!sessions.removeParticipant(roomId, receiverId, false)) {
+        res.status(404).json({ error: "Receptor no encontrado" });
+        return;
+      }
+
+      const client = streams.get(roomId)?.get(receiverId);
+
+      streams.get(roomId)?.delete(receiverId);
+      client?.close();
+      broadcast(roomId, { type: "participant.left", receiverId, reason: "left" });
+
+      res.status(204).end();
+    },
+  );
+
+  /*
+   * El emisor expulsa a un receptor. El nombre queda vetado en esa sala; el
+   * expulsado recibe `participant.left` con `reason: "removed"` antes de que se
+   * cierre su conexión.
+   */
+  app.post("/rooms/:roomId/kick", requireEmitter, (req: Request, res: Response) => {
+    const { roomId } = req.params;
+    const parsed = parseParticipantId(req.body?.receiverId, true);
 
     if (!parsed.ok) {
       res.status(400).json({ error: parsed.error });
       return;
     }
 
-    const emitter = room.participants.find(
-      (participant) => participant.role === "emitter",
-    );
+    const receiverId = parsed.id;
 
-    if (!emitter || emitter.id !== parsed.id) {
-      res.status(403).json({
-        error: "El identificador no corresponde al emisor de esta sala",
-      });
+    if (!sessions.removeParticipant(roomId, receiverId, true)) {
+      res.status(404).json({ error: "Receptor no encontrado" });
       return;
     }
 
-    res.status(200).json({ roomId, emitterId: emitter.id, role: "emitter" });
+    const client = streams.get(roomId)?.get(receiverId);
+
+    broadcast(roomId, { type: "participant.left", receiverId, reason: "removed" });
+    streams.get(roomId)?.delete(receiverId);
+    client?.close();
+    log.info("room.participant_removed", { roomId, receiverId });
+
+    res.status(204).end();
+  });
+
+  /*
+   * Eventos de la sala para el emisor: quién entra, sale, se conecta o se
+   * desconecta, y cambios de pista. Mismo formato NDJSON que el stream de los
+   * receptores, pero con la llave de emisor y sin contar como receptor.
+   */
+  app.get("/rooms/:roomId/events", requireEmitter, (req: Request, res: Response) => {
+    const { roomId } = req.params;
+
+    res.status(200);
+    res.setHeader("Content-Type", "application/x-ndjson");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.flushHeaders();
+
+    const watcher: Client = {
+      id: crypto.randomUUID(),
+      send: (event: unknown) => {
+        res.write(`${JSON.stringify(event)}\n`);
+      },
+      close: () => {
+        res.end();
+      },
+    };
+    const roomWatchers = watchers.get(roomId) ?? new Set<Client>();
+
+    roomWatchers.add(watcher);
+    watchers.set(roomId, roomWatchers);
+
+    req.on("close", () => {
+      roomWatchers.delete(watcher);
+    });
+  });
+
+  /*
+   * El emisor cierra la sala para todos: avisa, borra la pista y la sala y
+   * corta las conexiones (AM-11).
+   */
+  app.delete("/rooms/:roomId", requireEmitter, async (req: Request, res: Response) => {
+    const { roomId } = req.params;
+
+    broadcast(roomId, { type: "room.closed" });
+
+    try {
+      await destroyRoom(roomId);
+    } catch (error) {
+      log.error("room.close_failed", {
+        roomId,
+        message: error instanceof Error ? error.message : String(error),
+      });
+      res.status(500).json({ error: "No se pudo cerrar la sala" });
+      return;
+    }
+
+    log.info("room.closed", { roomId });
+    res.status(204).end();
   });
 
   /*
@@ -497,12 +758,14 @@ export function createApp(
 
       roomStreams.set(receiverId, client);
       previous?.close();
+      broadcast(roomId, { type: "participant.connected", receiverId }, receiverId);
 
       // El cierre solo borra el registro propio. Antes borraba el del
       // receptor aunque ya perteneciera a una conexión más nueva (FM-01).
       req.on("close", () => {
         if (roomStreams.get(receiverId) === client) {
           roomStreams.delete(receiverId);
+          broadcast(roomId, { type: "participant.disconnected", receiverId });
         }
       });
     },
@@ -515,7 +778,7 @@ export function createApp(
    * SyncCoordinator genera un único startAt que se distribuye
    * a todos los receptores conectados.
    */
-  app.post("/rooms/:roomId/play", (req: Request, res: Response) => {
+  app.post("/rooms/:roomId/play", requireEmitter, (req: Request, res: Response) => {
     const { roomId } = req.params;
 
     const room = sessions.getRoom(roomId);
@@ -577,7 +840,7 @@ export function createApp(
    *
    * Detiene la reproducción y comunica la posición actual.
    */
-  app.post("/rooms/:roomId/pause", (req: Request, res: Response) => {
+  app.post("/rooms/:roomId/pause", requireEmitter, (req: Request, res: Response) => {
     const { roomId } = req.params;
 
     const room = sessions.getRoom(roomId);
@@ -620,7 +883,7 @@ export function createApp(
   /*
    * Distribuye un paquete de audio a todos los receptores conectados.
    */
-  app.post("/rooms/:roomId/audio", (req: Request, res: Response) => {
+  app.post("/rooms/:roomId/audio", requireEmitter, (req: Request, res: Response) => {
     const { roomId } = req.params;
 
     const room = sessions.getRoom(roomId);
@@ -654,6 +917,7 @@ export function createApp(
 
   app.post(
     "/rooms/:roomId/track",
+    requireEmitter,
     express.raw({ type: "audio/mpeg", limit: "50mb" }),
     async (req: Request, res: Response) => {
       const { roomId } = req.params;
@@ -677,6 +941,16 @@ export function createApp(
 
       try {
         await tracks.save(roomId, req.body);
+        // Pista nueva: la sala queda detenida y se avisa a todos para que
+        // los receptores descarguen la nueva.
+        const updated = sessions.replaceTrack(roomId, parseTrackName(req.header("X-Track-Name")));
+
+        coordinators.delete(roomId);
+        broadcast(roomId, {
+          type: "track.changed",
+          trackName: updated.trackName,
+          trackVersion: updated.trackVersion,
+        });
         res.status(201).json({ roomId, bytes: req.body.length });
       } catch {
         res.status(500).json({ error: "No se pudo guardar la pista de audio" });
@@ -839,7 +1113,9 @@ export function createApp(
       status: room.status,
       playbackState: room.playbackState,
       startAt: room.startAt,
-      participants: Array.from(room.participants.values()),
+      trackName: room.trackName,
+      trackVersion: room.trackVersion,
+      participants: presentParticipants(room),
       connectedReceivers: streams.get(roomId)?.size ?? 0,
     });
   });

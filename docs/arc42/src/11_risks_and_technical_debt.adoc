@@ -109,7 +109,7 @@ su estado y la evidencia que existe.
 
 | Implementar y probar control de acceso por sala, cuotas de subida y límites de tasa; acompañar borrado y caducidad con una política y un aviso que no prometan una supresión ya operativa.
 | Abierto (implementación). Aviso corregido.
-| Diseñados en AM-01, AM-03, AM-04 y AM-11 (`docs/amenazas-priorizadas.md`); ninguno implementado. El aviso de privacidad propuesto decía que los datos «se borran cuando la sala caduca»; se reescribió para decir que hoy no se borran ni hay función para hacerlo (`docs/privacidad.md`).
+| Diseñados en AM-01, AM-03, AM-04 y AM-11 (`docs/amenazas-priorizadas.md`). El 2026-11-09 se implementaron en el servidor (ADR-0013 y ADR-0014: llave de emisor, caducidad, límite de intentos, `DELETE` de sala); siguen pendientes el token de receptor y el límite de tamaño de subida, y nada está desplegado. El aviso de privacidad propuesto decía que los datos «se borran cuando la sala caduca»; se reescribió para decir que hoy no se borran ni hay función para hacerlo (`docs/privacidad.md`).
 | Token de emisor y de receptor, límite de tamaño y de espacio de subida, limitador por IP; pruebas `supertest` que esperen 401, 413 y 429. `DELETE /rooms/:roomId` y caducidad con pruebas antes de anunciar el borrado.
 
 | Integrar la auditoría de producción al CI; resolver o justificar con análisis completo los seis avisos de desarrollo; actualizar la acción de Sonar que emite una advertencia de seguridad.
@@ -132,19 +132,41 @@ Código de sala de 6 dígitos, caducidad por inactividad, límite de intentos y 
 | Riesgo o hallazgo | Estado | Tratamiento
 | Un código de 6 dígitos tiene un millón de combinaciones y se puede adivinar.
 | Mitigado parcialmente
-| `GET /rooms` cerrado en producción, límite de 20 consultas a códigos inexistentes por origen y minuto (429) y caducidad de 24 h. Sigue sin token de emisor (AM-01).
+| `GET /rooms` cerrado en producción, límite de 20 consultas a códigos inexistentes por origen y minuto (429), caducidad de 24 h y, desde el ADR-0014, llave de emisor para las acciones de control. Los receptores siguen sin credencial.
 | Una sala caduca a las 24 h sin actividad y su pista se borra: se pierde el contenido si nadie la usa.
 | Aceptado por diseño
 | Plazo configurable (`ROOM_TTL_HOURS`); una sala con receptores conectados no se borra. Debe decirse en el aviso de privacidad al desplegar.
 | Sin `TRUST_PROXY` detrás de Traefik, el límite de intentos se aplica a la IP del proxy y podría bloquear a todos.
 | Mitigado
 | `TRUST_PROXY=1` en `docker-compose.yml`; verificar tras desplegar.
-| El emisor vuelve por su nombre, sin credencial; quien conozca el código y su nombre toma el control.
-| Aceptado (AM-01 abierto)
-| Mismo nivel de exposición que hoy (cualquiera con el código puede llamar a `play` y `pause`).
+| El emisor vuelve con la llave que su dispositivo guarda; quien la pierda (desinstalar la app, borrar datos) pierde el control de esa sala.
+| Aceptado (ADR-0014)
+| Sin cuentas no hay recuperación; la sala caduca a las 24 h sin actividad. Solo las salas anteriores a las llaves se reconocen por nombre.
 | El 2026-11-08, `POST /rooms` respondía 500 con las lecturas funcionando y `/health` en `ok`.
 | Mitigado en código
 | Errores de SQLite como 503 en JSON y `/health` con `storage` (escritura de prueba). Causa en el servidor **no confirmada**: el panel de Dokploy no estaba disponible.
+|===
+
+Controles del emisor (ADR-0014, `tests/emitter-controls.test.ts`; servidor implementado y probado, **pendiente de desplegar y del cliente Flutter**):
+
+[cols="3,1,4"]
+|===
+| Riesgo o hallazgo | Estado | Tratamiento
+| Cualquiera con el código podía reproducir, pausar, subir o cambiar la pista (AM-01).
+| Mitigado para el emisor
+| `emitterKey` (hash SHA-256 en SQLite, comparación en tiempo constante), exigida antes de leer el cuerpo. Los receptores siguen sin token.
+| Un servidor nuevo con clientes de la semana 13 rompe `play`, `pause` y la subida de pista.
+| Aceptado
+| Servidor y cliente deben desplegarse juntos.
+| Un receptor que se iba seguía apareciendo en la vista del emisor.
+| Corregido en el servidor
+| Salida voluntaria, expulsión con veto del nombre y eventos `participant.*` para el emisor y los receptores; falta la vista en Flutter.
+| Las salas no se podían cerrar y no había cómo borrar una pista (AM-11).
+| Mitigado
+| `DELETE /rooms/:roomId` con llave; caducidad por inactividad.
+| Un receptor puede sacar a otro si conoce su identificador.
+| Aceptado
+| No toca al emisor ni la reproducción, y quien sale puede volver a entrar.
 |===
 
 *Deuda documental saldada (2026-11-08).* `docs/modos-de-fallo.md` describía FM-08

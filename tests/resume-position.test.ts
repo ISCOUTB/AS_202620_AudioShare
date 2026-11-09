@@ -29,26 +29,26 @@ describe("pausa y reanudación con posición", () => {
         .send({ emitterId: "emitter-1" })
         .expect(201);
 
-      const play1 = await request(app).post(`/rooms/${room.roomId}/play`).expect(200);
+      const play1 = await request(app).post(`/rooms/${room.roomId}/play`).set("Authorization", `Bearer ${room.emitterKey}`).expect(200);
       expect(play1.body.positionMs).toBe(0);
 
       // 3 s después de startAt, el emisor pausa.
       vi.spyOn(Date, "now").mockReturnValue(play1.body.startAt + 3000);
-      const pause1 = await request(app).post(`/rooms/${room.roomId}/pause`).expect(200);
+      const pause1 = await request(app).post(`/rooms/${room.roomId}/pause`).set("Authorization", `Bearer ${room.emitterKey}`).expect(200);
       expect(pause1.body.positionMs).toBe(3000);
       expect(pause1.body.playbackState).toEqual({ playing: false, positionMs: 3000 });
 
       // Pausar de nuevo no cambia la posición.
-      const pause2 = await request(app).post(`/rooms/${room.roomId}/pause`).expect(200);
+      const pause2 = await request(app).post(`/rooms/${room.roomId}/pause`).set("Authorization", `Bearer ${room.emitterKey}`).expect(200);
       expect(pause2.body.positionMs).toBe(3000);
 
       // Reanudar: el evento lleva la posición y queda persistida.
-      const play2 = await request(app).post(`/rooms/${room.roomId}/play`).expect(200);
+      const play2 = await request(app).post(`/rooms/${room.roomId}/play`).set("Authorization", `Bearer ${room.emitterKey}`).expect(200);
       expect(play2.body.positionMs).toBe(3000);
       expect(play2.body.playbackState).toEqual({ playing: true, positionMs: 3000 });
 
       // Pausa inmediata (antes de startAt): la posición no retrocede ni avanza.
-      const pause3 = await request(app).post(`/rooms/${room.roomId}/pause`).expect(200);
+      const pause3 = await request(app).post(`/rooms/${room.roomId}/pause`).set("Authorization", `Bearer ${room.emitterKey}`).expect(200);
       expect(pause3.body.positionMs).toBe(3000);
 
       const state = await request(app).get(`/rooms/${room.roomId}`).expect(200);
