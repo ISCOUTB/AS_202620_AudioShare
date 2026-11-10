@@ -4,6 +4,8 @@ import 'theme.dart';
 import '../core/network/api_client.dart';
 import '../features/audio/data/audio_track_repository.dart';
 import '../features/audio/data/just_audio_service.dart';
+import '../features/session/data/emitter_session_store.dart';
+import '../features/session/data/repositories/room_control_repository.dart';
 import '../features/session/data/repositories/room_repository.dart';
 import '../features/session/presentation/pages/home_page.dart';
 import '../features/sync/data/sync_repository.dart';
@@ -58,6 +60,8 @@ class AudioShareApp extends StatelessWidget {
         api: api,
         audioFactory: JustAudioService.new,
         audioTrackRepository: ApiAudioTrackRepository(api),
+        control: ApiRoomControlRepository(api),
+        emitterStore: SharedPreferencesEmitterSessionStore(),
       ),
     );
   }

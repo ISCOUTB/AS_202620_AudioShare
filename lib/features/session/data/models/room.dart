@@ -14,17 +14,22 @@ class Participant {
     required this.id,
     required this.role,
     required this.joinedAt,
+    this.connected = false,
   });
 
   factory Participant.fromJson(Map<String, dynamic> json) => Participant(
         id: json['id'] as String,
         role: _roleFrom(json['role']),
         joinedAt: DateTime.parse(json['joinedAt'] as String),
+        connected: json['connected'] as bool? ?? false,
       );
 
   final String id;
   final ParticipantRole role;
   final DateTime joinedAt;
+
+  /// Solo tiene sentido en receptores: si tiene abierto el canal de eventos.
+  final bool connected;
 }
 
 class Room {
@@ -37,6 +42,8 @@ class Room {
     required this.startAt,
     required this.participants,
     this.connectedReceivers = 0,
+    this.trackName,
+    this.trackVersion = 0,
   });
 
   factory Room.fromJson(Map<String, dynamic> json) {
@@ -53,6 +60,8 @@ class Room {
           .map((item) => Participant.fromJson((item as Map).cast<String, dynamic>()))
           .toList(),
       connectedReceivers: (json['connectedReceivers'] as num?)?.toInt() ?? 0,
+      trackName: json['trackName'] as String?,
+      trackVersion: (json['trackVersion'] as num?)?.toInt() ?? 0,
     );
   }
 
@@ -67,6 +76,12 @@ class Room {
   final int? startAt;
   final List<Participant> participants;
   final int connectedReceivers;
+
+  /// Nombre de la canción actual, si el emisor lo envió.
+  final String? trackName;
+
+  /// Cuántas veces se ha subido o cambiado la pista; 0 = sin pista.
+  final int trackVersion;
 }
 
 PlaybackStatus _statusFrom(Object? raw) => PlaybackStatus.values.firstWhere(

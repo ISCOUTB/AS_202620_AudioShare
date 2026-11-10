@@ -21,6 +21,26 @@ sealed class SyncEvent {
           return SyncPauseEvent((json['positionMs'] as num).toInt());
         case 'audio.chunk':
           return AudioChunkEvent((json['sequence'] as num).toInt());
+        case 'participant.joined':
+          final participant = (json['participant'] as Map).cast<String, dynamic>();
+          return ParticipantEvent(ParticipantChange.joined, participant['id'] as String);
+        case 'participant.left':
+          return ParticipantEvent(
+            ParticipantChange.left,
+            json['receiverId'] as String,
+            removed: json['reason'] == 'removed',
+          );
+        case 'participant.connected':
+          return ParticipantEvent(ParticipantChange.connected, json['receiverId'] as String);
+        case 'participant.disconnected':
+          return ParticipantEvent(ParticipantChange.disconnected, json['receiverId'] as String);
+        case 'track.changed':
+          return TrackChangedEvent(
+            json['trackName'] as String?,
+            (json['trackVersion'] as num).toInt(),
+          );
+        case 'room.closed':
+          return const RoomClosedEvent();
         default:
           return const UnknownSyncEvent();
       }
@@ -48,6 +68,29 @@ final class SyncPauseEvent extends SyncEvent {
 final class AudioChunkEvent extends SyncEvent {
   const AudioChunkEvent(this.sequence);
   final int sequence;
+}
+
+enum ParticipantChange { joined, left, connected, disconnected }
+
+/// Alguien entró, salió, se conectó o se desconectó. Con [removed] el emisor
+/// lo expulsó (solo en `left`).
+final class ParticipantEvent extends SyncEvent {
+  const ParticipantEvent(this.change, this.participantId, {this.removed = false});
+  final ParticipantChange change;
+  final String participantId;
+  final bool removed;
+}
+
+/// El emisor subió una pista nueva: la sala queda detenida en 0.
+final class TrackChangedEvent extends SyncEvent {
+  const TrackChangedEvent(this.trackName, this.trackVersion);
+  final String? trackName;
+  final int trackVersion;
+}
+
+/// El emisor cerró la sala para todos.
+final class RoomClosedEvent extends SyncEvent {
+  const RoomClosedEvent();
 }
 
 final class UnknownSyncEvent extends SyncEvent {

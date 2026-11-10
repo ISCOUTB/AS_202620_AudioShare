@@ -3,7 +3,9 @@ import 'dart:typed_data';
 import '../../../core/network/api_client.dart';
 
 abstract interface class AudioTrackRepository {
-  Future<void> upload(String roomId, Uint8List bytes);
+  /// Sube (o reemplaza) la pista de la sala. [trackName] es el nombre que se
+  /// muestra a los participantes.
+  Future<void> upload(String roomId, Uint8List bytes, {String? trackName});
 }
 
 class ApiAudioTrackRepository implements AudioTrackRepository {
@@ -12,9 +14,15 @@ class ApiAudioTrackRepository implements AudioTrackRepository {
   final ApiClient _api;
 
   @override
-  Future<void> upload(String roomId, Uint8List bytes) => _api.uploadBytes(
-        '/rooms/${Uri.encodeComponent(roomId)}/track',
-        bytes,
-        contentType: 'audio/mpeg',
-      );
+  Future<void> upload(String roomId, Uint8List bytes, {String? trackName}) {
+    final name = trackName?.trim();
+    return _api.uploadBytes(
+      '/rooms/${Uri.encodeComponent(roomId)}/track',
+      bytes,
+      contentType: 'audio/mpeg',
+      headers: name == null || name.isEmpty
+          ? const {}
+          : {'X-Track-Name': Uri.encodeComponent(name)},
+    );
+  }
 }

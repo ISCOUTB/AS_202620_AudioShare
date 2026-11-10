@@ -147,7 +147,7 @@ Código de sala de 6 dígitos, caducidad por inactividad, límite de intentos y 
 | Errores de SQLite como 503 en JSON y `/health` con `storage` (escritura de prueba). Causa en el servidor **no confirmada**: el panel de Dokploy no estaba disponible.
 |===
 
-Controles del emisor (ADR-0014, `tests/emitter-controls.test.ts`; servidor implementado y probado, **pendiente de desplegar y del cliente Flutter**):
+Controles del emisor (ADR-0014; servidor probado con `tests/emitter-controls.test.ts`; cliente Flutter con `test/emitter_controls_test.dart`, **sin ejecutar todavía en un dispositivo**; nada desplegado):
 
 [cols="3,1,4"]
 |===
@@ -159,8 +159,8 @@ Controles del emisor (ADR-0014, `tests/emitter-controls.test.ts`; servidor imple
 | Aceptado
 | Servidor y cliente deben desplegarse juntos.
 | Un receptor que se iba seguía apareciendo en la vista del emisor.
-| Corregido en el servidor
-| Salida voluntaria, expulsión con veto del nombre y eventos `participant.*` para el emisor y los receptores; falta la vista en Flutter.
+| Corregido en el servidor y escrito en el cliente
+| Salida voluntaria, expulsión con veto del nombre y eventos `participant.*`; el cliente muestra conectado o sin conexión y quita a quien sale. Falta comprobarlo en dispositivos.
 | Las salas no se podían cerrar y no había cómo borrar una pista (AM-11).
 | Mitigado
 | `DELETE /rooms/:roomId` con llave; caducidad por inactividad.

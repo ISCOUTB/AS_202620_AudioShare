@@ -26,7 +26,12 @@ class ApiRoomRepository implements RoomRepository {
   @override
   Future<String> createRoom(String emitterId) async {
     final data = await _api.request('POST', '/rooms', body: {'emitterId': emitterId});
-    return data['roomId'] as String;
+    final roomId = data['roomId'] as String;
+    // El servidor entrega la llave de emisor solo aquí; desde ahora las
+    // acciones del emisor de esta sala la llevan en `Authorization`.
+    final key = data['emitterKey'];
+    if (key is String && key.isNotEmpty) _api.emitterKeys[roomId] = key;
+    return roomId;
   }
 
   @override

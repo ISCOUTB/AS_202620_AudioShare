@@ -1,6 +1,6 @@
 # ADR-0014 — Llave de emisor, salida, expulsión y cambio de pista
 
-- **Estado:** aceptado (implementado y probado en el servidor; pendiente de desplegar y del cliente Flutter)
+- **Estado:** aceptado (servidor implementado y probado; cliente Flutter escrito pero sin ejecutar en el entorno de redacción; nada desplegado)
 - **Fecha:** 2026-11-09
 - **Decide:** equipo AudioShare (AS_202620_AudioShare)
 - **Relación:** [ADR-0013 — Código de sala y caducidad](./0013-codigo-de-sala-y-caducidad.md); amenazas AM-01, AM-03 y AM-11 en `docs/amenazas-priorizadas.md`
@@ -28,4 +28,14 @@ Hasta la semana 14 cualquiera que conociera el código de una sala podía reprod
 - Perder la llave no tiene recuperación. Es deliberado: no hay cuentas.
 - La lista de participantes es memoria + base: `connected` se calcula con los `stream` abiertos de este proceso, así que no es válido con varias instancias.
 - Se descarta, por ahora, que los receptores suban canciones (haría falta una cola de reproducción, cuotas por persona y moderación).
-- **Pendiente:** cuota de tamaño y de espacio de subida (AM-03, ahora al menos autenticada), token de receptor, y el cliente Flutter (paquete B2).
+- **Pendiente:** cuota de tamaño y de espacio de subida (AM-03, ahora al menos autenticada) y token de receptor.
+
+## Cliente Flutter (paquete B2)
+
+- **Pantalla de inicio:** un selector «Unirme / Crear sala»; el código se escribe en un campo numérico de 6 dígitos y el nombre es obligatorio (1 a 30 caracteres, sin valores por defecto). El campo del servidor sigue existiendo, pero dentro de «Opciones avanzadas», con un texto que dice que no se cambie y un botón «Restablecer»: sirve de plan B en la demo (servidor propio en la red local).
+- **Volver como emisor:** la llave se guarda en el dispositivo (`shared_preferences`) junto con el código y el nombre; la pantalla de inicio muestra «Tu sala activa» con un botón «Volver». Si el servidor responde 401, 403 o 404 se descarta la sesión guardada. Crear otra sala pide confirmación porque se pierde el acceso a la anterior.
+- **Salir:** se sustituyó la flecha de «atrás» por un botón explícito «Salir» con confirmación (el botón de atrás del sistema muestra la misma). El receptor sale de la lista; el emisor puede salir (la sala sigue) o cerrarla para todos.
+- **Participantes:** punto verde o gris según estén conectados, «(tú)», menú del emisor para expulsar y deslizador de volumen propio también para el emisor.
+- **El emisor oye la pista:** descarga su propia pista y arranca en el mismo `startAt` que los receptores, pero no abre un `stream` de receptor ni envía ACK, para no alterar la medición de EC-01.
+- **Cambiar canción:** el emisor sube otro MP3; los receptores reciben `track.changed`, quedan detenidos y descargan la nueva.
+- **Fuera de alcance:** que los receptores suban canciones; persistir la sala de un receptor; recuperar una llave perdida.

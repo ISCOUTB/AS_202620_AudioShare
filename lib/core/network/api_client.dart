@@ -38,6 +38,11 @@ class ApiClient {
   /// cuerpo completo; con 15 s un MP3 grande falla en Wi-Fi lento o datos móviles.
   static const uploadTimeout = Duration(minutes: 10);
 
+  /// Llaves de emisor por sala (`emitterKey`). Las peticiones a
+  /// `/rooms/{roomId}/...` de una sala de la que este dispositivo es emisor
+  /// llevan `Authorization: Bearer <llave>`; el resto no lleva nada.
+  final Map<String, String> emitterKeys = {};
+
   /// Dirección del backend. Se puede cambiar en tiempo de ejecución (campo
   /// "Servidor" de la pantalla inicial) para usar la IP del equipo en la LAN.
   Uri baseUri;
@@ -145,12 +150,22 @@ class ApiClient {
 
   static Uri _defaultBaseUri() => resolveBaseUri(Uri.base);
 
+  static final _roomPath = RegExp(r'^/rooms/([^/?#]+)');
+
+  Map<String, String> _authHeaders(String path) {
+    final match = _roomPath.firstMatch(path);
+    if (match == null) return const {};
+    final key = emitterKeys[Uri.decodeComponent(match.group(1)!)];
+    return key == null ? const {} : {'Authorization': 'Bearer $key'};
+  }
+
   /// Abre una respuesta NDJSON y emite cada línea no vacía a medida que llega.
   /// Cancelar la suscripción cierra la conexión. Un estado distinto de 2xx
   /// lanza [ApiException].
   Stream<String> openLines(String path) async* {
     final uri = baseUri.resolve(path);
-    final response = await _send(http.Request('GET', uri), uri, 'GET $path');
+    final request = http.Request('GET', uri)..headers.addAll(_authHeaders(path));
+    final response = await _send(request, uri, 'GET $path');
     if (response.statusCode < 200 || response.statusCode >= 300) {
       final text = await response.stream.bytesToString();
       throw _httpError(response.statusCode, text, uri);
@@ -167,7 +182,7 @@ class ApiClient {
     Map<String, dynamic>? body,
   }) async {
     final uri = baseUri.resolve(path);
-    final request = http.Request(method, uri);
+    final request = http.Request(method, uri)..headers.addAll(_authHeaders(path));
     if (body != null) {
       request.headers['Content-Type'] = 'application/json';
       request.body = jsonEncode(body);
@@ -177,6 +192,8 @@ class ApiClient {
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw _httpError(response.statusCode, text, uri);
     }
+    // 204: el servidor no devuelve cuerpo (salir, expulsar, cerrar sala).
+    if (response.statusCode == 204) return <String, dynamic>{};
 
     Map<String, dynamic> data;
     try {
@@ -194,10 +211,13 @@ class ApiClient {
     String path,
     Uint8List bytes, {
     required String contentType,
+    Map<String, String> headers = const {},
   }) async {
     final uri = baseUri.resolve(path);
     final response = await _send(
       http.Request('POST', uri)
+        ..headers.addAll(_authHeaders(path))
+        ..headers.addAll(headers)
         ..headers['Content-Type'] = contentType
         ..bodyBytes = bytes,
       uri,
