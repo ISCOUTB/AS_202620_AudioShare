@@ -14,6 +14,10 @@ abstract interface class RoomControlRepository {
   /// El emisor cierra la sala para todos.
   Future<void> closeRoom(String roomId);
 
+  /// El emisor adelanta o atrasa la canción. Con la sala sonando el servidor
+  /// reprograma el arranque para todos; en pausa solo guarda la posición.
+  Future<void> seek(String roomId, int positionMs);
+
   /// Comprueba la llave guardada y devuelve el identificador del emisor. Si la
   /// llave no sirve, lanza [ApiException] y no la deja registrada.
   Future<String> rejoinAsEmitter(String roomId, String emitterKey);
@@ -44,6 +48,13 @@ class ApiRoomControlRepository implements RoomControlRepository {
 
   @override
   Future<void> closeRoom(String roomId) => _api.request('DELETE', _room(roomId));
+
+  @override
+  Future<void> seek(String roomId, int positionMs) => _api.request(
+        'POST',
+        '${_room(roomId)}/seek',
+        body: {'positionMs': positionMs},
+      );
 
   @override
   Future<String> rejoinAsEmitter(String roomId, String emitterKey) async {

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -17,14 +19,25 @@ class RoomPage extends StatefulWidget {
 class _RoomPageState extends State<RoomPage> {
   bool _closing = false;
 
+  /// Posición (ms) que el emisor está arrastrando en la barra, mientras no la suelta.
+  double? _dragMs;
+  Timer? _ticker;
+
   @override
   void initState() {
     super.initState();
     widget.viewModel.addListener(_changed);
+    // Con la sala sonando la barra avanza sola; se repinta cada medio segundo.
+    _ticker = Timer.periodic(const Duration(milliseconds: 500), (_) {
+      if (mounted && widget.viewModel.room?.status == PlaybackStatus.playing) {
+        setState(() {});
+      }
+    });
   }
 
   @override
   void dispose() {
+    _ticker?.cancel();
     widget.viewModel.removeListener(_changed);
     widget.viewModel.dispose();
     super.dispose();
@@ -152,9 +165,18 @@ class _RoomPageState extends State<RoomPage> {
                 room: room,
                 emitter: emitter,
                 busy: model.loading,
+                positionMs: _dragMs?.round() ?? model.currentPositionMs(),
+                durationMs: model.durationMs,
                 onPlay: model.play,
                 onPause: model.pause,
                 onChangeTrack: model.trackRepository == null ? null : _changeTrack,
+                onDrag: (value) => setState(() => _dragMs = value),
+                onSeekEnd: (value) async {
+                  await model.seekTo(value.round());
+                  if (mounted) setState(() => _dragMs = null);
+                },
+                onSeekBy: model.seekBy,
+                onRestart: () => model.seekTo(0),
               ),
               if (model.trackStatus != TrackStatus.none) ...[
                 const SizedBox(height: 12),
@@ -259,16 +281,33 @@ class _NowPlayingCard extends StatelessWidget {
     required this.room,
     required this.emitter,
     required this.busy,
+    required this.positionMs,
+    required this.durationMs,
     required this.onPlay,
     required this.onPause,
     required this.onChangeTrack,
+    required this.onDrag,
+    required this.onSeekEnd,
+    required this.onSeekBy,
+    required this.onRestart,
   });
   final Room room;
   final bool emitter;
   final bool busy;
+  final int positionMs;
+  final int? durationMs;
   final Future<void> Function() onPlay;
   final Future<void> Function() onPause;
   final Future<void> Function()? onChangeTrack;
+  final ValueChanged<double> onDrag;
+  final Future<void> Function(double) onSeekEnd;
+  final Future<void> Function(int) onSeekBy;
+  final Future<void> Function() onRestart;
+
+  static String _format(int ms) {
+    final total = ms ~/ 1000;
+    return '${total ~/ 60}:${(total % 60).toString().padLeft(2, '0')}';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -276,6 +315,9 @@ class _NowPlayingCard extends StatelessWidget {
     final title = room.trackVersion == 0
         ? 'Aún no hay canción'
         : (room.trackName ?? 'Canción sin título');
+    final duration = durationMs;
+    final hasDuration = duration != null && duration > 0;
+    final canSeek = emitter && !busy && hasDuration;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(18),
@@ -305,8 +347,50 @@ class _NowPlayingCard extends StatelessWidget {
                 ),
               ],
             ),
+            if (duration != null && hasDuration) ...[
+              const SizedBox(height: 12),
+              if (emitter)
+                Slider(
+                  value: positionMs.clamp(0, duration).toDouble(),
+                  max: duration.toDouble(),
+                  onChanged: busy ? null : onDrag,
+                  onChangeEnd: busy ? null : onSeekEnd,
+                )
+              else
+                LinearProgressIndicator(
+                  value: (positionMs / duration).clamp(0.0, 1.0).toDouble(),
+                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(_format(positionMs), style: Theme.of(context).textTheme.bodySmall),
+                  Text(_format(duration), style: Theme.of(context).textTheme.bodySmall),
+                ],
+              ),
+            ],
             if (emitter) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    tooltip: 'Atrasar 10 s',
+                    onPressed: canSeek ? () => onSeekBy(-10000) : null,
+                    icon: const Icon(Icons.replay_10),
+                  ),
+                  IconButton(
+                    tooltip: 'Desde el inicio',
+                    onPressed: canSeek ? onRestart : null,
+                    icon: const Icon(Icons.skip_previous),
+                  ),
+                  IconButton(
+                    tooltip: 'Adelantar 10 s',
+                    onPressed: canSeek ? () => onSeekBy(10000) : null,
+                    icon: const Icon(Icons.forward_10),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
               Row(
                 children: [
                   Expanded(

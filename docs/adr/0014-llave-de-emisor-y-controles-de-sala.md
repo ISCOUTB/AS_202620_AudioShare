@@ -20,6 +20,7 @@ Hasta la semana 14 cualquiera que conociera el código de una sala podía reprod
 6. **Eventos en vivo.** `GET /rooms/:id/events` (con llave) entrega al emisor, en NDJSON, `participant.joined|left|connected|disconnected`, `track.changed` y `room.closed`; los receptores reciben los mismos por su `stream`. `GET /rooms/:id` agrega `connected` a cada receptor. Una sala con el emisor escuchando no caduca.
 7. **Cambiar la canción.** Cada `POST .../track` reemplaza la pista, deja la sala detenida en la posición 0, sube `trackVersion` y guarda `trackName` (cabecera `X-Track-Name`, codificada, hasta 100 caracteres) y avisa con `track.changed`.
 8. **Cerrar la sala.** `DELETE /rooms/:id` (con llave) avisa con `room.closed`, borra pista y sala y corta las conexiones (cierra AM-11).
+9. **Adelantar y atrasar.** `POST /rooms/:id/seek` (con llave, `positionMs` entre 0 y 24 h). Con la sala sonando reprograma el arranque: `sync.start` con la posición pedida y un `startAt` futuro, como PLAY, para que todos reanuden juntos. En pausa o detenida solo guarda la posición (`sync.pause`) y la siguiente reproducción parte de ahí.
 
 ## Consecuencias
 
@@ -38,4 +39,6 @@ Hasta la semana 14 cualquiera que conociera el código de una sala podía reprod
 - **Participantes:** punto verde o gris según estén conectados, «(tú)», menú del emisor para expulsar y deslizador de volumen propio también para el emisor.
 - **El emisor oye la pista:** descarga su propia pista y arranca en el mismo `startAt` que los receptores, pero no abre un `stream` de receptor ni envía ACK, para no alterar la medición de EC-01.
 - **Cambiar canción:** el emisor sube otro MP3; los receptores reciben `track.changed`, quedan detenidos y descargan la nueva.
+- **Controles de posición:** barra de progreso con tiempo transcurrido y total (el emisor la arrastra; los receptores solo la ven), botones de atrasar y adelantar 10 s y volver al inicio. La posición se calcula con el estado de la sala y el reloj del servidor; la duración la da el reproductor (`DurationProvider`). Un receptor que ya está sonando se detiene antes de reanudar en el nuevo `startAt`, o seguiría sonando antes de tiempo.
+- **Canción vieja en el emisor (corrección):** tras cambiar la canción el emisor seguía oyendo la anterior. Causas probables, ambas corregidas: el navegador reutilizaba el audio de la misma URL (ahora la URL lleva `?v=<trackVersion>`) y el emisor cargaba la pista dos veces seguidas (la subida y su propio `track.changed`), que se pisan en el mismo reproductor (ahora ignora su propio evento mientras sube). No se pudo reproducir el fallo en el entorno de redacción.
 - **Fuera de alcance:** que los receptores suban canciones; persistir la sala de un receptor; recuperar una llave perdida.

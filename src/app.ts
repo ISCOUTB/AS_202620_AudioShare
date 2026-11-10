@@ -76,6 +76,9 @@ function parseParticipantId(value: unknown, required = false): ParsedParticipant
   return { ok: true, id };
 }
 
+/** Posición máxima que acepta `seek` (24 h): protege contra valores absurdos. */
+const MAX_SEEK_POSITION_MS = 24 * 60 * 60 * 1000;
+
 /** Nombre de la canción que envía el cliente en `X-Track-Name` (codificado con %). */
 function parseTrackName(header: string | undefined): string | null {
   if (header === undefined) {
@@ -832,6 +835,61 @@ export function createApp(
       startAt: updatedRoom.startAt,
       participants: updatedRoom.participants,
       audioChunk,
+    });
+  });
+
+  /*
+   * SEEK (solo el emisor): adelanta o atrasa la canción.
+   *
+   * Con la sala sonando es un nuevo arranque programado: `sync.start` con la
+   * posición pedida y un `startAt` futuro, igual que PLAY, para que todos
+   * reanuden juntos. Con la sala en pausa o detenida solo guarda la posición
+   * (`sync.pause`) y la siguiente reproducción parte de ahí.
+   */
+  app.post("/rooms/:roomId/seek", requireEmitter, (req: Request, res: Response) => {
+    const { roomId } = req.params;
+    const room = sessions.getRoom(roomId);
+
+    if (!room) {
+      res.status(404).json({ error: "Sala no encontrada" });
+      return;
+    }
+
+    const target = req.body?.positionMs;
+
+    if (
+      typeof target !== "number" ||
+      !Number.isFinite(target) ||
+      target < 0 ||
+      target > MAX_SEEK_POSITION_MS
+    ) {
+      res.status(400).json({
+        error: `positionMs debe ser un número entre 0 y ${MAX_SEEK_POSITION_MS}`,
+      });
+      return;
+    }
+
+    const positionMs = Math.round(target);
+    const sync = coordinatorFor(roomId);
+    const playing = room.playbackState.playing && room.startAt !== null;
+    const event = playing ? sync.start(positionMs) : sync.pause(positionMs);
+    const updatedRoom =
+      event.type === "sync.start"
+        ? sessions.startPlayback(roomId, event.startAt, event.positionMs)
+        : sessions.pausePlayback(roomId, event.positionMs);
+
+    for (const client of streams.get(roomId)?.values() ?? []) {
+      client.send(event);
+    }
+
+    log.info("room.seek", { roomId, positionMs, playing });
+
+    res.status(200).json({
+      ...event,
+      roomId: updatedRoom.id,
+      status: updatedRoom.status,
+      playbackState: updatedRoom.playbackState,
+      startAt: updatedRoom.startAt,
     });
   });
 

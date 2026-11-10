@@ -15,7 +15,7 @@ import 'track_downloader.dart';
 ///
 /// El reproductor se crea bajo demanda, así que construir este servicio no
 /// toca plugins nativos (útil en pruebas de widgets).
-class JustAudioService implements AudioService {
+class JustAudioService implements AudioService, DurationProvider {
   JustAudioService({AudioPlayer? player}) : _player = player;
 
   static const double defaultVolume = 0.8;
@@ -29,6 +29,9 @@ class JustAudioService implements AudioService {
 
   @override
   bool get isSimulated => false;
+
+  @override
+  int? get durationMs => _loaded ? _p.duration?.inMilliseconds : null;
 
   @override
   Future<void> load(String url) async {

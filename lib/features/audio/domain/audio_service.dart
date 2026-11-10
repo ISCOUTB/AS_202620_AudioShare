@@ -15,6 +15,13 @@ abstract interface class AudioService {
   Future<void> dispose();
 }
 
+/// Opcional: reproductores que conocen la duración de la pista cargada. Va
+/// aparte de [AudioService] para no obligar a quien ya lo implementa a añadirla.
+abstract interface class DurationProvider {
+  /// Duración de la pista cargada en milisegundos; null si aún no se conoce.
+  int? get durationMs;
+}
+
 class MockAudioService implements AudioService {
   final Map<String, double> volumes = {};
 

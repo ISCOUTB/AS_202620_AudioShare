@@ -185,13 +185,21 @@ describe("Controles del emisor", () => {
       ["POST", "pause"],
       ["POST", "audio"],
       ["POST", "kick"],
+      ["POST", "seek"],
       ["GET", "events"],
       ["DELETE", ""],
     ])("%s /rooms/:id/%s sin llave responde 401 y con una llave ajena 403", async (method, action) => {
       const { roomId } = await newRoom();
       const other = await newRoom("Otro");
       const path = `/rooms/${roomId}${action ? `/${action}` : ""}`;
-      const body = action === "kick" ? { receiverId: "x" } : method === "GET" ? undefined : {};
+      const body =
+        action === "kick"
+          ? { receiverId: "x" }
+          : action === "seek"
+            ? { positionMs: 1000 }
+            : method === "GET"
+              ? undefined
+              : {};
 
       expect((await api(method, path, { body })).status).toBe(401);
       expect((await api(method, path, { key: other.key, body })).status).toBe(403);
@@ -363,6 +371,67 @@ describe("Controles del emisor", () => {
         headers: { "X-Track-Name": "x".repeat(300) },
       });
       expect(((await api("GET", `/rooms/${roomId}`)).json.trackName as string).length).toBe(100);
+    });
+  });
+
+  describe("adelantar y atrasar la canción", () => {
+    it("en pausa guarda la posición y avisa con sync.pause", async () => {
+      const { roomId, key } = await newRoom();
+      await joinRoom(roomId, "Luis");
+      const luis = await listen(roomId, "Luis");
+
+      const res = await api("POST", `/rooms/${roomId}/seek`, { key, body: { positionMs: 42_000 } });
+
+      expect(res.status).toBe(200);
+      expect(res.json).toMatchObject({ type: "sync.pause", positionMs: 42_000, status: "paused" });
+      expect(await luis.waitFor("sync.pause")).toMatchObject({ positionMs: 42_000 });
+
+      const room = await api("GET", `/rooms/${roomId}`);
+      expect(room.json.playbackState).toEqual({ playing: false, positionMs: 42_000 });
+    });
+
+    it("sonando reprograma el arranque con la posición pedida", async () => {
+      const { roomId, key } = await newRoom();
+      await joinRoom(roomId, "Luis");
+      const luis = await listen(roomId, "Luis");
+      await api("POST", `/rooms/${roomId}/play`, { key });
+      const first = (await api("GET", `/rooms/${roomId}`)).json;
+
+      const res = await api("POST", `/rooms/${roomId}/seek`, { key, body: { positionMs: 90_000 } });
+
+      expect(res.status).toBe(200);
+      expect(res.json).toMatchObject({ type: "sync.start", positionMs: 90_000, status: "playing" });
+      expect(res.json.startAt).toBeGreaterThanOrEqual(first.startAt);
+
+      await sleep(150);
+      const starts = luis.events.filter((event) => event.type === "sync.start");
+      expect(starts.length).toBeGreaterThanOrEqual(2);
+      expect(starts[starts.length - 1]).toMatchObject({ positionMs: 90_000 });
+
+      const room = (await api("GET", `/rooms/${roomId}`)).json;
+      expect(room.status).toBe("playing");
+      expect(room.playbackState.positionMs).toBe(90_000);
+    });
+
+    it("reanudar después de adelantar parte de la nueva posición", async () => {
+      const { roomId, key } = await newRoom();
+      await api("POST", `/rooms/${roomId}/seek`, { key, body: { positionMs: 30_000 } });
+
+      const play = await api("POST", `/rooms/${roomId}/play`, { key });
+
+      expect(play.json.positionMs).toBe(30_000);
+    });
+
+    it.each([
+      ["negativa", -1],
+      ["no numérica", "10"],
+      ["absurda", 999_999_999_999],
+      ["no finita", null],
+    ])("rechaza una posición %s", async (_label, positionMs) => {
+      const { roomId, key } = await newRoom();
+
+      expect((await api("POST", `/rooms/${roomId}/seek`, { key, body: { positionMs } })).status).toBe(400);
+      expect((await api("POST", `/rooms/${roomId}/seek`, { key, body: {} })).status).toBe(400);
     });
   });
 

@@ -16,6 +16,9 @@ import '../../../sync/domain/sync_service.dart';
 /// Estado de la pista en ESTE dispositivo (solo receptores).
 enum TrackStatus { none, downloading, ready, failed }
 
+/// Tope de posición que acepta el servidor en `seek` (24 h).
+const _maxSeekMs = 24 * 60 * 60 * 1000;
+
 /// Por qué terminó la estancia de este dispositivo en la sala.
 enum RoomEnd {
   /// Salió por su cuenta.
@@ -111,6 +114,7 @@ class SessionViewModel extends ChangeNotifier {
   bool _listening = false;
   bool _watching = false;
   bool _watchRejected = false;
+  bool _changingTrack = false;
   int _loadedTrackVersion = -1;
   StreamSubscription<SyncEvent>? _watchSubscription;
   Completer<void>? _watchEnded;
@@ -167,14 +171,68 @@ class SessionViewModel extends ChangeNotifier {
     final uploader = trackRepository;
     if (current == null || uploader == null || !isEmitter) return;
     await _run(() async {
-      await audio.pause();
-      await uploader.upload(current.id, bytes, trackName: trackName);
-      room = await repository.getRoom(current.id);
-      _updateSync();
-      _ackedStartAt = null;
-      await _loadTrack();
+      // Mientras sube, se ignora el `track.changed` propio: aquí se recarga una
+      // sola vez (dos cargas seguidas del mismo reproductor se pisan).
+      _changingTrack = true;
+      try {
+        await audio.pause();
+        await uploader.upload(current.id, bytes, trackName: trackName);
+        room = await repository.getRoom(current.id);
+        _updateSync();
+        _ackedStartAt = null;
+        await _loadTrack();
+      } finally {
+        _changingTrack = false;
+      }
     });
   }
+
+  /// Duración de la pista cargada, si el reproductor la conoce.
+  int? get durationMs {
+    // `DurationProvider` no es subtipo de `AudioService`: un `is` no basta para
+    // promover la variable, así que se enlaza con un patrón.
+    if (audio case final DurationProvider provider) return provider.durationMs;
+    return null;
+  }
+
+  /// Posición actual de la canción según el estado de la sala y el reloj del
+  /// servidor (no depende de que este dispositivo tenga la pista cargada).
+  int currentPositionMs() {
+    final current = room;
+    if (current == null) return 0;
+    var position = current.positionMs;
+    final startAt = current.startAt;
+    if (current.status == PlaybackStatus.playing && startAt != null) {
+      final serverNow = _clock() + (clockOffsetMs ?? 0).round();
+      position += (serverNow - startAt).clamp(0, 86400000).toInt();
+    }
+    final limit = durationMs;
+    return limit == null ? position : position.clamp(0, limit).toInt();
+  }
+
+  /// El emisor mueve la canción a [positionMs]. Con la sala sonando, todos
+  /// reanudan juntos en el nuevo `startAt`; en pausa solo cambia la posición.
+  Future<void> seekTo(int positionMs) async {
+    final current = room;
+    final repo = control;
+    if (current == null || repo == null || !isEmitter) return;
+    final target = positionMs.clamp(0, durationMs ?? _maxSeekMs).toInt();
+    await _run(() async {
+      if (current.status == PlaybackStatus.playing) await audio.pause();
+      await repo.seek(current.id, target);
+      room = await repository.getRoom(current.id);
+      _updateSync();
+      final updated = room!;
+      if (updated.status == PlaybackStatus.playing) {
+        await _startOwnAudio(updated);
+      } else {
+        await audio.seek(updated.positionMs);
+      }
+    });
+  }
+
+  /// Adelanta (positivo) o atrasa (negativo) la canción [deltaMs].
+  Future<void> seekBy(int deltaMs) => seekTo(currentPositionMs() + deltaMs);
 
   /// Sale de la sala. Un receptor se quita de la lista; el emisor solo se va y
   /// la sala sigue activa (puede volver con su llave).
@@ -312,7 +370,12 @@ class SessionViewModel extends ChangeNotifier {
     _loadedTrackVersion = current.trackVersion;
     notifyListeners();
     try {
-      final roomTrackUri = uri.resolve('/rooms/${Uri.encodeComponent(current.id)}/track');
+      var roomTrackUri = uri.resolve('/rooms/${Uri.encodeComponent(current.id)}/track');
+      // La versión va en la URL: así el navegador no reutiliza la canción
+      // anterior (Safari conserva el audio de una misma dirección).
+      if (current.trackVersion > 0) {
+        roomTrackUri = roomTrackUri.replace(queryParameters: {'v': '${current.trackVersion}'});
+      }
       await audio.load(roomTrackUri.toString());
       trackStatus = TrackStatus.ready;
       audioWarning = null;
@@ -365,8 +428,12 @@ class SessionViewModel extends ChangeNotifier {
     if (!_trackUsable) return;
     if (startAt == _ackedStartAt) return;
 
+    // Un nuevo arranque con la pista ya sonando (el emisor movió la canción):
+    // se detiene primero, o este dispositivo seguiría sonando antes de startAt.
+    final restart = _ackedStartAt != null;
     _ackedStartAt = startAt;
     try {
+      if (restart) await audio.pause();
       // Colocar la pista antes de calcular la espera: el seek tarda unos ms.
       await audio.seek(positionMs ?? current.positionMs);
       final delay = sync.delayUntilStartMs(startAt: startAt, localNow: _clock(), offsetMs: offset);
@@ -496,6 +563,8 @@ class SessionViewModel extends ChangeNotifier {
         }
         await _reloadRoom();
       } else if (event is TrackChangedEvent) {
+        // El emisor recarga por su cuenta al cambiar la canción.
+        if (_changingTrack) return;
         // La sala queda detenida en 0 con la pista nueva.
         _ackedStartAt = null;
         await audio.pause();

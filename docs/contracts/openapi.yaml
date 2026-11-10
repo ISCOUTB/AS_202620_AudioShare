@@ -312,6 +312,47 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /rooms/{roomId}/seek:
+    post:
+      operationId: seekRoom
+      summary: Adelanta o atrasa la canción
+      description: >
+        Con la sala sonando reprograma el arranque (`sync.start` con la posición
+        pedida y un `startAt` futuro); en pausa o detenida solo guarda la
+        posición (`sync.pause`). Los receptores reciben el mismo evento por su
+        `stream`.
+      security:
+        - emitterKey: []
+      parameters:
+        - $ref: "#/components/parameters/RoomId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [positionMs]
+              properties:
+                positionMs:
+                  type: number
+                  minimum: 0
+                  maximum: 86400000
+      responses:
+        "200":
+          description: Posición cambiada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SeekResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   /rooms/{roomId}/audio:
     post:
       operationId: sendAudioChunk
@@ -785,6 +826,25 @@ components:
         type:
           type: string
           const: sync.pause
+        positionMs:
+          type: number
+        roomId:
+          type: string
+        status:
+          type: string
+          enum: [stopped, playing, paused]
+        playbackState:
+          $ref: "#/components/schemas/PlaybackState"
+        startAt:
+          type: [number, "null"]
+
+    SeekResponse:
+      type: object
+      required: [type, positionMs, roomId, status, playbackState, startAt]
+      properties:
+        type:
+          type: string
+          enum: [sync.start, sync.pause]
         positionMs:
           type: number
         roomId:

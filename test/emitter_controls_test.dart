@@ -20,6 +20,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class _Rooms implements RoomRepository {
   bool playing = false;
   int? startAt;
+  int positionMs = 0;
   int trackVersion = 1;
   final receivers = <String>['rx'];
 
@@ -33,7 +34,7 @@ class _Rooms implements RoomRepository {
         createdAt: DateTime(2026),
         status: playing ? PlaybackStatus.playing : PlaybackStatus.stopped,
         playing: playing,
-        positionMs: 0,
+        positionMs: positionMs,
         startAt: startAt,
         trackName: 'Canción',
         trackVersion: trackVersion,
@@ -61,8 +62,12 @@ class _Control implements RoomControlRepository {
   final left = <String>[];
   final kicked = <String>[];
   final closed = <String>[];
+  final seeks = <String>[];
   final events = StreamController<SyncEvent>.broadcast();
   bool failLeave = false;
+
+  /// Simula lo que hace el servidor al recibir un `seek`.
+  void Function(int positionMs)? onSeek;
 
   @override
   Future<void> leave(String roomId, String receiverId) async {
@@ -74,6 +79,11 @@ class _Control implements RoomControlRepository {
   Future<void> kick(String roomId, String receiverId) async => kicked.add('$roomId/$receiverId');
   @override
   Future<void> closeRoom(String roomId) async => closed.add(roomId);
+  @override
+  Future<void> seek(String roomId, int positionMs) async {
+    seeks.add('$roomId/$positionMs');
+    onSeek?.call(positionMs);
+  }
   @override
   Future<String> rejoinAsEmitter(String roomId, String emitterKey) async => 'host';
   @override
@@ -121,6 +131,12 @@ class _Audio extends MockAudioService {
   Future<void> start() async => starts++;
   @override
   Future<void> pause() async => pauses++;
+}
+
+/// Un reproductor que conoce la duración de la pista (3 min 20 s).
+class _TimedAudio extends _Audio implements DurationProvider {
+  @override
+  int? durationMs = 200000;
 }
 
 class _Uploader implements AudioTrackRepository {
@@ -524,7 +540,8 @@ void main() {
       await viewModel.changeTrack(Uint8List.fromList([1, 2, 3]), 'Nueva.mp3');
 
       expect(uploader.uploads, ['room-1/Nueva.mp3/3']);
-      expect(audio.calls, contains('load:http://servidor:3000/rooms/room-1/track'));
+      // La versión va en la URL para que el navegador no reutilice la anterior.
+      expect(audio.calls, contains('load:http://servidor:3000/rooms/room-1/track?v=2'));
       expect(viewModel.trackStatus, TrackStatus.ready);
     });
 
@@ -568,6 +585,149 @@ void main() {
 
       expect(audio.pauses, 1);
       expect(audio.calls, contains('seek:0'));
+    });
+  });
+
+  group('SessionViewModel: adelantar y atrasar', () {
+    SessionViewModel build(
+      _Rooms rooms,
+      _Control control,
+      _TimedAudio audio, {
+      required int Function() clock,
+      _Sync? sync,
+    }) =>
+        SessionViewModel(
+          repository: rooms,
+          syncRepository: sync ?? _Sync(clock),
+          audio: audio,
+          control: control,
+          trackUri: Uri.parse('http://servidor:3000/track'),
+          clock: clock,
+          wait: (duration) async {},
+        );
+
+    test('la posición actual se calcula con el reloj del servidor', () async {
+      var local = 13000;
+      final rooms = _Rooms()
+        ..playing = true
+        ..startAt = 10000
+        ..positionMs = 5000;
+      final viewModel = build(rooms, _Control(), _TimedAudio(), clock: () => local);
+      addTearDown(viewModel.dispose);
+      await viewModel.restoreEmitter('room-1', 'host');
+
+      expect(viewModel.currentPositionMs(), 5000);
+      local = 15000;
+      expect(viewModel.currentPositionMs(), 7000);
+    });
+
+    test('la posición no pasa de la duración de la pista', () async {
+      var local = 13000;
+      final rooms = _Rooms()
+        ..playing = true
+        ..startAt = 10000
+        ..positionMs = 190000;
+      final viewModel = build(rooms, _Control(), _TimedAudio(), clock: () => local);
+      addTearDown(viewModel.dispose);
+      await viewModel.restoreEmitter('room-1', 'host');
+
+      local = 99000;
+
+      expect(viewModel.currentPositionMs(), 200000);
+    });
+
+    test('adelantar con la sala en pausa solo cambia la posición', () async {
+      final rooms = _Rooms()..positionMs = 20000;
+      final control = _Control()..onSeek = (ms) => rooms.positionMs = ms;
+      final audio = _TimedAudio();
+      final viewModel = build(rooms, control, audio, clock: () => 13000);
+      addTearDown(viewModel.dispose);
+      await viewModel.restoreEmitter('room-1', 'host');
+
+      await viewModel.seekBy(10000);
+
+      expect(control.seeks, ['room-1/30000']);
+      expect(viewModel.room!.positionMs, 30000);
+      expect(audio.calls, contains('seek:30000'));
+      expect(audio.starts, 0);
+    });
+
+    test('atrasar no baja de cero y adelantar no pasa del final', () async {
+      final rooms = _Rooms()..positionMs = 4000;
+      final control = _Control()..onSeek = (ms) => rooms.positionMs = ms;
+      final viewModel = build(rooms, control, _TimedAudio(), clock: () => 13000);
+      addTearDown(viewModel.dispose);
+      await viewModel.restoreEmitter('room-1', 'host');
+
+      await viewModel.seekBy(-10000);
+      await viewModel.seekTo(999999);
+
+      expect(control.seeks, ['room-1/0', 'room-1/200000']);
+    });
+
+    test('con la sala sonando se detiene, pide el seek y reanuda en el nuevo startAt', () async {
+      var local = 13000;
+      final rooms = _Rooms()
+        ..playing = true
+        ..startAt = 10000
+        ..positionMs = 5000;
+      final control = _Control()
+        ..onSeek = (ms) {
+          rooms.positionMs = ms;
+          rooms.startAt = 13400;
+        };
+      final audio = _TimedAudio();
+      final sync = _Sync(() => local);
+      final viewModel = build(rooms, control, audio, clock: () => local, sync: sync);
+      addTearDown(viewModel.dispose);
+      await viewModel.restoreEmitter('room-1', 'host');
+
+      await viewModel.seekTo(60000);
+
+      expect(control.seeks, ['room-1/60000']);
+      expect(audio.pauses, greaterThanOrEqualTo(1));
+      expect(audio.calls, contains('seek:60000'));
+      expect(audio.starts, 1);
+      expect(sync.acks, isEmpty);
+    });
+
+    test('un receptor no puede adelantar la canción', () async {
+      final control = _Control();
+      final viewModel = build(_Rooms(), control, _TimedAudio(), clock: () => 13000);
+      addTearDown(viewModel.dispose);
+      await viewModel.joinRoom('room-1', 'rx');
+
+      await viewModel.seekTo(5000);
+
+      expect(control.seeks, isEmpty);
+    });
+
+    test('un receptor que ya suena se detiene antes de reanudar en la nueva posición', () async {
+      final rooms = _Rooms();
+      final sync = _Sync(() => 13000);
+      final audio = _TimedAudio();
+      final viewModel = SessionViewModel(
+        repository: rooms,
+        syncRepository: sync,
+        audio: audio,
+        trackUri: Uri.parse('http://servidor:3000/track'),
+        clock: () => 13000,
+        wait: (duration) async {},
+      );
+      addTearDown(viewModel.dispose);
+      await viewModel.joinRoom('room-1', 'rx');
+
+      sync.controller.add(const SyncStartEvent(10500));
+      await pumpEventQueue();
+      expect(audio.pauses, 0);
+      expect(audio.starts, 1);
+
+      sync.controller.add(const SyncStartEvent(10900, positionMs: 90000));
+      await pumpEventQueue();
+
+      expect(audio.pauses, 1);
+      expect(audio.calls, contains('seek:90000'));
+      expect(audio.starts, 2);
     });
   });
 }
