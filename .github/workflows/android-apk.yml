@@ -1,12 +1,25 @@
 name: APK de Android
 
-# No corre en cada push: se lanza a mano (Actions > APK de Android > Run
-# workflow) o al subir una etiqueta v* (por ejemplo v1.0.0), que además
-# publica una Release con el APK adjunto.
+# Corre solo cuando cambia lo que afecta al APK (la app, Android o las
+# dependencias), a mano (Actions > APK de Android > Run workflow) o al subir una
+# etiqueta v* (por ejemplo v1.0.0), que además publica una Release con el APK.
+# Un cambio solo de servidor o de documentación no recompila el APK.
 on:
   workflow_dispatch:
   push:
+    branches: [master]
+    paths:
+      - 'lib/**'
+      - 'android/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - '.github/workflows/android-apk.yml'
     tags: ['v*']
+
+# Si llegan dos pushes seguidos, solo interesa el APK del último.
+concurrency:
+  group: android-apk-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read

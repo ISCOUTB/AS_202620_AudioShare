@@ -293,7 +293,7 @@ Comprobación tras desplegar: `GET /health` debe devolver `commit` con el SHA, `
 
 ## APK de Android (workflow `android-apk.yml`)
 
-- **Cómo se genera:** en GitHub, Actions > «APK de Android» > Run workflow, o subiendo una etiqueta (`git tag v1.0.0` y `git push origin v1.0.0`), que además crea una Release con el APK adjunto. No corre en cada push.
+- **Cómo se genera:** automáticamente en cada push a `master` que cambie `lib/`, `android/`, `pubspec.yaml` o `pubspec.lock` (un cambio solo de servidor o de documentación no lo recompila); a mano en GitHub, Actions > «APK de Android» > Run workflow; o subiendo una etiqueta (`git tag v1.0.0` y `git push origin v1.0.0`), que además crea una Release con el APK adjunto. Si llegan dos pushes seguidos, se cancela la ejecución anterior. Cada ejecución guarda su APK 30 días como artefacto.
 - **Qué hace:** Java 17, Flutter 3.47.5 (el mismo del CI y del `Dockerfile`), `flutter test` y `flutter build apk --release --build-number=<número de ejecución>`. El APK sale como `audioshare-<commit corto>.apk` con su `.sha256`, ligado al commit compilado.
 - **Firma:** el release se firma con la llave de depuración, que en el runner de GitHub es nueva en cada ejecución. Android no deja actualizar encima una app con otra firma («App no instalada»): hay que **desinstalar** la versión anterior al cambiar de origen (APK compilado en un PC o en GitHub, o entre dos ejecuciones). Una llave propia guardada como secreto lo evitaría y queda como mejora.
 - **Alcance:** acredita qué commit generó el APK; no prueba el audio ni la sincronización, que exigen dispositivos reales (EC-01).
