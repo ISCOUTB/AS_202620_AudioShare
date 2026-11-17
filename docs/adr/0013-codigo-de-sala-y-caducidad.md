@@ -8,7 +8,7 @@
 
 ## Contexto y problema
 
-El código de sala era un UUID de 36 caracteres: imposible de dictar o teclear en un celular. Además, las salas y sus pistas MP3 no se borraban nunca (AM-11): el volumen crecía sin límite y, el 2026-11-08, `POST /rooms` en producción empezó a responder 500 mientras las lecturas seguían funcionando, un síntoma compatible con un volumen sin espacio (causa **no confirmada**: el panel de Dokploy no estaba disponible). Pedir códigos más cortos empeora la seguridad: con 6 dígitos hay un millón de combinaciones y `GET /rooms` publicaba todas las salas.
+El código de sala era un UUID de 36 caracteres: imposible de dictar o teclear en un celular. Además, las salas y sus pistas MP3 no se borraban nunca (AM-11): el volumen crecía sin límite y, el 2026-11-08, `POST /rooms` en producción empezó a responder 500 mientras las lecturas seguían funcionando, un síntoma que el registro del contenedor muestra como `SqliteError: database or disk is full`; el 2026-11-17 el disco tenía 223 GB libres y `POST /rooms` volvía a funcionar, así que fue transitorio (no se comprobó cuándo se llenó ni quién lo liberó). Pedir códigos más cortos empeora la seguridad: con 6 dígitos hay un millón de combinaciones y `GET /rooms` publicaba todas las salas.
 
 ## Decisión
 

@@ -17,3 +17,4 @@ coverage/
 *.iml
 hs_err_pid*.log
 corridas-ec01.txt
+android/.kotlin/

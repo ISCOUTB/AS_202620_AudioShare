@@ -100,17 +100,31 @@ desde un respaldo; el volumen sigue sin respaldos configurados.
   Comprobación externa del 2026-11-08: la raíz entrega el cliente Flutter Web
   (descripción y `<base href="/">` de `web/index.html`), no el cliente legado
   «AudioShare | Demo A-01» del 2026-10-26.
-- Límite de esa evidencia: el `/health` desplegado no incluye el commit servido,
-  y la sincronización entre dispositivos no se repitió sobre la revisión actual
-  (las corridas físicas son del 2026-10-19).
-- Commit en `/health` (2026-11-08): el código ya devuelve el campo `commit`
-  (variable `GIT_SHA`, argumento de build del `Dockerfile` y de
-  `docker-compose.yml`). **No está desplegado todavía.** Para que el valor sea
-  real hay que definir `GIT_SHA` con el SHA del commit en las variables de
-  entorno del servicio en Dokploy antes de cada redespliegue; si no se define,
-  `/health` informa `unknown` y no acredita ninguna revisión. Pendiente:
-  redesplegar, comprobar `commit` y repetir las corridas con
-  `scripts/capturar-corrida.ps1`.
+- Límite de esa evidencia (hasta el redespliegue del 2026-11-17): el `/health`
+  desplegado no incluía el commit servido, y la sincronización entre dispositivos
+  no se repitió sobre la revisión actual (las corridas físicas son del 2026-10-19).
+- Commit en `/health`: el servidor devuelve el campo `commit` (variable
+  `GIT_SHA`, argumento de build del `Dockerfile` y de `docker-compose.yml`).
+  Para que el valor sea real hay que definir `GIT_SHA` con el SHA del commit en
+  el Environment del servicio en Dokploy antes de cada redespliegue; si no se
+  define, `/health` informa `unknown` y no acredita ninguna revisión.
+- Redespliegue del 2026-11-17 (commit `11d3972`, paquetes A, B1, B2 y B3 de la
+  semana 14): `GIT_SHA` definida en Environment y Deploy en Dokploy (estado
+  Done). Evidencia en el servidor público: `GET /health` respondió `startedAt`
+  2026-11-17T00:21:31.690Z, `commit` 11d39721156a247dc53fea3bcbee67674d9b6e25,
+  `status` ok y `storage` ok; `POST /rooms` devolvió un código de 6 dígitos con
+  `emitterKey` y `DELETE /rooms/:id` con esa llave lo borró; `GET /rooms`
+  respondió 404; 25 consultas a una sala inexistente dieron 20 × 404 y 5 × 429.
+  Pendiente de comprobar en el servidor público: que la caducidad borra salas,
+  que `TRUST_PROXY` cuenta la IP del cliente (prueba desde datos móviles) y la
+  sincronización entre dispositivos (`scripts/capturar-corrida.ps1`).
+- Incidente de almacenamiento (2026-11-08): `POST /rooms` respondía 500 mientras
+  las lecturas funcionaban. El registro del contenedor muestra
+  `SqliteError: database or disk is full` en `createRoom`. El 2026-11-17 el disco
+  tenía 223 GB libres (23 % usado), los datos de AudioShare ocupaban 8 MB y
+  `POST /rooms` funcionaba: el fallo fue transitorio y no se comprobó cuándo se
+  llenó el disco ni quién lo liberó. Medidas del código: errores de SQLite como
+  503 en JSON, `storage` en `/health` y caducidad de salas (ADR-0013).
 - Comprobación externa del 2026-10-26, anterior al redespliegue: `/` respondió
   200 con el cliente legado, `/health` 200 y `GET /rooms` 404. El health check
   confirma que un proceso Express está activo, no que ejecute una revisión
