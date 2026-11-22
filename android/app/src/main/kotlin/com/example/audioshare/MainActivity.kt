@@ -1,5 +1,108 @@
 package com.example.audioshare
 
+import android.Manifest
+import android.app.Activity
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.media.projection.MediaProjectionManager
+import android.os.Handler
+import android.os.Looper
 import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.EventChannel
+import io.flutter.plugin.common.MethodChannel
 
-class MainActivity : FlutterActivity()
+class MainActivity : FlutterActivity() {
+    private var pending: MethodChannel.Result? = null
+
+    override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
+        super.configureFlutterEngine(flutterEngine)
+        val messenger = flutterEngine.dartExecutor.binaryMessenger
+
+        EventChannel(messenger, "audioshare/capture/pcm").setStreamHandler(
+            object : EventChannel.StreamHandler {
+                override fun onListen(args: Any?, sink: EventChannel.EventSink?) {
+                    CaptureBus.sink = sink
+                }
+                override fun onCancel(args: Any?) {
+                    CaptureBus.sink = null
+                }
+            }
+        )
+
+        MethodChannel(messenger, "audioshare/capture").setMethodCallHandler { call, result ->
+            when (call.method) {
+                "start" -> start(result)
+                "stop" -> {
+                    startService(Intent(this, CaptureService::class.java).setAction(CaptureService.ACTION_STOP))
+                    result.success(null)
+                }
+                else -> result.notImplemented()
+            }
+        }
+    }
+
+    private fun start(result: MethodChannel.Result) {
+        if (pending != null) {
+            result.error("busy", "Ya hay una solicitud de captura en curso.", null)
+            return
+        }
+        pending = result
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), REQ_AUDIO)
+        } else {
+            askProjection()
+        }
+    }
+
+    private fun askProjection() {
+        val manager = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+        @Suppress("DEPRECATION")
+        startActivityForResult(manager.createScreenCaptureIntent(), REQ_PROJECTION)
+    }
+
+    override fun onRequestPermissionsResult(code: Int, perms: Array<out String>, grants: IntArray) {
+        super.onRequestPermissionsResult(code, perms, grants)
+        if (code != REQ_AUDIO) return
+        if (grants.firstOrNull() == PackageManager.PERMISSION_GRANTED) {
+            askProjection()
+        } else {
+            finish(null, "denied", "Necesito el permiso de audio para compartir lo que suena en el celular.")
+        }
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != REQ_PROJECTION) return
+        if (resultCode == Activity.RESULT_OK && data != null) {
+            val intent = Intent(this, CaptureService::class.java)
+                .putExtra(CaptureService.EXTRA_CODE, resultCode)
+                .putExtra(CaptureService.EXTRA_DATA, data)
+            startForegroundService(intent)
+            finish(true, null, null)
+        } else {
+            finish(null, "denied", "Cancelaste el permiso de captura.")
+        }
+    }
+
+    private fun finish(ok: Boolean?, code: String?, message: String?) {
+        val result = pending ?: return
+        pending = null
+        if (ok == true) result.success(null) else result.error(code ?: "error", message, null)
+    }
+
+    companion object {
+        private const val REQ_AUDIO = 1001
+        private const val REQ_PROJECTION = 1002
+    }
+}
+
+/** Puente entre el servicio de captura y el EventChannel (siempre en el hilo principal). */
+object CaptureBus {
+    @Volatile var sink: EventChannel.EventSink? = null
+    private val main = Handler(Looper.getMainLooper())
+
+    fun pcm(bytes: ByteArray) { main.post { sink?.success(bytes) } }
+    fun error(message: String) { main.post { sink?.error("capture", message, null) } }
+}
