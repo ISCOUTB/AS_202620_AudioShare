@@ -9,6 +9,7 @@ import '../../data/repositories/room_control_repository.dart';
 import '../../data/repositories/room_repository.dart';
 import '../../../audio/data/audio_track_repository.dart';
 import '../../../audio/domain/audio_service.dart';
+import '../../../live/domain/live_audio_engine.dart';
 import '../../../sync/data/sync_event.dart';
 import '../../../sync/data/sync_repository.dart';
 import '../../../sync/domain/sync_service.dart';
@@ -43,6 +44,9 @@ class SessionViewModel extends ChangeNotifier {
     this.control,
     this.trackRepository,
     this.trackUri,
+    this.live,
+    this.liveBaseUri,
+    this.emitterKeyFor,
     int Function()? clock,
     Future<void> Function(Duration)? wait,
     this.reconnectDelay = const Duration(seconds: 2),
@@ -68,6 +72,16 @@ class SessionViewModel extends ChangeNotifier {
   /// URL base del backend; el receptor descarga su pista con
   /// `GET /rooms/:roomId/track`. Si es null no se carga audio.
   final Uri? trackUri;
+
+  /// Motor de audio en vivo (ADR-0015). Si se indica, la sala transmite el
+  /// audio del dispositivo del emisor en lugar de reproducir una pista MP3.
+  final LiveAudioEngine? live;
+
+  /// Origen HTTP(S) del backend; de él sale la URL del WebSocket de audio.
+  final Uri? liveBaseUri;
+
+  /// Llave de emisor de una sala, que el WebSocket de audio necesita al conectar.
+  final String? Function(String roomId)? emitterKeyFor;
   final int Function() _clock;
   final Future<void> Function(Duration) _wait;
 
@@ -110,6 +124,36 @@ class SessionViewModel extends ChangeNotifier {
 
   /// Volumen mostrado para [participantId] (el volumen es local de cada teléfono).
   double volumeOf(String participantId) => _volumes[participantId] ?? defaultVolume;
+
+  // ---- Audio en vivo -------------------------------------------------------
+
+  /// La sala transmite en vivo (no hay pista MP3).
+  bool get liveEnabled => live != null;
+
+  /// Qué puede compartir este dispositivo; se llena en [prepareLive].
+  List<CaptureOption> captureOptions = const [];
+
+  LiveLinkState liveState = LiveLinkState.idle;
+
+  /// Lo que se está compartiendo (emisor) o lo que comparte el emisor (receptor).
+  CaptureSource? liveSource;
+  String? liveLabel;
+
+  /// Aviso para el usuario sobre el audio en vivo (permiso denegado, bloqueo...).
+  String? liveMessage;
+
+  /// Receptor: el emisor está compartiendo audio ahora mismo.
+  bool broadcasting = false;
+  LiveStatsEvent? liveStats;
+  StreamSubscription<LiveEngineEvent>? _liveSubscription;
+  bool _liveReceiving = false;
+
+  /// El emisor está enviando audio (o conectándose para hacerlo).
+  bool get isSharing =>
+      isEmitter &&
+      (liveState == LiveLinkState.sharing ||
+          liveState == LiveLinkState.connecting ||
+          liveState == LiveLinkState.reconnecting);
 
   bool _listening = false;
   bool _watching = false;
@@ -281,6 +325,7 @@ class SessionViewModel extends ChangeNotifier {
       await _loadTrack();
       await _startIfScheduled();
       _startListening();
+      await _startLiveReceiving();
     });
   }
 
@@ -357,7 +402,144 @@ class SessionViewModel extends ChangeNotifier {
     final value = volume.clamp(0.0, 1.0).toDouble();
     _volumes[receiverId] = value;
     notifyListeners();
+    live?.setVolume(value);
     await audio.setVolume(receiverId, value);
+  }
+
+  /// Carga el motor de audio en vivo y averigua qué puede compartir este
+  /// dispositivo. Con [receiver] también desbloquea el audio: en ese caso debe
+  /// llamarse dentro de un gesto del usuario, antes de cualquier espera.
+  Future<void> prepareLive({bool receiver = false}) async {
+    final engine = live;
+    if (engine == null) return;
+    _liveSubscription ??= engine.events.listen(_onLiveEvent);
+    try {
+      if (receiver) await engine.prepareReceiver();
+      await engine.initialize();
+      if (receiver && !engine.canReceive) {
+        liveState = LiveLinkState.error;
+        liveMessage = 'Este dispositivo no puede reproducir transmisiones en vivo. '
+            'Abre AudioShare en un navegador moderno.';
+      }
+    } catch (exception) {
+      liveMessage = exception.toString();
+    }
+    captureOptions = engine.captureOptions;
+    notifyListeners();
+  }
+
+  /// El emisor empieza a compartir [source]. Debe llamarse desde un toque del
+  /// usuario: el navegador le mostrará su selector de pestaña o pantalla.
+  Future<void> startSharing(CaptureSource source) async {
+    final engine = live;
+    final current = room;
+    if (engine == null || current == null || !isEmitter || isSharing) return;
+    final url = _liveUrl(current.id);
+    _liveSubscription ??= engine.events.listen(_onLiveEvent);
+    final key = emitterKeyFor?.call(current.id);
+    if (url == null || key == null) {
+      liveMessage = 'No se pudo preparar la conexión de audio con el servidor.';
+      notifyListeners();
+      return;
+    }
+    liveSource = source;
+    liveMessage = null;
+    liveStats = null;
+    liveState = LiveLinkState.connecting;
+    notifyListeners();
+    try {
+      await engine.startEmitting(
+        url: url,
+        emitterKey: key,
+        source: source,
+        offsetMs: clockOffsetMs ?? 0,
+      );
+    } catch (exception) {
+      liveState = LiveLinkState.idle;
+      liveSource = null;
+      liveMessage = exception.toString();
+      notifyListeners();
+    }
+  }
+
+  /// El emisor deja de compartir; la sala sigue abierta.
+  Future<void> stopSharing() async {
+    final engine = live;
+    if (engine == null) return;
+    await engine.stopEmitting();
+    liveState = LiveLinkState.idle;
+    liveSource = null;
+    liveStats = null;
+    notifyListeners();
+  }
+
+  /// Receptor: el navegador bloqueó el audio; este toque lo desbloquea.
+  Future<void> unlockAudio() async {
+    final engine = live;
+    if (engine == null) return;
+    final ready = await engine.unlock();
+    if (ready && liveState == LiveLinkState.blocked) {
+      liveState = broadcasting ? LiveLinkState.playing : LiveLinkState.waiting;
+      liveMessage = null;
+      notifyListeners();
+    }
+  }
+
+  Uri? _liveUrl(String roomId) {
+    final base = liveBaseUri;
+    if (base == null) return null;
+    return base.replace(
+      scheme: base.scheme == 'https' ? 'wss' : 'ws',
+      path: '/rooms/${Uri.encodeComponent(roomId)}/live',
+    );
+  }
+
+  Future<void> _startLiveReceiving() async {
+    final engine = live;
+    final current = room;
+    final me = identity;
+    if (engine == null || current == null || me == null || isEmitter || _liveReceiving) return;
+    _liveSubscription ??= engine.events.listen(_onLiveEvent);
+    await engine.initialize();
+    captureOptions = engine.captureOptions;
+    if (_disposed || ended != null) return;
+    if (!engine.canReceive) {
+      liveState = LiveLinkState.error;
+      liveMessage = 'Este dispositivo no puede reproducir transmisiones en vivo. '
+          'Abre AudioShare en un navegador moderno.';
+      return;
+    }
+    final url = _liveUrl(current.id);
+    if (url == null) return;
+    _liveReceiving = true;
+    liveState = LiveLinkState.connecting;
+    engine.startReceiving(url: url, receiverId: me, offsetMs: clockOffsetMs ?? 0);
+  }
+
+  void _onLiveEvent(LiveEngineEvent event) {
+    if (_disposed) return;
+    switch (event) {
+      case LiveStateEvent():
+        liveState = event.state;
+        liveMessage = event.message;
+        if (event.state == LiveLinkState.idle) {
+          liveSource = null;
+          liveLabel = null;
+        } else {
+          liveSource = CaptureSource.fromWire(event.source) ?? liveSource;
+          liveLabel = event.label ?? liveLabel;
+        }
+      case LiveBroadcastEvent():
+        broadcasting = event.active;
+        liveSource = event.active ? CaptureSource.fromWire(event.source) : null;
+        liveLabel = event.active ? event.label : null;
+        if (!event.active && liveState == LiveLinkState.playing) {
+          liveState = LiveLinkState.waiting;
+        }
+      case LiveStatsEvent():
+        liveStats = event;
+    }
+    notifyListeners();
   }
 
   /// Descarga la pista antes de que llegue el primer `sync.start`.
@@ -541,6 +723,11 @@ class SessionViewModel extends ChangeNotifier {
     final watching = _watchEnded;
     if (watching != null && !watching.isCompleted) watching.complete();
     unawaited(audio.pause());
+    final engine = live;
+    if (engine != null) {
+      unawaited(engine.stopEmitting());
+      engine.stopReceiving();
+    }
     notifyListeners();
   }
 
@@ -604,6 +791,8 @@ class SessionViewModel extends ChangeNotifier {
     _disposed = true;
     _subscription?.cancel();
     _watchSubscription?.cancel();
+    _liveSubscription?.cancel();
+    unawaited(live?.dispose());
     unawaited(audio.dispose());
     final listening = _streamEnded;
     if (listening != null && !listening.isCompleted) listening.complete();

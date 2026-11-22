@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'theme.dart';
 import '../core/network/api_client.dart';
-import '../features/audio/data/audio_track_repository.dart';
-import '../features/audio/data/just_audio_service.dart';
+import '../features/live/data/live_engine.dart';
 import '../features/session/data/emitter_session_store.dart';
 import '../features/session/data/repositories/room_control_repository.dart';
 import '../features/session/data/repositories/room_repository.dart';
@@ -58,8 +57,7 @@ class AudioShareApp extends StatelessWidget {
         repository: ApiRoomRepository(api),
         syncRepository: ApiSyncRepository(api),
         api: api,
-        audioFactory: JustAudioService.new,
-        audioTrackRepository: ApiAudioTrackRepository(api),
+        liveFactory: createLiveAudioEngine,
         control: ApiRoomControlRepository(api),
         emitterStore: SharedPreferencesEmitterSessionStore(),
       ),
