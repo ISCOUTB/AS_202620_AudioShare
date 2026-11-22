@@ -32,7 +32,14 @@ enum CaptureSource {
         CaptureSource.tab =>
           'El navegador abrirá su selector: elige la pestaña y activa «Compartir audio de la pestaña».',
       };
-
+  /// Indicación cuando se comparte desde la app nativa (no desde el navegador).
+  String get nativeHint => switch (this) {
+        CaptureSource.device =>
+          'Android te pedirá permiso para capturar el audio: acepta «Comenzar ahora». '
+          'Algunas apps (como ciertas plataformas de streaming) bloquean la captura y sonarán en silencio.',
+        CaptureSource.app => 'Elige la aplicación cuando el sistema te lo pida.',
+        CaptureSource.tab => '',
+      };
   /// Interpreta el nombre que viaja en el protocolo (`device`, `app`, `tab`).
   static CaptureSource? fromWire(Object? value) {
     for (final source in values) {

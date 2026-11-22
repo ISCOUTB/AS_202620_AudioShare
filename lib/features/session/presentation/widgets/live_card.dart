@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import 'package:flutter/foundation.dart';
 import '../../../live/domain/live_audio_engine.dart';
 import '../viewmodels/session_view_model.dart';
 
@@ -121,7 +121,7 @@ class _EmitterPanelState extends State<_EmitterPanel> {
           ],
         if (selected != null) ...[
           const SizedBox(height: 4),
-          Text(selected.browserHint, style: Theme.of(context).textTheme.bodySmall),
+          Text(kIsWeb ? selected.browserHint : selected.nativeHint, style: Theme.of(context).textTheme.bodySmall),
         ],
         if (model.liveMessage != null) ...[
           const SizedBox(height: 12),
@@ -147,7 +147,7 @@ class _EmitterPanelState extends State<_EmitterPanel> {
     final connecting = model.liveState == LiveLinkState.connecting;
     final stats = model.liveStats;
     final status = connecting
-        ? 'Esperando el permiso del navegador…'
+        ? (kIsWeb ? 'Esperando el permiso del navegador…' : 'Esperando tu permiso…')
         : reconnecting
             ? 'Se perdió la conexión; reconectando…'
             : 'EN VIVO · ${source?.title ?? 'Audio'}';
