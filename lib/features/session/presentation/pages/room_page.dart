@@ -7,6 +7,7 @@ import '../../../audio/data/mp3_picker.dart';
 import '../../../sync/domain/sync_service.dart';
 import '../../data/models/room.dart';
 import '../viewmodels/session_view_model.dart';
+import '../widgets/live_card.dart';
 
 class RoomPage extends StatefulWidget {
   const RoomPage({required this.viewModel, super.key});
@@ -161,7 +162,10 @@ class _RoomPageState extends State<RoomPage> {
             children: [
               _CodeCard(code: room.id, onCopy: () => _copyCode(room.id)),
               const SizedBox(height: 16),
-              _NowPlayingCard(
+              if (model.liveEnabled)
+                LiveCard(model: model)
+              else
+                _NowPlayingCard(
                 room: room,
                 emitter: emitter,
                 busy: model.loading,
@@ -213,7 +217,8 @@ class _RoomPageState extends State<RoomPage> {
               _TechnicalDetails(
                 room: room,
                 snapshot: model.synchronization,
-                simulated: model.audio.isSimulated,
+                simulated: !model.liveEnabled && model.audio.isSimulated,
+                liveLines: model.liveEnabled ? _liveLines(model) : const [],
                 offsetMs: model.clockOffsetMs,
                 warning: [model.calibrationWarning, model.audioWarning].whereType<String>().join('\n'),
               ),
@@ -226,6 +231,21 @@ class _RoomPageState extends State<RoomPage> {
 }
 
 enum _LeaveChoice { leave, close }
+
+/// Líneas de «Detalles técnicos» propias del audio en vivo.
+List<String> _liveLines(SessionViewModel model) {
+  final stats = model.liveStats;
+  return [
+    'Modo: audio en vivo',
+    'Conexión de audio: ${model.liveState.name}',
+    if (stats?.latencyMs != null) 'Retardo de reproducción: ${stats!.latencyMs} ms',
+    if (stats?.played != null) 'Paquetes reproducidos: ${stats!.played}',
+    if (stats?.late != null) 'Paquetes tardíos descartados: ${stats!.late}',
+    if (stats?.resyncs != null) 'Resincronizaciones: ${stats!.resyncs}',
+    if (stats?.sent != null) 'Paquetes enviados: ${stats!.sent}',
+    if (stats?.dropped != null) 'Paquetes descartados al enviar: ${stats!.dropped}',
+  ];
+}
 
 class _CodeCard extends StatelessWidget {
   const _CodeCard({required this.code, required this.onCopy});
@@ -554,12 +574,16 @@ class _TechnicalDetails extends StatelessWidget {
     required this.room,
     required this.snapshot,
     required this.simulated,
+    this.liveLines = const [],
     this.offsetMs,
     this.warning,
   });
   final Room room;
   final SyncSnapshot snapshot;
   final bool simulated;
+
+  /// Detalles del audio en vivo; vacío si la sala usa una pista MP3.
+  final List<String> liveLines;
   final double? offsetMs;
   final String? warning;
 
@@ -575,11 +599,14 @@ class _TechnicalDetails extends StatelessWidget {
         childrenPadding: const EdgeInsets.fromLTRB(18, 0, 18, 16),
         expandedCrossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Estado: ${room.status.name}'),
           Text('Receptores conectados: ${room.connectedReceivers}'),
-          Text('Reproducción: ${snapshot.playing ? 'activa' : 'en pausa'}'),
-          Text('startAt: ${snapshot.startAt ?? 'pendiente'}'),
-          Text('Posición: ${snapshot.positionMs} ms'),
+          if (liveLines.isEmpty) ...[
+            Text('Estado: ${room.status.name}'),
+            Text('Reproducción: ${snapshot.playing ? 'activa' : 'en pausa'}'),
+            Text('startAt: ${snapshot.startAt ?? 'pendiente'}'),
+            Text('Posición: ${snapshot.positionMs} ms'),
+          ] else
+            for (final line in liveLines) Text(line),
           if (offsetMs != null) Text('Offset de reloj: ${offsetMs!.toStringAsFixed(1)} ms'),
           if (hasWarning)
             Text(warning!, style: TextStyle(color: Theme.of(context).colorScheme.error)),

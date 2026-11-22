@@ -14,9 +14,9 @@ Conservar el corte vertical A-01: crear sala, registrar receptores, iniciar o pa
 - Unirse a una sala como receptor mediante su código.
 - Mostrar participantes y receptores conectados.
 - Ejecutar play/pause desde el emisor.
-- Seleccionar y subir un MP3 por sala; los receptores descargan esa misma pista.
+- Transmitir en vivo el audio del emisor y elegir qué compartir: todo el dispositivo, una aplicación o una pestaña (según plataforma, ver [ADR-0015](docs/adr/0015-transmision-de-audio-en-vivo.md)).
 - Mostrar `startAt`, posición y estado de sincronización.
-- Reproducir la pista en receptores con `just_audio`, incluyendo búsqueda por posición.
+- Reproducir el audio en vivo en los receptores (Web Audio), sincronizado con el reloj del servidor.
 
 ## Arquitectura
 
@@ -141,6 +141,7 @@ La ruta recomendada en Codespaces es abrir el puerto `3000`, porque mantiene la 
 - [Idempotencia y análisis de saga](docs/idempotencia-y-saga.md)
 - [ADR-0009 — No extraer módulos como servicios](docs/adr/0009-no-extraer-modulos-como-servicios.md)
 - [ADR-0010 — Distribuir una pista MP3 por sala mediante HTTP](docs/adr/0010-transporte-de-pista-por-http.md)
+- [ADR-0015 — Transmitir el audio del dispositivo en vivo por WebSocket](docs/adr/0015-transmision-de-audio-en-vivo.md)
 - [Operaciones y garantías de consistencia](docs/consistencia-operaciones.md)
 - [Diseño de caché e invalidación](docs/diseno-cache.md)
 - [ADR-0011 — Separar estado transaccional y archivos de audio](docs/adr/0011-fuente-de-verdad-y-almacenamiento-de-pistas.md)
@@ -149,9 +150,9 @@ La ruta recomendada en Codespaces es abrir el puerto `3000`, porque mantiene la 
 
 **Implementado:** cliente Flutter Material 3, creación y unión de salas, consulta de estado, participantes, play/pause, repositorio HTTP, ViewModel, persistencia SQLite en backend y pruebas automatizadas.
 
-**Audio reproducible implementado:** al crear sala, el emisor selecciona un MP3 de hasta 50 MiB. Flutter lo sube como `audio/mpeg` a `POST /rooms/:roomId/track`; Audio lo guarda en `data/tracks/` dentro del volumen persistente. Cada receptor descarga la misma pista con `GET /rooms/:roomId/track` (incluye soporte Range) y `just_audio` la busca y reproduce localmente. El receptor calibra su reloj, usa `startAt`, pausa/reanuda desde la posición guardada y, si se une durante la reproducción, calcula la posición transcurrida. El test A-01 comprueba identidad byte a byte en upload/download; las pruebas Flutter verifican la petición binaria y el flujo del receptor.
+**Audio en vivo implementado:** el emisor ya no sube ningún MP3. Al entrar a la sala elige qué compartir (todo el dispositivo, una aplicación o una pestaña, según lo que permita su plataforma) y el navegador le pide permiso. `web/audioshare_live.js` captura ese audio con `getDisplayMedia`, lo convierte en paquetes PCM y los envía por un WebSocket a `/rooms/:roomId/live`; el backend (módulo `live`) los reenvía a los receptores, que los reproducen con Web Audio en `captura + 400 ms` usando el reloj del servidor calibrado con `GET /time`. `GET /rooms/:roomId/live` informa si hay transmisión y de qué origen. El endpoint de pista MP3 se conserva en el backend (ADR-0010 y ADR-0011), pero el cliente Flutter ya no lo usa.
 
-**Límites verificados:** `audio.chunk` sigue siendo un evento JSON con payload de texto demostrativo; no transporta ni controla el MP3. El audio viaja por el endpoint binario HTTP separado. Esta entrega comparte una pista completa, no captura ni transmite micrófono en vivo. La reproducción en el dispositivo usa `just_audio`, pero la salida física y el desfase entre dispositivos aún requieren validación con equipos reales; EC-01/EC-02 no se consideran demostrados físicamente.
+**Límites verificados:** la captura de una aplicación concreta no es posible desde un navegador, y la de todo el sistema solo existe en Windows y ChromeOS (Chrome o Edge); las apps nativas de Android y Windows todavía no capturan ni reproducen en vivo. El audio viaja como PCM sin comprimir (≈1,5 Mbit/s por receptor). La sincronización entre receptores y el retardo extremo a extremo aún requieren validación con equipos reales; EC-01/EC-02 no se consideran demostrados físicamente.
 
 Flutter Web usa el mismo origen desde el que se sirve la app; el contenedor
 Express entrega tanto el frontend como la API. Los clientes nativos usan
@@ -228,7 +229,7 @@ El despliegue permite demostrar el funcionamiento del corte vertical A-01 sobre 
 
 ## Limitaciones conocidas
 
--La captura de micrófono y transmisión en vivo todavía están pendientes; el alcance implementado es distribuir una pista MP3 completa por sala.
+-La transmisión en vivo funciona desde Chrome o Edge en un computador (pestaña; todo el sistema solo en Windows y ChromeOS). Capturar una aplicación concreta y las apps nativas de Android y Windows están pendientes (ADR-0015).
 -La salida física, la sincronización EC-01/EC-02 y la latencia deben verificarse con dispositivos reales; los tests de ViewModel no sustituyen esa medición.
 -La persistencia SQLite depende del almacenamiento configurado en el entorno de despliegue.
 -El stream NDJSON se reconecta automáticamente; la restauración de sesión y descarga tras una desconexión todavía requiere validación.

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -5,6 +7,7 @@ import '../../../../core/network/api_client.dart';
 import '../../../audio/data/audio_track_repository.dart';
 import '../../../audio/data/mp3_picker.dart';
 import '../../../audio/domain/audio_service.dart';
+import '../../../live/domain/live_audio_engine.dart';
 import '../../../sync/data/sync_repository.dart';
 import '../../data/emitter_session_store.dart';
 import '../../data/repositories/room_control_repository.dart';
@@ -27,6 +30,7 @@ class HomePage extends StatefulWidget {
     this.api,
     this.audioFactory,
     this.audioTrackRepository,
+    this.liveFactory,
     this.control,
     this.emitterStore,
     super.key,
@@ -41,6 +45,10 @@ class HomePage extends StatefulWidget {
   /// Crea el [AudioService] de cada sala; por defecto, el simulado.
   final AudioService Function()? audioFactory;
   final AudioTrackRepository? audioTrackRepository;
+
+  /// Crea el motor de audio en vivo de cada sala. Si se indica, la sala
+  /// transmite el audio del dispositivo del emisor y no se pide ningún MP3.
+  final LiveAudioEngine Function()? liveFactory;
 
   /// Salir, expulsar, cerrar la sala y volver como emisor.
   final RoomControlRepository? control;
@@ -112,7 +120,10 @@ class _HomePageState extends State<HomePage> {
         control: widget.control,
         trackRepository: widget.audioTrackRepository,
         audio: widget.audioFactory?.call(),
-        trackUri: widget.api?.resolve('/track'),
+        trackUri: widget.liveFactory == null ? widget.api?.resolve('/track') : null,
+        live: widget.liveFactory?.call(),
+        liveBaseUri: widget.api?.baseUri,
+        emitterKeyFor: (roomId) => widget.api?.emitterKeys[roomId],
       );
 
   void _fail(SessionViewModel viewModel, String message) {
@@ -143,6 +154,9 @@ class _HomePageState extends State<HomePage> {
       notice = null;
     });
     final viewModel = _newViewModel();
+    // Dentro del toque del usuario, antes de cualquier espera: el navegador solo
+    // deja sonar el audio si se desbloquea desde un gesto.
+    unawaited(viewModel.prepareLive(receiver: true));
     await viewModel.joinRoom(code, nameController.text.trim());
     if (!mounted) {
       viewModel.dispose();
@@ -188,6 +202,7 @@ class _HomePageState extends State<HomePage> {
       _fail(viewModel, failure);
       return;
     }
+    unawaited(viewModel.prepareLive());
     final roomId = viewModel.room!.id;
     if (uploader != null && track != null) {
       try {
@@ -245,6 +260,7 @@ class _HomePageState extends State<HomePage> {
     }
     if (!mounted) return;
     final viewModel = _newViewModel();
+    unawaited(viewModel.prepareLive());
     await viewModel.restoreEmitter(session.roomId, emitterId);
     if (!mounted) {
       viewModel.dispose();
@@ -448,6 +464,13 @@ class _HomePageState extends State<HomePage> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _nameField(),
+          if (widget.liveFactory != null) ...[
+            const SizedBox(height: 12),
+            const Text(
+              'Al entrar a la sala elegirás qué audio compartir: todo el '
+              'dispositivo, una aplicación o una pestaña.',
+            ),
+          ],
           if (widget.audioTrackRepository != null) ...[
             const SizedBox(height: 12),
             Row(

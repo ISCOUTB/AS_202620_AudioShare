@@ -5,6 +5,7 @@ import express, {
   type Response,
 } from "express";
 import { existsSync } from "node:fs";
+import type { IncomingMessage, Server } from "node:http";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import {
@@ -15,6 +16,7 @@ import {
   type Room,
 } from "./modules/session/index.js";
 import { AudioStreamHub, AudioTrackStore } from "./modules/audio/index.js";
+import { LiveAudioRelay } from "./modules/live/index.js";
 import {
   SyncCoordinator,
   SyncMeasurements,
@@ -219,6 +221,74 @@ export function createApp(
     }
   };
 
+  /*
+   * IP del cliente en una petición `Upgrade` (WebSocket), que no pasa por
+   * Express y por tanto no tiene `req.ip`. Respeta TRUST_PROXY: detrás de
+   * Traefik, `remoteAddress` es el proxy y no el cliente.
+   */
+  const upgradeClientIp = (req: IncomingMessage): string => {
+    const hops =
+      typeof config.trustProxy === "number" ? config.trustProxy : config.trustProxy === true ? 1 : 0;
+    const forwarded = String(req.headers["x-forwarded-for"] ?? "")
+      .split(",")
+      .map((part) => part.trim())
+      .filter(Boolean);
+
+    if (hops > 0 && forwarded.length >= hops) {
+      return forwarded[forwarded.length - hops] ?? "desconocido";
+    }
+
+    return req.socket.remoteAddress ?? "desconocido";
+  };
+
+  /*
+   * Transmisión de audio en vivo (ADR-0015): un WebSocket por participante en
+   * /rooms/:roomId/live. El servidor solo reenvía los paquetes del emisor a los
+   * receptores. Se engancha al servidor HTTP con `app.locals.attachLive`.
+   */
+  const live = new LiveAudioRelay({
+    authorizeUpgrade: (req, roomId) => {
+      const origin = req.headers.origin;
+
+      if (origin !== undefined && !allowedOrigins.has(origin)) {
+        return { ok: false, status: 403, message: "Origen no permitido" };
+      }
+
+      const client = upgradeClientIp(req);
+      const now = Date.now();
+
+      if (lookupLimiter.retryAfterSeconds(client, now) > 0) {
+        return {
+          ok: false,
+          status: 429,
+          message: "Demasiados intentos con códigos de sala inexistentes. Espera un momento.",
+        };
+      }
+
+      if (!sessions.getRoom(roomId)) {
+        lookupLimiter.recordFailure(client, now);
+
+        return { ok: false, status: 404, message: "Sala no encontrada" };
+      }
+
+      touchRoom(roomId, now);
+
+      return { ok: true };
+    },
+    isEmitterAuthorized: (roomId, key) => {
+      const check = sessions.checkEmitterKey(roomId, key);
+
+      return check === "valid" || check === "legacy";
+    },
+    hasReceiver: (roomId, receiverId) =>
+      sessions
+        .getRoom(roomId)
+        ?.participants.some(
+          (participant) => participant.id === receiverId && participant.role === "receiver",
+        ) ?? false,
+    onActivity: (roomId) => touchRoom(roomId, Date.now()),
+  });
+
   // Conexiones del emisor que escuchan los eventos de su sala (presencia,
   // salidas, cambios de pista). No cuentan como receptores.
   const watchers = new Map<string, Set<Client>>();
@@ -301,6 +371,7 @@ export function createApp(
       watcher.close();
     }
 
+    live.closeRoom(roomId);
     streams.delete(roomId);
     watchers.delete(roomId);
     coordinators.delete(roomId);
@@ -335,7 +406,8 @@ export function createApp(
     for (const roomId of expired) {
       if (
         (streams.get(roomId)?.size ?? 0) > 0 ||
-        (watchers.get(roomId)?.size ?? 0) > 0
+        (watchers.get(roomId)?.size ?? 0) > 0 ||
+        live.hasConnections(roomId)
       ) {
         continue;
       }
@@ -367,9 +439,11 @@ export function createApp(
   startupSweep?.unref();
 
   app.locals.sweepExpiredRooms = sweepExpiredRooms;
+  app.locals.attachLive = (server: Server): void => live.attach(server);
   app.locals.close = () => {
     if (sweepTimer) clearInterval(sweepTimer);
     if (startupSweep) clearTimeout(startupSweep);
+    live.close();
     sessions.close();
   };
 
@@ -610,6 +684,7 @@ export function createApp(
 
       streams.get(roomId)?.delete(receiverId);
       client?.close();
+      live.dropReceiver(roomId, receiverId);
       broadcast(roomId, { type: "participant.left", receiverId, reason: "left" });
 
       res.status(204).end();
@@ -642,6 +717,7 @@ export function createApp(
     broadcast(roomId, { type: "participant.left", receiverId, reason: "removed" });
     streams.get(roomId)?.delete(receiverId);
     client?.close();
+    live.dropReceiver(roomId, receiverId);
     log.info("room.participant_removed", { roomId, receiverId });
 
     res.status(204).end();
@@ -1148,6 +1224,22 @@ export function createApp(
     }
 
     res.status(200).json(measurements.report(roomId, room.startAt));
+  });
+
+  /*
+   * Estado de la transmisión en vivo de la sala: si el emisor está compartiendo
+   * y qué (dispositivo, aplicación o pestaña). El audio en sí viaja por el
+   * WebSocket de /rooms/:roomId/live (ADR-0015).
+   */
+  app.get("/rooms/:roomId/live", (req: Request, res: Response) => {
+    const { roomId } = req.params;
+
+    if (!sessions.getRoom(roomId)) {
+      res.status(404).json({ error: "Sala no encontrada" });
+      return;
+    }
+
+    res.status(200).json(live.info(roomId));
   });
 
   /*
