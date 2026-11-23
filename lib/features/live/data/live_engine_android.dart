@@ -13,12 +13,13 @@ const _headerBytes = 20;
 const _sampleRate = 48000;
 const _channels = 2;
 const _framesPerPacket = 1024;
+const _playback = MethodChannel('audioshare/playback');
 
 const _control = MethodChannel('audioshare/capture');
 const _pcm = EventChannel('audioshare/capture/pcm');
 
 LiveAudioEngine createLiveAudioEngine() =>
-    Platform.isAndroid ? AndroidLiveAudioEngine() : UnsupportedLiveAudioEngine();
+  Platform.isAndroid ? AndroidLiveAudioEngine() : UnsupportedLiveAudioEngine();
 
 Future<void> preloadLiveAudio() async {}
 
@@ -27,14 +28,17 @@ class AndroidLiveAudioEngine implements LiveAudioEngine {
   WebSocket? _socket;
   StreamSubscription<dynamic>? _pcmSub;
   Timer? _statsTimer;
+  Timer? _receiveRetry;
+  StreamSubscription<dynamic>? _receiveSub;
+  WebSocket? _receiveSocket;
+  int _receiveGeneration = 0;
+  int _receiveAttempt = 0;
+  int? _receiveSampleRate;
+  bool _receivePlaying = false;
   int _sequence = 0;
   int _sent = 0;
   double _offsetMs = 0;
   bool _emitting = false;
-
-  static const _receiveReason =
-      'Escuchar en vivo desde la app de Android todavía no está disponible. '
-      'Abre AudioShare en el navegador del celular para escuchar.';
 
   @override
   List<CaptureOption> get captureOptions => const [
@@ -43,7 +47,7 @@ class AndroidLiveAudioEngine implements LiveAudioEngine {
       ];
 
   @override
-  bool get canReceive => false;
+  bool get canReceive => true;
 
   @override
   Stream<LiveEngineEvent> get events => _events.stream;
@@ -52,10 +56,13 @@ class AndroidLiveAudioEngine implements LiveAudioEngine {
   Future<void> initialize() async {}
 
   @override
-  Future<void> prepareReceiver() async {}
+  Future<void> prepareReceiver() async {
+    await _playback.invokeMethod<void>('start', {'sampleRate': _sampleRate});
+    _receiveSampleRate = _sampleRate;
+  }
 
   @override
-  Future<bool> unlock() async => false;
+  Future<bool> unlock() async => true;
 
   @override
   Future<void> startEmitting({
@@ -98,10 +105,10 @@ class AndroidLiveAudioEngine implements LiveAudioEngine {
     // 1. Conectar con la sala.
     final WebSocket socket;
     try {
-      socket = await WebSocket.connect(wsUrl.toString()).timeout(const Duration(seconds: 10));
+        socket = await WebSocket.connect(wsUrl.toString()).timeout(const Duration(seconds: 10));
     } catch (_) {
       _events.add(const LiveStateEvent(LiveLinkState.idle));
-      throw const LiveEngineException('No se pudo conectar con la sala. ¿Está el celular en la misma red?');
+        throw const LiveEngineException('No se pudo conectar con la sala. ¿Está el celular en la misma red?');
     }
     _socket = socket;
 
@@ -128,7 +135,7 @@ class AndroidLiveAudioEngine implements LiveAudioEngine {
       },
       onError: (Object _) {
         if (!ready.isCompleted) {
-          ready.completeError(const LiveEngineException('Se perdió la conexión con la sala.'));
+            ready.completeError(const LiveEngineException('Se perdió la conexión con la sala.'));
         } else {
           _lost('Se perdió la conexión con la sala.');
         }
@@ -151,7 +158,7 @@ class AndroidLiveAudioEngine implements LiveAudioEngine {
     } on PlatformException catch (e) {
       await _teardown();
       _events.add(const LiveStateEvent(LiveLinkState.idle));
-      throw LiveEngineException(e.message ?? 'No se pudo iniciar la captura de audio.');
+        throw LiveEngineException(e.message ?? 'No se pudo iniciar la captura de audio.');
     } on LiveEngineException {
       await _teardown();
       _events.add(const LiveStateEvent(LiveLinkState.idle));
@@ -230,18 +237,170 @@ class AndroidLiveAudioEngine implements LiveAudioEngine {
     required double offsetMs,
     int delayMs = 400,
   }) {
-    _events.add(const LiveStateEvent(LiveLinkState.error, message: _receiveReason));
+    stopReceiving();
+    final generation = ++_receiveGeneration;
+    _receiveAttempt = 0;
+    _events.add(const LiveStateEvent(LiveLinkState.connecting));
+    unawaited(_connectReceiver(url, receiverId, generation));
   }
 
   @override
-  void stopReceiving() {}
+  void stopReceiving() {
+    ++_receiveGeneration;
+    _receiveRetry?.cancel();
+    _receiveRetry = null;
+    unawaited(_receiveSub?.cancel());
+    _receiveSub = null;
+    final socket = _receiveSocket;
+    _receiveSocket = null;
+    if (socket != null) unawaited(socket.close(1000));
+    _receiveSampleRate = null;
+    _receivePlaying = false;
+    unawaited(_playback.invokeMethod<void>('stop').catchError((Object _) {}));
+    _events.add(const LiveStateEvent(LiveLinkState.idle));
+  }
+
+  Future<void> _connectReceiver(
+      Uri url, String receiverId, int generation) async {
+    if (generation != _receiveGeneration) return;
+    try {
+      final socket = await WebSocket.connect(url.toString())
+          .timeout(const Duration(seconds: 10));
+      if (generation != _receiveGeneration) {
+        await socket.close(1000);
+        return;
+      }
+      _receiveSocket = socket;
+      _receiveSub = socket.listen(
+        (message) =>
+            _onReceiveMessage(message, socket, generation, url, receiverId),
+        onDone: () => _onReceiveClosed(socket, generation, url, receiverId),
+        onError: (Object _) =>
+            _onReceiveClosed(socket, generation, url, receiverId),
+      );
+      socket.add(jsonEncode(
+          {'type': 'hello', 'role': 'receiver', 'receiverId': receiverId}));
+    } catch (_) {
+      if (generation == _receiveGeneration) {
+        _scheduleReceiveRetry(url, receiverId, generation);
+      }
+    }
+  }
+
+  void _onReceiveMessage(
+    dynamic message,
+    WebSocket socket,
+    int generation,
+    Uri url,
+    String receiverId,
+  ) {
+    if (generation != _receiveGeneration || socket != _receiveSocket) return;
+    if (message is String) {
+      try {
+        final data = jsonDecode(message);
+        if (data is! Map) return;
+        if (data['type'] == 'ready') {
+          _receiveAttempt = 0;
+          _events.add(const LiveStateEvent(LiveLinkState.waiting));
+        } else if (data['type'] == 'live.state') {
+          final active = data['active'] == true;
+          _events.add(LiveBroadcastEvent(
+            active: active,
+            source: data['source'] as String?,
+            label: data['label'] as String?,
+          ));
+          if (!active) {
+            _receiveSampleRate = null;
+            _receivePlaying = false;
+            unawaited(
+                _playback.invokeMethod<void>('stop').catchError((Object _) {}));
+            _events.add(const LiveStateEvent(LiveLinkState.waiting));
+          }
+        }
+      } catch (_) {
+        // Los mensajes de control mal formados se ignoran.
+      }
+      return;
+    }
+    if (message is! List<int>) return;
+    final packet = message is Uint8List ? message : Uint8List.fromList(message);
+    if (!_validPacket(packet)) return;
+    final view = ByteData.sublistView(packet);
+    final channels = view.getUint8(2);
+    final sampleRate = view.getUint32(4, Endian.little);
+    final pcm = Uint8List.sublistView(packet, _headerBytes);
+    if (_receiveSampleRate != sampleRate) {
+      unawaited(
+          _playback.invokeMethod<void>('start', {'sampleRate': sampleRate}));
+      _receiveSampleRate = sampleRate;
+    }
+    unawaited(_playback.invokeMethod<void>('write', {'pcm': pcm}));
+    if (channels > 0 && !_receivePlaying) {
+      _receivePlaying = true;
+      _events.add(const LiveStateEvent(LiveLinkState.playing));
+    }
+  }
+
+  bool _validPacket(Uint8List packet) {
+    if (packet.length <= _headerBytes) return false;
+    final view = ByteData.sublistView(packet);
+    final channels = view.getUint8(2);
+    final sampleRate = view.getUint32(4, Endian.little);
+    final payloadBytes = packet.length - _headerBytes;
+    return view.getUint8(0) == _protocolVersion &&
+        view.getUint8(1) == 0 &&
+        (channels == 1 || channels == 2) &&
+        sampleRate >= 8000 &&
+        sampleRate <= 96000 &&
+        payloadBytes % (2 * channels) == 0;
+  }
+
+  void _onReceiveClosed(
+      WebSocket socket, int generation, Uri url, String receiverId) {
+    if (generation != _receiveGeneration || socket != _receiveSocket) return;
+    _receiveSocket = null;
+    _receiveSampleRate = null;
+    _receivePlaying = false;
+    unawaited(_playback.invokeMethod<void>('stop').catchError((Object _) {}));
+    final closeCode = socket.closeCode;
+    final fatalMessages = <int, String>{
+      4400: 'El servidor rechazó el protocolo de audio.',
+      4403: 'El emisor te sacó de la sala.',
+      4404: 'La sala o el receptor ya no existen.',
+      4409: 'La sala se abrió desde otro dispositivo o pestaña.',
+      4410: 'La sala se cerró.',
+      4413: 'La sala alcanzó el máximo de receptores.',
+    };
+    final fatalMessage = fatalMessages[closeCode];
+    if (fatalMessage != null) {
+      _events.add(LiveStateEvent(LiveLinkState.error,
+          message: fatalMessage, code: closeCode));
+      return;
+    }
+    _scheduleReceiveRetry(url, receiverId, generation);
+  }
+
+  void _scheduleReceiveRetry(Uri url, String receiverId, int generation) {
+    if (generation != _receiveGeneration) return;
+    _receiveAttempt++;
+    _events.add(const LiveStateEvent(LiveLinkState.reconnecting));
+    _receiveRetry?.cancel();
+    final delayMs = (_receiveAttempt * 500).clamp(500, 5000);
+    _receiveRetry = Timer(Duration(milliseconds: delayMs), () {
+      unawaited(_connectReceiver(url, receiverId, generation));
+    });
+  }
 
   @override
-  void setVolume(double volume) {}
+  void setVolume(double volume) {
+    unawaited(_playback.invokeMethod<void>('volume',
+        {'volume': volume.clamp(0.0, 1.0)}).catchError((Object _) {}));
+  }
 
   @override
   Future<void> dispose() async {
-    await _teardown();
+    stopReceiving();
+    await stopEmitting();
     await _events.close();
   }
 }

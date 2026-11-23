@@ -18,6 +18,7 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity : FlutterActivity() {
     private var pending: MethodChannel.Result? = null
     private var pendingUid: Int = -1
+    private val playback = LivePlayback()
 
     private data class AppEntry(val label: String, val uid: Int)
 
@@ -36,6 +37,37 @@ class MainActivity : FlutterActivity() {
             }
         )
 
+        MethodChannel(messenger, "audioshare/playback").setMethodCallHandler { call, result ->
+            when (call.method) {
+                "start" -> {
+                    playback.start(call.argument<Int>("sampleRate") ?: 48000)
+                    result.success(null)
+                }
+                "write" -> {
+                    val pcm = call.argument<ByteArray>("pcm")
+                    if (pcm == null) {
+                        result.error("bad_args", "Falta el audio a reproducir.", null)
+                    } else {
+                        playback.write(
+                            pcm,
+                            call.argument<Int>("silenceMs") ?: 0,
+                            call.argument<Boolean>("reset") ?: false,
+                        )
+                        result.success(null)
+                    }
+                }
+                "volume" -> {
+                    playback.setVolume((call.argument<Double>("volume") ?: 1.0).toFloat())
+                    result.success(null)
+                }
+                "stop" -> {
+                    playback.stop()
+                    result.success(null)
+                }
+                else -> result.notImplemented()
+            }
+        }
+
         MethodChannel(messenger, "audioshare/capture").setMethodCallHandler { call, result ->
             when (call.method) {
                 "pickApp" -> pickApp(result)
@@ -47,6 +79,11 @@ class MainActivity : FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
+    }
+
+    override fun onDestroy() {
+        playback.stop()
+        super.onDestroy()
     }
 
     /** Muestra la lista de apps instaladas y devuelve {uid, label} de la elegida. */
