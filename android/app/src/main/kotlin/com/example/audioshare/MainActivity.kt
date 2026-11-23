@@ -14,6 +14,7 @@ import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
     private var pending: MethodChannel.Result? = null
+    private val playback = LivePlayback()
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -30,6 +31,38 @@ class MainActivity : FlutterActivity() {
             }
         )
 
+        // Receptor en vivo: Dart entrega PCM16 estéreo y aquí se reproduce.
+        MethodChannel(messenger, "audioshare/playback").setMethodCallHandler { call, result ->
+            when (call.method) {
+                "start" -> {
+                    playback.start(call.argument<Int>("sampleRate") ?: 48000)
+                    result.success(null)
+                }
+                "write" -> {
+                    val pcm = call.argument<ByteArray>("pcm")
+                    if (pcm == null) {
+                        result.error("bad_args", "Falta el audio a reproducir.", null)
+                    } else {
+                        playback.write(
+                            pcm,
+                            call.argument<Int>("silenceMs") ?: 0,
+                            call.argument<Boolean>("reset") ?: false,
+                        )
+                        result.success(null)
+                    }
+                }
+                "volume" -> {
+                    playback.setVolume((call.argument<Double>("volume") ?: 1.0).toFloat())
+                    result.success(null)
+                }
+                "stop" -> {
+                    playback.stop()
+                    result.success(null)
+                }
+                else -> result.notImplemented()
+            }
+        }
+
         MethodChannel(messenger, "audioshare/capture").setMethodCallHandler { call, result ->
             when (call.method) {
                 "start" -> start(result)
@@ -40,6 +73,11 @@ class MainActivity : FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
+    }
+
+    override fun onDestroy() {
+        playback.stop()
+        super.onDestroy()
     }
 
     private fun start(result: MethodChannel.Result) {
