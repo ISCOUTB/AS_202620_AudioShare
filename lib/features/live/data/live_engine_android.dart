@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
@@ -18,25 +17,7 @@ const _playback = MethodChannel('audioshare/playback');
 
 const _control = MethodChannel('audioshare/capture');
 const _pcm = EventChannel('audioshare/capture/pcm');
-const _playback = MethodChannel('audioshare/playback');
 
-/// Si el paquete cae a más de esto de donde debería sonar, se resincroniza.
-/// Es más holgado que en la web porque el emisor Android marca el tiempo de
-/// captura al recibir cada bloque, con algo de variación.
-const _resyncMs = 250;
-const _maxSilenceMs = 1000;
-const _statsIntervalMs = 2000;
-
-/// Códigos de cierre del WebSocket que no se arreglan reconectando.
-const _fatalClose = {
-  4400: 'El servidor rechazó el protocolo de audio.',
-  4401: 'La llave de emisor ya no es válida para esta sala.',
-  4403: 'El emisor te sacó de la sala.',
-  4404: 'La sala o el receptor ya no existen.',
-  4409: 'Esta sala se abrió desde otro dispositivo o pestaña.',
-  4410: 'La sala se cerró.',
-  4413: 'La sala alcanzó el máximo de receptores.',
-};
 
 LiveAudioEngine createLiveAudioEngine() =>
   Platform.isAndroid ? AndroidLiveAudioEngine() : UnsupportedLiveAudioEngine();
