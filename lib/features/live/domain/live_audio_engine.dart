@@ -28,7 +28,7 @@ enum CaptureSource {
   String get browserHint => switch (this) {
         CaptureSource.device =>
           'El navegador abrirá su selector: elige «Pantalla completa» y activa «Compartir audio del sistema».',
-        CaptureSource.app => 'Elige la aplicación cuando el sistema te lo pida.',
+        CaptureSource.app => 'Elegirás una app y solo se oirá el audio de esa app. Luego Android te pedirá permiso para capturar el audio.',
         CaptureSource.tab =>
           'El navegador abrirá su selector: elige la pestaña y activa «Compartir audio de la pestaña».',
       };
@@ -37,7 +37,7 @@ enum CaptureSource {
         CaptureSource.device =>
           'Android te pedirá permiso para capturar el audio: acepta «Comenzar ahora». '
           'Algunas apps (como ciertas plataformas de streaming) bloquean la captura y sonarán en silencio.',
-        CaptureSource.app => 'Elige la aplicación cuando el sistema te lo pida.',
+        CaptureSource.app => 'Elegirás una app y solo se oirá el audio de esa app. Luego Android te pedirá permiso para capturar el audio.',
         CaptureSource.tab => '',
       };
   /// Interpreta el nombre que viaja en el protocolo (`device`, `app`, `tab`).

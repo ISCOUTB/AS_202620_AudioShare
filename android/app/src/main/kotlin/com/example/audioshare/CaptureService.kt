@@ -32,6 +32,7 @@ class CaptureService : Service() {
             return START_NOT_STICKY
         }
         val code = intent?.getIntExtra(EXTRA_CODE, 0) ?: 0
+        val uid = intent?.getIntExtra(EXTRA_UID, -1) ?: -1
         @Suppress("DEPRECATION")
         val data: Intent? = if (Build.VERSION.SDK_INT >= 33)
             intent?.getParcelableExtra(EXTRA_DATA, Intent::class.java)
@@ -45,7 +46,7 @@ class CaptureService : Service() {
         // Android exige estar en primer plano ANTES de obtener la proyección.
         startForeground(NOTIFICATION_ID, notification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
         try {
-            startCapture(code, data)
+            startCapture(code, data, uid)
         } catch (e: Exception) {
             CaptureBus.error("No se pudo iniciar la captura de audio: ${e.message}")
             stopCapture()
@@ -54,7 +55,7 @@ class CaptureService : Service() {
         return START_NOT_STICKY
     }
 
-    private fun startCapture(code: Int, data: Intent) {
+    private fun startCapture(code: Int, data: Intent, uid: Int) {
         val manager = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
         val mp = manager.getMediaProjection(code, data) ?: throw IllegalStateException("sin proyección")
         // Obligatorio desde Android 14: registrar el callback antes de capturar.
@@ -63,11 +64,18 @@ class CaptureService : Service() {
         }, Handler(Looper.getMainLooper()))
         projection = mp
 
-        val config = AudioPlaybackCaptureConfiguration.Builder(mp)
-            .addMatchingUsage(AudioAttributes.USAGE_MEDIA)
-            .addMatchingUsage(AudioAttributes.USAGE_GAME)
-            .addMatchingUsage(AudioAttributes.USAGE_UNKNOWN)
-            .build()
+        val builder = AudioPlaybackCaptureConfiguration.Builder(mp)
+        if (uid >= 0) {
+            // «Una aplicación»: solo el audio que reproduce esa app.
+            builder.addMatchingUid(uid)
+        } else {
+            // «Todo el dispositivo»: todo el audio que Android permite capturar.
+            builder
+                .addMatchingUsage(AudioAttributes.USAGE_MEDIA)
+                .addMatchingUsage(AudioAttributes.USAGE_GAME)
+                .addMatchingUsage(AudioAttributes.USAGE_UNKNOWN)
+        }
+        val config = builder.build()
         val format = AudioFormat.Builder()
             .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
             .setSampleRate(SAMPLE_RATE)
@@ -127,6 +135,7 @@ class CaptureService : Service() {
         const val ACTION_STOP = "audioshare.STOP"
         const val EXTRA_CODE = "code"
         const val EXTRA_DATA = "data"
+        const val EXTRA_UID = "uid"
         private const val CHANNEL_ID = "audioshare_live"
         private const val NOTIFICATION_ID = 41
         private const val SAMPLE_RATE = 48000
