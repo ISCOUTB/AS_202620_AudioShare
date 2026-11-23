@@ -39,11 +39,7 @@ class AndroidLiveAudioEngine implements LiveAudioEngine {
   @override
   List<CaptureOption> get captureOptions => const [
         CaptureOption(source: CaptureSource.device, available: true),
-        CaptureOption(
-          source: CaptureSource.app,
-          available: false,
-          reason: 'Compartir el audio de una sola app todavía no está disponible en Android.',
-        ),
+        CaptureOption(source: CaptureSource.app, available: true),
       ];
 
   @override
@@ -68,10 +64,28 @@ class AndroidLiveAudioEngine implements LiveAudioEngine {
     required CaptureSource source,
     required double offsetMs,
   }) async {
-    if (source != CaptureSource.device) {
-      throw const LiveEngineException('Ese origen todavía no está disponible en Android.');
+    if (source == CaptureSource.tab) {
+      throw const LiveEngineException('Las pestañas solo existen en el navegador.');
     }
     await stopEmitting();
+
+    // «Una aplicación»: primero se elige la app (si cancela, no se toca la red).
+    int? appUid;
+    String? appLabel;
+    if (source == CaptureSource.app) {
+      try {
+        final picked = await _control.invokeMapMethod<String, Object?>('pickApp');
+        appUid = picked?['uid'] as int?;
+        appLabel = picked?['label'] as String?;
+      } on PlatformException catch (e) {
+        throw LiveEngineException(e.message ?? 'No elegiste ninguna aplicación.');
+      }
+      if (appUid == null) {
+        throw const LiveEngineException('No elegiste ninguna aplicación.');
+      }
+    }
+    final label = appLabel ?? source.title;
+
     _offsetMs = offsetMs;
     _sequence = 0;
     _sent = 0;
@@ -133,7 +147,7 @@ class AndroidLiveAudioEngine implements LiveAudioEngine {
         _onChunk,
         onError: (Object e) => _lost(e is PlatformException ? (e.message ?? 'Falló la captura.') : '$e'),
       );
-      await _control.invokeMethod<void>('start');
+      await _control.invokeMethod<void>('start', {'uid': appUid});
     } on PlatformException catch (e) {
       await _teardown();
       _events.add(const LiveStateEvent(LiveLinkState.idle));
@@ -148,13 +162,13 @@ class AndroidLiveAudioEngine implements LiveAudioEngine {
     _emitting = true;
     socket.add(jsonEncode({
       'type': 'live.start',
-      'source': CaptureSource.device.name,
-      'label': CaptureSource.device.title,
+      'source': source.name,
+      'label': label,
     }));
     _events.add(LiveStateEvent(
       LiveLinkState.sharing,
-      source: CaptureSource.device.name,
-      label: CaptureSource.device.title,
+      source: source.name,
+      label: label,
     ));
     _statsTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       _events.add(LiveStatsEvent(sent: _sent, dropped: 0));

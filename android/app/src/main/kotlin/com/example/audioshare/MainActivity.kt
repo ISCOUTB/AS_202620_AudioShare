@@ -2,9 +2,12 @@ package com.example.audioshare
 
 import android.Manifest
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.media.projection.MediaProjectionConfig
 import android.media.projection.MediaProjectionManager
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import io.flutter.embedding.android.FlutterActivity
@@ -14,6 +17,9 @@ import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
     private var pending: MethodChannel.Result? = null
+    private var pendingUid: Int = -1
+
+    private data class AppEntry(val label: String, val uid: Int)
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -32,7 +38,8 @@ class MainActivity : FlutterActivity() {
 
         MethodChannel(messenger, "audioshare/capture").setMethodCallHandler { call, result ->
             when (call.method) {
-                "start" -> start(result)
+                "pickApp" -> pickApp(result)
+                "start" -> start(result, call.argument<Int>("uid") ?: -1)
                 "stop" -> {
                     startService(Intent(this, CaptureService::class.java).setAction(CaptureService.ACTION_STOP))
                     result.success(null)
@@ -42,12 +49,47 @@ class MainActivity : FlutterActivity() {
         }
     }
 
-    private fun start(result: MethodChannel.Result) {
+    /** Muestra la lista de apps instaladas y devuelve {uid, label} de la elegida. */
+    private fun pickApp(result: MethodChannel.Result) {
+        val launcher = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+        val pm = packageManager
+        val apps = pm.queryIntentActivities(launcher, 0)
+            .map { it.activityInfo.applicationInfo }
+            .filter { it.packageName != packageName }
+            .distinctBy { it.packageName }
+            .map { AppEntry(it.loadLabel(pm).toString(), it.uid) }
+            .sortedBy { it.label.lowercase() }
+
+        if (apps.isEmpty()) {
+            result.error("no-apps", "No encontré aplicaciones para elegir.", null)
+            return
+        }
+
+        var done = false
+        AlertDialog.Builder(this)
+            .setTitle("¿De qué app quieres compartir el audio?")
+            .setItems(apps.map { it.label }.toTypedArray()) { _, index ->
+                done = true
+                result.success(mapOf("uid" to apps[index].uid, "label" to apps[index].label))
+            }
+            .setNegativeButton("Cancelar", null)
+            .setOnDismissListener {
+                if (!done) {
+                    done = true
+                    result.error("cancelled", "No elegiste ninguna aplicación.", null)
+                }
+            }
+            .create()
+            .show()
+    }
+
+    private fun start(result: MethodChannel.Result, uid: Int) {
         if (pending != null) {
             result.error("busy", "Ya hay una solicitud de captura en curso.", null)
             return
         }
         pending = result
+        pendingUid = uid
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), REQ_AUDIO)
         } else {
@@ -57,8 +99,15 @@ class MainActivity : FlutterActivity() {
 
     private fun askProjection() {
         val manager = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+        // Desde Android 14 se puede pedir solo «pantalla completa» y evitar el selector
+        // de «una sola app», que confunde porque el audio se filtra aquí, no allí.
+        val intent = if (Build.VERSION.SDK_INT >= 34) {
+            manager.createScreenCaptureIntent(MediaProjectionConfig.createConfigForDefaultDisplay())
+        } else {
+            manager.createScreenCaptureIntent()
+        }
         @Suppress("DEPRECATION")
-        startActivityForResult(manager.createScreenCaptureIntent(), REQ_PROJECTION)
+        startActivityForResult(intent, REQ_PROJECTION)
     }
 
     override fun onRequestPermissionsResult(code: Int, perms: Array<out String>, grants: IntArray) {
@@ -67,7 +116,7 @@ class MainActivity : FlutterActivity() {
         if (grants.firstOrNull() == PackageManager.PERMISSION_GRANTED) {
             askProjection()
         } else {
-            finish(null, "denied", "Necesito el permiso de audio para compartir lo que suena en el celular.")
+            finish(false, "denied", "Necesito el permiso de audio para compartir lo que suena en el celular.")
         }
     }
 
@@ -79,17 +128,19 @@ class MainActivity : FlutterActivity() {
             val intent = Intent(this, CaptureService::class.java)
                 .putExtra(CaptureService.EXTRA_CODE, resultCode)
                 .putExtra(CaptureService.EXTRA_DATA, data)
+                .putExtra(CaptureService.EXTRA_UID, pendingUid)
             startForegroundService(intent)
             finish(true, null, null)
         } else {
-            finish(null, "denied", "Cancelaste el permiso de captura.")
+            finish(false, "denied", "Cancelaste el permiso de captura.")
         }
     }
 
-    private fun finish(ok: Boolean?, code: String?, message: String?) {
+    private fun finish(ok: Boolean, code: String?, message: String?) {
         val result = pending ?: return
         pending = null
-        if (ok == true) result.success(null) else result.error(code ?: "error", message, null)
+        pendingUid = -1
+        if (ok) result.success(null) else result.error(code ?: "error", message, null)
     }
 
     companion object {
