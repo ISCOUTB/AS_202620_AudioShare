@@ -155,6 +155,20 @@ class SessionViewModel extends ChangeNotifier {
           liveState == LiveLinkState.connecting ||
           liveState == LiveLinkState.reconnecting);
 
+    /// Si [participantId] aparece conectado. Para este dispositivo manda su estado
+  /// local: el servidor lo marca conectado un instante después de cargar la sala.
+  bool isConnected(String participantId, {required bool serverConnected}) {
+    if (participantId != identity) return serverConnected;
+    final local = switch (liveState) {
+      LiveLinkState.waiting ||
+      LiveLinkState.playing ||
+      LiveLinkState.sharing ||
+      LiveLinkState.blocked =>
+        true,
+      _ => false,
+    };
+    return serverConnected || local || _listening || _watching;
+  }
   bool _listening = false;
   bool _watching = false;
   bool _watchRejected = false;
@@ -521,6 +535,7 @@ class SessionViewModel extends ChangeNotifier {
     switch (event) {
       case LiveStateEvent():
         liveState = event.state;
+        if (event.state == LiveLinkState.waiting && !isEmitter) unawaited(_resync());
         liveMessage = event.message;
         if (event.state == LiveLinkState.idle) {
           liveSource = null;
@@ -652,6 +667,7 @@ class SessionViewModel extends ChangeNotifier {
         onDone: finish,
         cancelOnError: true,
       );
+      unawaited(Future<void>.delayed(const Duration(milliseconds: 800), _resync));
       await streamEnded.future;
       if (_disposed || _streamRejected) break;
       await Future<void>.delayed(reconnectDelay);

@@ -202,6 +202,7 @@ class _RoomPageState extends State<RoomPage> {
               const SizedBox(height: 10),
               ...room.participants.map(
                 (participant) => _ParticipantTile(
+                  connected: model.isConnected(participant.id, serverConnected: participant.connected),
                   participant: participant,
                   isMe: participant.id == model.identity,
                   volume: model.volumeOf(participant.id),
@@ -488,6 +489,7 @@ class _TrackCard extends StatelessWidget {
 
 class _ParticipantTile extends StatelessWidget {
   const _ParticipantTile({
+    required this.connected,
     required this.participant,
     required this.isMe,
     required this.volume,
@@ -495,6 +497,7 @@ class _ParticipantTile extends StatelessWidget {
     this.onKick,
   });
   final Participant participant;
+  final bool connected;
   final bool isMe;
   final double volume;
   final ValueChanged<double>? onVolume;

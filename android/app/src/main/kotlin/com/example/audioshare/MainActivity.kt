@@ -2,7 +2,6 @@ package com.example.audioshare
 
 import android.Manifest
 import android.app.Activity
-import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.projection.MediaProjectionConfig
@@ -19,8 +18,6 @@ class MainActivity : FlutterActivity() {
     private var pending: MethodChannel.Result? = null
     private var pendingUid: Int = -1
     private val playback = LivePlayback()
-
-    private data class AppEntry(val label: String, val uid: Int)
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -86,39 +83,9 @@ class MainActivity : FlutterActivity() {
         super.onDestroy()
     }
 
-    /** Muestra la lista de apps instaladas y devuelve {uid, label} de la elegida. */
-    private fun pickApp(result: MethodChannel.Result) {
-        val launcher = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
-        val pm = packageManager
-        val apps = pm.queryIntentActivities(launcher, 0)
-            .map { it.activityInfo.applicationInfo }
-            .filter { it.packageName != packageName }
-            .distinctBy { it.packageName }
-            .map { AppEntry(it.loadLabel(pm).toString(), it.uid) }
-            .sortedBy { it.label.lowercase() }
+        /** Muestra el selector de apps y devuelve {uid, label} de la elegida. */
+    private fun pickApp(result: MethodChannel.Result) = AppPickerDialog.show(this, result)
 
-        if (apps.isEmpty()) {
-            result.error("no-apps", "No encontré aplicaciones para elegir.", null)
-            return
-        }
-
-        var done = false
-        AlertDialog.Builder(this)
-            .setTitle("¿De qué app quieres compartir el audio?")
-            .setItems(apps.map { it.label }.toTypedArray()) { _, index ->
-                done = true
-                result.success(mapOf("uid" to apps[index].uid, "label" to apps[index].label))
-            }
-            .setNegativeButton("Cancelar", null)
-            .setOnDismissListener {
-                if (!done) {
-                    done = true
-                    result.error("cancelled", "No elegiste ninguna aplicación.", null)
-                }
-            }
-            .create()
-            .show()
-    }
 
     private fun start(result: MethodChannel.Result, uid: Int) {
         if (pending != null) {
