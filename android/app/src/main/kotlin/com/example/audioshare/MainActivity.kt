@@ -18,6 +18,8 @@ class MainActivity : FlutterActivity() {
     private var pending: MethodChannel.Result? = null
     private var pendingUid: Int = -1
     private val playback = LivePlayback()
+    private var linksChannel: MethodChannel? = null
+    private var initialLink: String? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -33,6 +35,21 @@ class MainActivity : FlutterActivity() {
                 }
             }
         )
+
+        // Enlaces audioshare://join?sala=...: el de arranque se entrega al pedirlo y
+        // los que llegan con la app abierta, por onNewIntent.
+        initialLink = intent?.dataString
+        linksChannel = MethodChannel(messenger, "audioshare/links").also { channel ->
+            channel.setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "initialLink" -> {
+                        result.success(initialLink)
+                        initialLink = null
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+        }
 
         MethodChannel(messenger, "audioshare/playback").setMethodCallHandler { call, result ->
             when (call.method) {
@@ -76,6 +93,12 @@ class MainActivity : FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        intent.dataString?.let { linksChannel?.invokeMethod("link", it) }
     }
 
     override fun onDestroy() {

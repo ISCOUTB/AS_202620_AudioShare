@@ -13,8 +13,11 @@ dependencies:
   http: ^1.2.2
   just_audio: ^0.9.40
   just_audio_windows: ^0.2.3
+  mobile_scanner: ^7.0.0
   path_provider: ^2.1.4
+  qr_flutter: ^4.1.0
   shared_preferences: ^2.3.2
+  url_launcher: ^6.3.0
   web: ^1.0.0
 
   cupertino_icons: ^1.0.8

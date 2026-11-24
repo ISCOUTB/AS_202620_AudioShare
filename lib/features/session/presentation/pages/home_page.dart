@@ -1,8 +1,13 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show TargetPlatform, defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'package:url_launcher/url_launcher.dart';
+
+import '../../../../core/app_link_channel.dart';
+import '../../../../core/join_link.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../audio/data/audio_track_repository.dart';
 import '../../../audio/data/mp3_picker.dart';
@@ -14,6 +19,7 @@ import '../../data/repositories/room_control_repository.dart';
 import '../../data/repositories/room_repository.dart';
 import '../viewmodels/session_view_model.dart';
 import 'room_page.dart';
+import 'scan_page.dart';
 
 enum _Mode { join, create }
 
@@ -72,14 +78,65 @@ class _HomePageState extends State<HomePage> {
   PickedMp3? selected;
   EmitterSession? _saved;
 
+  /// Código que trajo el enlace del QR al abrir la web (`?sala=`).
+  String? _linkedCode;
+
   @override
   void initState() {
     super.initState();
+    if (kIsWeb) {
+      // Enlace del código QR de una sala: deja el código ya escrito.
+      final linked = roomCodeFromLink(Uri.base);
+      if (linked != null) {
+        codeController.text = linked;
+        _mode = _Mode.join;
+        _linkedCode = linked;
+      }
+    } else {
+      _listenAppLinks();
+    }
     _loadSaved();
+  }
+
+  /// Android: el QR abre la app con `audioshare://join?sala=...`.
+  Future<void> _listenAppLinks() async {
+    void apply(String code) {
+      if (!mounted) return;
+      setState(() {
+        codeController.text = code;
+        _mode = _Mode.join;
+      });
+    }
+
+    AppLinkChannel.listen(apply);
+    final initial = await AppLinkChannel.initialRoomCode();
+    if (initial != null) apply(initial);
+  }
+
+  /// Abre la cámara para leer el QR de la sala y deja el código escrito.
+  Future<void> _scanQr() async {
+    final code = await Navigator.of(context).push<String>(
+      MaterialPageRoute(builder: (_) => const ScanPage()),
+    );
+    if (code == null || !mounted) return;
+    setState(() {
+      codeController.text = code;
+      _mode = _Mode.join;
+    });
+  }
+
+  /// Web en Android: intenta abrir la app instalada con el código del QR.
+  Future<void> _openInApp(String code) async {
+    await launchUrl(
+      Uri.parse(roomAppOpenLink(code)),
+      mode: LaunchMode.platformDefault,
+      webOnlyWindowName: '_self',
+    );
   }
 
   @override
   void dispose() {
+    if (!kIsWeb) AppLinkChannel.stopListening();
     codeController.dispose();
     nameController.dispose();
     serverController.dispose();
@@ -453,10 +510,37 @@ class _HomePageState extends State<HomePage> {
                 ),
             decoration: const InputDecoration(labelText: 'Código de la sala', hintText: '000000'),
           ),
+          if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android)
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                key: const Key('escanear-qr'),
+                onPressed: _scanQr,
+                icon: const Icon(Icons.qr_code_scanner),
+                label: const Text('Escanear código QR'),
+              ),
+            ),
           const SizedBox(height: 12),
           _nameField(),
           const SizedBox(height: 16),
           _primaryButton('Unirme a la sala', _join),
+          if (kIsWeb &&
+              defaultTargetPlatform == TargetPlatform.android &&
+              _linkedCode != null) ...[
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              key: const Key('abrir-en-app'),
+              onPressed: () => _openInApp(_linkedCode!),
+              icon: const Icon(Icons.android),
+              label: const Text('Abrir en la app de Android'),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '¿Ya la tienes instalada? Si no se abre, sigue aquí en el navegador.',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
         ],
       );
 

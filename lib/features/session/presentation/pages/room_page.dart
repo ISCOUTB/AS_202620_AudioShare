@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
+import '../../../../core/join_link.dart';
 import '../../../audio/data/mp3_picker.dart';
 import '../../../sync/domain/sync_service.dart';
 import '../../data/models/room.dart';
@@ -129,6 +131,51 @@ class _RoomPageState extends State<RoomPage> {
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Código copiado')));
   }
 
+  Future<void> _showQr(String code) {
+    final link = roomJoinLink(code);
+    return showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Únete con tu celular'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                key: const Key('qr-sala'),
+                padding: const EdgeInsets.all(12),
+                color: Colors.white,
+                child: QrImageView(
+                  data: link,
+                  size: 220,
+                  backgroundColor: Colors.white,
+                  eyeStyle: const QrEyeStyle(eyeShape: QrEyeShape.square, color: Colors.black),
+                  dataModuleStyle: const QrDataModuleStyle(
+                    dataModuleShape: QrDataModuleShape.square,
+                    color: Colors.black,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text('Escanéalo con la cámara o escribe este código:', textAlign: TextAlign.center),
+              const SizedBox(height: 4),
+              SelectableText(
+                code,
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 4,
+                    ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          FilledButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cerrar')),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final model = widget.viewModel;
@@ -160,7 +207,11 @@ class _RoomPageState extends State<RoomPage> {
           child: ListView(
             padding: const EdgeInsets.all(20),
             children: [
-              _CodeCard(code: room.id, onCopy: () => _copyCode(room.id)),
+              _CodeCard(
+                code: room.id,
+                onCopy: () => _copyCode(room.id),
+                onShowQr: () => _showQr(room.id),
+              ),
               const SizedBox(height: 16),
               if (model.liveEnabled)
                 LiveCard(model: model)
@@ -249,9 +300,10 @@ List<String> _liveLines(SessionViewModel model) {
 }
 
 class _CodeCard extends StatelessWidget {
-  const _CodeCard({required this.code, required this.onCopy});
+  const _CodeCard({required this.code, required this.onCopy, required this.onShowQr});
   final String code;
   final VoidCallback onCopy;
+  final VoidCallback onShowQr;
 
   @override
   Widget build(BuildContext context) {
@@ -285,6 +337,13 @@ class _CodeCard extends StatelessWidget {
                 ],
               ),
             ),
+            IconButton.filledTonal(
+              key: const Key('mostrar-qr'),
+              tooltip: 'Mostrar código QR',
+              onPressed: onShowQr,
+              icon: const Icon(Icons.qr_code_2),
+            ),
+            const SizedBox(width: 8),
             IconButton.filledTonal(
               tooltip: 'Copiar código',
               onPressed: onCopy,

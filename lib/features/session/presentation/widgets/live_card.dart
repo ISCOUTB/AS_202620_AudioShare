@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../../core/app_links.dart';
 import '../../../live/domain/live_audio_engine.dart';
 import '../viewmodels/session_view_model.dart';
 
@@ -90,6 +92,20 @@ class _EmitterPanelState extends State<_EmitterPanel> {
 
     final options = model.captureOptions;
     final selected = _effective;
+    if (_isPhoneBrowser && options.isNotEmpty && options.every((o) => !o.available)) {
+      return const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _Header(
+            title: 'TRANSMISIÓN EN VIVO',
+            subtitle: 'Desde aquí solo puedes escuchar',
+            live: false,
+          ),
+          SizedBox(height: 12),
+          _PhoneBrowserNotice(),
+        ],
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -184,6 +200,80 @@ class _EmitterPanelState extends State<_EmitterPanel> {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Navegador de un celular o tableta: ahí no se puede capturar audio, así que
+/// en lugar de varias opciones bloqueadas se explica qué hacer.
+bool get _isPhoneBrowser =>
+    kIsWeb &&
+    (defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS);
+
+class _PhoneBrowserNotice extends StatelessWidget {
+  const _PhoneBrowserNotice();
+
+  Future<void> _openApp(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    if (androidAppUrl.isEmpty) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('El enlace de descarga todavía no está disponible.')),
+      );
+      return;
+    }
+    final opened = await launchUrl(Uri.parse(androidAppUrl), mode: LaunchMode.externalApplication);
+    if (!opened) {
+      messenger.showSnackBar(const SnackBar(content: Text('No se pudo abrir el enlace.')));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final android = defaultTargetPlatform == TargetPlatform.android;
+    return Container(
+      key: const Key('aviso-navegador-telefono'),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.info_outline, color: scheme.primary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Los navegadores del teléfono no pueden capturar audio',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            android
+                ? 'Para transmitir desde este celular usa la app de Android. '
+                    'También puedes abrir AudioShare en un computador con Chrome o Edge.'
+                : 'Para transmitir, abre AudioShare en un computador con Chrome o Edge.',
+          ),
+          if (android) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                key: const Key('descargar-app-android'),
+                onPressed: () => _openApp(context),
+                icon: const Icon(Icons.android),
+                label: const Text('DESCARGAR LA APP DE ANDROID'),
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
